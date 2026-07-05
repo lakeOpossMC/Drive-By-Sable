@@ -1,5 +1,6 @@
 package edn.lakeopossmc.drivebysable;
 
+import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.NetworkBackupDriveBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -17,6 +18,14 @@ public final class CableBlockEntities {
         "backup_drive",
         () -> BlockEntityType.Builder.of(NetworkBackupDriveBlockEntity::new, CableBlocks.BACKUP_DRIVE.get()).build(null)
     );
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CableTypewriterHubBlockEntity>>
+            CABLE_TYPEWRITER_HUB = BLOCK_ENTITY_TYPES.register(
+            "cable_typewriter_hub",
+            () -> BlockEntityType.Builder.of(
+                    CableTypewriterHubBlockEntity::new,
+                    CableBlocks.CABLE_TYPEWRITER_HUB.get()
+            ).build(null));
 
     private CableBlockEntities() {
     }

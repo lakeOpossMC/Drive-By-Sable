@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "A": { "item": "create:transmitter" },
+    "B": { "item": "simulated:linked_typewriter" },
+    "C": { "item": "drivebysable:cable_io_bus" },
+    "D": { "item": "drivebysable:cable" }
+  },
+  "pattern": [
+    "ABA",
+    "DCD",
+    "   "
+  ],
+  "result": { "count": 1, "id": "drivebysable:cable_typewriter_hub" }
+}

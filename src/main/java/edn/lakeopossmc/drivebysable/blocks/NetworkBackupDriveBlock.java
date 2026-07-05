@@ -2,7 +2,9 @@ package edn.lakeopossmc.drivebysable.blocks;
 
 import com.mojang.serialization.MapCodec;
 import edn.lakeopossmc.drivebysable.CableBlockEntities;
+import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
@@ -53,5 +55,14 @@ public class NetworkBackupDriveBlock extends Block implements EntityBlock {
             tickState,
             (NetworkBackupDriveBlockEntity) blockEntity
         );
+    }
+
+    @Override
+    protected void onRemove(final BlockState state, final Level level, final BlockPos pos,
+                            final BlockState newState, final boolean movedByPiston) {
+        if (!state.is(newState.getBlock()) && level instanceof final ServerLevel serverLevel) {
+            CableNetworkManager.get(serverLevel).removeAllFromSourceInternal(null, serverLevel, pos);
+        }
+        super.onRemove(state, level, pos, newState, movedByPiston);
     }
 }

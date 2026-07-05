@@ -12,6 +12,7 @@ public final class CablePackets {
             .playToServer(BindLecternCableHubPacket.TYPE, BindLecternCableHubPacket.STREAM_CODEC, BindLecternCableHubPacket::handle)
             .playToServer(CableAddConnectionPacket.TYPE, CableAddConnectionPacket.STREAM_CODEC, CableAddConnectionPacket::handle)
             .playToServer(CableRemoveConnectionPacket.TYPE, CableRemoveConnectionPacket.STREAM_CODEC, CableRemoveConnectionPacket::handle)
-            .playToServer(CableNetworkRequestSyncPacket.TYPE, CableNetworkRequestSyncPacket.STREAM_CODEC, CableNetworkRequestSyncPacket::handle);
+            .playToServer(CableNetworkRequestSyncPacket.TYPE, CableNetworkRequestSyncPacket.STREAM_CODEC, CableNetworkRequestSyncPacket::handle)
+            .playToServer(CableTypewriterHubKeyPacket.TYPE, CableTypewriterHubKeyPacket.STREAM_CODEC, CableTypewriterHubKeyPacket::handle);
     }
 }

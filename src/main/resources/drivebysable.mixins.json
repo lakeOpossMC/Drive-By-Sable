@@ -16,7 +16,10 @@
     "compat.tweaked.MixinTweakedController",
     "compat.tweaked.MixinTweakedControllerAxisPacket",
     "compat.tweaked.MixinTweakedControllerButtonPacket",
-    "compat.tweaked.MixinTweakedControllerStopLecternPacket"
+    "compat.tweaked.MixinTweakedControllerStopLecternPacket",
+    "compat.MixinLinkedTypewriterItemBindHandler",
+    "compat.MixinLinkedTypewriterInteractionHandler",
+    "compat.MixinTypewriterSaveKeyToItemPacket"
   ],
   "client": [
     "client.MixinLinkedControllerClientHandlerAccessor",

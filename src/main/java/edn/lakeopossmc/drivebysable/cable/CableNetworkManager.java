@@ -933,6 +933,13 @@ public final class CableNetworkManager {
         return transformRelativeSnapshotForPlacement(snapshot, schematicBackupPos, context.getSetupTransform());
     }
 
+    public boolean hasSinks(final BlockPos pos, final String channel) {
+        final Map<String, Set<CableNetworkSink>> channels = this.sinks.get(pos.asLong());
+        if (channels == null) return false;
+        final Set<CableNetworkSink> sinkSet = channels.get(channel);
+        return sinkSet != null && !sinkSet.isEmpty();
+    }
+
     private static CompoundTag transformOwnerAwareSnapshotForPlacement(
         final CompoundTag snapshot,
         final SubLevelSchematicSerializationContext context

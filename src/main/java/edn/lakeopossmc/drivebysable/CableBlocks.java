@@ -2,6 +2,7 @@ package edn.lakeopossmc.drivebysable;
 
 import edn.lakeopossmc.drivebysable.blocks.AdvancedCableHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.CableHubBlock;
+import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.NetworkBackupDriveBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -37,6 +38,15 @@ public final class CableBlocks {
                 .strength(3.0F, 6.0F)
                 .requiresCorrectToolForDrops())
     );
+
+    public static final DeferredBlock<CableTypewriterHubBlock> CABLE_TYPEWRITER_HUB = BLOCKS.register(
+        "cable_typewriter_hub",
+        () -> new CableTypewriterHubBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.METAL)
+                .sound(SoundType.METAL)
+                .strength(2.5F, 4.0F)
+                .requiresCorrectToolForDrops()));
+
 
     private CableBlocks() {
     }

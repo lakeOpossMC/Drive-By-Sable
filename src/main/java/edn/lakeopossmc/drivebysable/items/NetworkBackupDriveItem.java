@@ -1,26 +1,27 @@
 package edn.lakeopossmc.drivebysable.items;
 
 import com.simibubi.create.foundation.item.TooltipHelper;
+import edn.lakeopossmc.drivebysable.blocks.NetworkBackupDriveBlock;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
-import net.minecraft.world.item.Item;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 
 import java.util.List;
 
-public class CableItem extends Item {
+public class NetworkBackupDriveItem extends BlockItem {
 
-    private static final String TOOLTIP_KEY = "item.drivebysable.cable.tooltip";
+    private static final String TOOLTIP_KEY = "block.drivebysable.backup_drive.tooltip";
 
     private static final Style GOLD_DARK = Style.EMPTY.withColor(0xC7954B);
     private static final Style GOLD_LIGHT = Style.EMPTY.withColor(0xEEDA78);
 
-    public CableItem(final Properties properties) {
-        super(properties);
+    public NetworkBackupDriveItem(final NetworkBackupDriveBlock block, final Properties properties) {
+        super(block, properties);
     }
 
     @Override

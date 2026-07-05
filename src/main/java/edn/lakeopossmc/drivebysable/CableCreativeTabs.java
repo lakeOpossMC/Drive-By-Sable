@@ -27,6 +27,9 @@ public final class CableCreativeTabs {
                         if (ModList.get().isLoaded("create_tweaked_controllers")) {
                             output.accept(CableItems.ADVANCED_CABLE_HUB_BLOCK.get());
                         }
+                        if (ModList.get().isLoaded("simulated")) {
+                            output.accept(CableItems.CABLE_TYPEWRITER_HUB.get());
+                        }
                     })
                     .build()
     );

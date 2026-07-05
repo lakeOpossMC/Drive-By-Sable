@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "drivebysable:cable_hub"
+    "drivebysable:cable_hub",
+    "drivebysable:cable_typewriter_hub"
   ]
 }

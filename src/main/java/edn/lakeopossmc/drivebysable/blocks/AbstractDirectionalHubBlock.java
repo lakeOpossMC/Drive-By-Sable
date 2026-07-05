@@ -1,14 +1,19 @@
 package edn.lakeopossmc.drivebysable.blocks;
 
 import com.mojang.serialization.MapCodec;
+import com.simibubi.create.content.equipment.wrench.IWrenchable;
+import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import edn.lakeopossmc.drivebysable.cable.MultiChannelCableSource;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.FaceAttachedHorizontalDirectionalBlock;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.AttachFace;
@@ -22,7 +27,7 @@ import java.util.List;
 // * Moved shape logic here so I don't have to type it twice in the block classes
 // * Moved some channel logic here for the same reason
 // * Subclasses will pass channel list and item to check for when right-clicked
-public abstract class AbstractDirectionalHubBlock extends FaceAttachedHorizontalDirectionalBlock implements MultiChannelCableSource {
+public abstract class AbstractDirectionalHubBlock extends FaceAttachedHorizontalDirectionalBlock implements MultiChannelCableSource, IWrenchable {
     // --- SHAPE DEFS FOR ROTATION --- //
     protected static final VoxelShape NORTH_AABB = Block.box(0.0, 0.0, 8.0, 16.0, 16.0, 16.0);
     protected static final VoxelShape SOUTH_AABB = Block.box(0.0, 0.0, 0.0, 16.0, 16.0, 8.0);
@@ -92,6 +97,11 @@ public abstract class AbstractDirectionalHubBlock extends FaceAttachedHorizontal
         return state;
     }
 
+    @Override
+    public BlockState rotate(final BlockState state, final Rotation rotation) {
+        return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
+    }
+
     // --- CHANNEL LOGIC (MOSTLY UNCHANGED FROM OG DRIVEBYWIRE) --- //
     @Override
     public List<String> cable$getChannels() {
@@ -106,6 +116,15 @@ public abstract class AbstractDirectionalHubBlock extends FaceAttachedHorizontal
             return channels.getFirst();
         }
         return channels.get(Math.floorMod(currentIndex + (forward ? 1 : -1), channels.size()));
+    }
+
+    @Override
+    protected void onRemove(final BlockState state, final Level level, final BlockPos pos,
+                            final BlockState newState, final boolean movedByPiston) {
+        if (!state.is(newState.getBlock()) && level instanceof final ServerLevel serverLevel) {
+            CableNetworkManager.get(serverLevel).removeAllFromSourceInternal(null, serverLevel, pos);
+        }
+        super.onRemove(state, level, pos, newState, movedByPiston);
     }
 
     protected abstract List<String> channels();

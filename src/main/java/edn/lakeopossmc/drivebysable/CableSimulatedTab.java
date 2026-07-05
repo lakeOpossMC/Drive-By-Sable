@@ -15,6 +15,7 @@ public final class CableSimulatedTab {
         addItem(CableItems.CABLE_CUTTER.get());
         addItem(CableItems.CABLE_HUB_BLOCK.get());
         addItem(CableItems.ADVANCED_CABLE_HUB_BLOCK.get());
+        addItem(CableItems.CABLE_TYPEWRITER_HUB.get());
         addItem(CableItems.BACKUP_DRIVE.get());
     }
 

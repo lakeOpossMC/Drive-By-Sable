@@ -8,6 +8,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 
@@ -55,6 +56,13 @@ public final class CableCommonEvents {
                     level.getBestNeighborSignal(neighborPos)
                 );
             }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onBlockBreak(final BlockEvent.BreakEvent event) {
+        if (event.getLevel() instanceof final ServerLevel level) {
+            CableNetworkManager.get(level).removeAllFromSourceInternal(null, level, event.getPos());
         }
     }
 }
