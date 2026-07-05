@@ -1,9 +1,10 @@
+The following license applies to all contents of this repository EXCEPT
+for the following directories and ALL respective subdirectories:
+src\main\resources\assets\drivebysable
+
 MIT License
 
-Copyright (c) 2023 NeoForged project
-
-This license applies to the template files as supplied by github.com/NeoForged/MDK
-
+Copyright (c) 2023 lakeOpossMC
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
