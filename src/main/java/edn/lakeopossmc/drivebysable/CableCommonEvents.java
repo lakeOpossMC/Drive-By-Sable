@@ -6,6 +6,7 @@ import edn.lakeopossmc.drivebysable.compat.TweakedControllerCableServerHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -39,10 +40,10 @@ public final class CableCommonEvents {
         final BlockState state = level.getBlockState(pos);
         if (state.isSignalSource()) {
             final int maxSignal = EnumSet.allOf(Direction.class)
-                .stream()
-                .map(direction -> state.getSignal(level, pos, direction))
-                .max(Comparator.naturalOrder())
-                .orElse(0);
+                    .stream()
+                    .map(direction -> state.getSignal(level, pos, direction))
+                    .max(Comparator.naturalOrder())
+                    .orElse(0);
             CableNetworkManager.trySetSignalAt(level, pos, CableNetworkManager.WORLD_CHANNEL, maxSignal);
         }
 
@@ -50,10 +51,10 @@ public final class CableCommonEvents {
             final BlockPos neighborPos = pos.relative(notifiedSide);
             if (!level.getBlockState(neighborPos).isSignalSource()) {
                 CableNetworkManager.trySetSignalAt(
-                    level,
-                    neighborPos,
-                    CableNetworkManager.WORLD_CHANNEL,
-                    level.getBestNeighborSignal(neighborPos)
+                        level,
+                        neighborPos,
+                        CableNetworkManager.WORLD_CHANNEL,
+                        level.getBestNeighborSignal(neighborPos)
                 );
             }
         }
@@ -62,7 +63,8 @@ public final class CableCommonEvents {
     @SubscribeEvent
     public static void onBlockBreak(final BlockEvent.BreakEvent event) {
         if (event.getLevel() instanceof final ServerLevel level) {
-            CableNetworkManager.get(level).removeAllFromSourceInternal(null, level, event.getPos());
+            final ServerPlayer player = event.getPlayer() instanceof final ServerPlayer serverPlayer ? serverPlayer : null;
+            CableNetworkManager.get(level).removeAllFromSourceInternal(player, level, event.getPos());
         }
     }
 }

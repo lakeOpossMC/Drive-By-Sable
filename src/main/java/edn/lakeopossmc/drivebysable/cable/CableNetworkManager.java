@@ -70,31 +70,31 @@ public final class CableNetworkManager {
     }
 
     public static ConnectionResult createConnection(
-        final Level level,
-        final BlockPos source,
-        final BlockPos sinkPos,
-        final Direction sinkDirection,
-        final String channel
+            final Level level,
+            final BlockPos source,
+            final BlockPos sinkPos,
+            final Direction sinkDirection,
+            final String channel
     ) {
         return get(level).addConnection(level, source, sinkPos, sinkDirection, channel);
     }
 
     public static boolean hasConnection(
-        final Level level,
-        final BlockPos source,
-        final BlockPos sinkPos,
-        final Direction sinkDirection,
-        final String channel
+            final Level level,
+            final BlockPos source,
+            final BlockPos sinkPos,
+            final Direction sinkDirection,
+            final String channel
     ) {
         return get(level).containsConnection(source, sinkPos, sinkDirection, channel);
     }
 
     public static boolean removeConnection(
-        final Level level,
-        final BlockPos source,
-        final BlockPos sinkPos,
-        final Direction sinkDirection,
-        final String channel
+            final Level level,
+            final BlockPos source,
+            final BlockPos sinkPos,
+            final Direction sinkDirection,
+            final String channel
     ) {
         return get(level).removeConnectionInternal(level, source, sinkPos, sinkDirection, channel);
     }
@@ -108,10 +108,10 @@ public final class CableNetworkManager {
     }
 
     public static void handleAssemblyMove(
-        final ServerLevel originLevel,
-        final ServerLevel resultingLevel,
-        final BlockPos oldPos,
-        final SubLevelAssemblyHelper.AssemblyTransform transform
+            final ServerLevel originLevel,
+            final ServerLevel resultingLevel,
+            final BlockPos oldPos,
+            final SubLevelAssemblyHelper.AssemblyTransform transform
     ) {
         final CableNetworkManager originManager = get(originLevel);
         originManager.remapMovedBlockInternal(oldPos, transform);
@@ -125,11 +125,11 @@ public final class CableNetworkManager {
     }
 
     public ConnectionResult addConnection(
-        final Level level,
-        final BlockPos source,
-        final BlockPos sinkPos,
-        final Direction sinkDirection,
-        final String channel
+            final Level level,
+            final BlockPos source,
+            final BlockPos sinkPos,
+            final Direction sinkDirection,
+            final String channel
     ) {
         if (source.equals(sinkPos)) {
             return ConnectionResult.FAIL_SAME_BLOCK;
@@ -157,22 +157,22 @@ public final class CableNetworkManager {
     }
 
     public boolean containsConnection(
-        final BlockPos source,
-        final BlockPos sinkPos,
-        final Direction sinkDirection,
-        final String channel
+            final BlockPos source,
+            final BlockPos sinkPos,
+            final Direction sinkDirection,
+            final String channel
     ) {
         return sinks.getOrDefault(source.asLong(), Map.of())
-            .getOrDefault(channel, Set.of())
-            .contains(CableNetworkSink.of(sinkPos, sinkDirection));
+                .getOrDefault(channel, Set.of())
+                .contains(CableNetworkSink.of(sinkPos, sinkDirection));
     }
 
     public boolean removeConnectionInternal(
-        final Level level,
-        final BlockPos source,
-        final BlockPos sinkPos,
-        final Direction sinkDirection,
-        final String channel
+            final Level level,
+            final BlockPos source,
+            final BlockPos sinkPos,
+            final Direction sinkDirection,
+            final String channel
     ) {
         final long sourceKey = source.asLong();
         final Map<String, Set<CableNetworkSink>> perChannel = sinks.get(sourceKey);
@@ -213,7 +213,7 @@ public final class CableNetworkManager {
         }
 
         perChannel.forEach((channel, sinksOnChannel) -> sinksOnChannel.forEach(sink -> {
-            if (CableConfig.CONFIG.shouldConsumeCables.get() && !serverPlayer.hasInfiniteMaterials()) {
+            if (serverPlayer != null && CableConfig.CONFIG.shouldConsumeCables.get() && !serverPlayer.hasInfiniteMaterials()) {
                 final ItemStack cable = new ItemStack(CableItems.CABLE.get());
                 if (!serverPlayer.addItem(cable)) {
                     serverPlayer.drop(cable, false);
@@ -284,9 +284,9 @@ public final class CableNetworkManager {
         final BlockState state = level.getBlockState(pos);
         if (state.isSignalSource()) {
             return Arrays.stream(Direction.values())
-                .mapToInt(direction -> state.getSignal(level, pos, direction))
-                .max()
-                .orElse(0);
+                    .mapToInt(direction -> state.getSignal(level, pos, direction))
+                    .max()
+                    .orElse(0);
         }
 
         return level.getBestNeighborSignal(pos);
@@ -307,10 +307,10 @@ public final class CableNetworkManager {
     }
 
     public RestoreResult restoreBackupSnapshot(
-        final Level level,
-        final BlockPos backupPos,
-        final Direction currentFacing,
-        final CompoundTag snapshot
+            final Level level,
+            final BlockPos backupPos,
+            final Direction currentFacing,
+            final CompoundTag snapshot
     ) {
         final int snapshotVersion = snapshot.getInt(SNAPSHOT_VERSION_KEY);
         if (snapshotVersion >= OWNER_AWARE_SNAPSHOT_VERSION) {
@@ -321,10 +321,10 @@ public final class CableNetworkManager {
     }
 
     private BackupSnapshot createRelativeBackupSnapshot(
-        final Level level,
-        final BlockPos backupPos,
-        final SubLevel backupSubLevel,
-        final Direction savedFacing
+            final Level level,
+            final BlockPos backupPos,
+            final SubLevel backupSubLevel,
+            final Direction savedFacing
     ) {
         final CompoundTag tag = new CompoundTag();
         final ListTag connections = new ListTag();
@@ -368,10 +368,10 @@ public final class CableNetworkManager {
     }
 
     private BackupSnapshot createSchematicBackupSnapshot(
-        final Level level,
-        final BlockPos backupPos,
-        final SubLevel backupSubLevel,
-        final SubLevelSchematicSerializationContext context
+            final Level level,
+            final BlockPos backupPos,
+            final SubLevel backupSubLevel,
+            final SubLevelSchematicSerializationContext context
     ) {
         final CompoundTag tag = new CompoundTag();
         final SubLevelSchematicSerializationContext.SchematicMapping ownerMapping = context.getMapping(backupSubLevel);
@@ -423,12 +423,12 @@ public final class CableNetworkManager {
     }
 
     private boolean writeSchematicEndpoint(
-        final CompoundTag connection,
-        final String positionKey,
-        final String ownerKey,
-        final BlockPos endpointPos,
-        final SubLevel endpointSubLevel,
-        final SubLevelSchematicSerializationContext context
+            final CompoundTag connection,
+            final String positionKey,
+            final String ownerKey,
+            final BlockPos endpointPos,
+            final SubLevel endpointSubLevel,
+            final SubLevelSchematicSerializationContext context
     ) {
         if (endpointSubLevel == null) {
             return false;
@@ -442,15 +442,15 @@ public final class CableNetworkManager {
         }
 
         return context.getBoundingBox() != null
-            && context.getBoundingBox().contains(endpointPos.getX(), endpointPos.getY(), endpointPos.getZ())
-            && writeMainTemplateEndpoint(connection, positionKey, endpointPos, context);
+                && context.getBoundingBox().contains(endpointPos.getX(), endpointPos.getY(), endpointPos.getZ())
+                && writeMainTemplateEndpoint(connection, positionKey, endpointPos, context);
     }
 
     private boolean writeMainTemplateEndpoint(
-        final CompoundTag connection,
-        final String positionKey,
-        final BlockPos endpointPos,
-        final SubLevelSchematicSerializationContext context
+            final CompoundTag connection,
+            final String positionKey,
+            final BlockPos endpointPos,
+            final SubLevelSchematicSerializationContext context
     ) {
         if (context.getPlaceTransform() == null) {
             return false;
@@ -461,10 +461,10 @@ public final class CableNetworkManager {
     }
 
     private RestoreResult restoreRelativeBackupSnapshot(
-        final Level level,
-        final BlockPos backupPos,
-        final Direction currentFacing,
-        final CompoundTag snapshot
+            final Level level,
+            final BlockPos backupPos,
+            final Direction currentFacing,
+            final CompoundTag snapshot
     ) {
         final SubLevel backupSubLevel = Sable.HELPER.getContaining(level, backupPos);
         if (backupSubLevel == null) {
@@ -474,8 +474,8 @@ public final class CableNetworkManager {
         final int snapshotVersion = snapshot.getInt(SNAPSHOT_VERSION_KEY);
         final Direction savedFacing = Direction.byName(snapshot.getString(FACING_KEY));
         final Rotation rotation = snapshotVersion >= OWNER_AWARE_SNAPSHOT_VERSION || savedFacing == null
-            ? Rotation.NONE
-            : getRotation(savedFacing, currentFacing);
+                ? Rotation.NONE
+                : getRotation(savedFacing, currentFacing);
         int restoredConnections = 0;
         int deferredConnections = 0;
         int existingConnections = 0;
@@ -489,9 +489,9 @@ public final class CableNetworkManager {
                 }
 
                 if (!connection.contains(SOURCE_KEY, Tag.TAG_LONG)
-                    || !connection.contains(SINK_KEY, Tag.TAG_LONG)
-                    || !connection.contains(DIRECTION_KEY, Tag.TAG_BYTE)
-                    || !connection.contains(CHANNEL_KEY, Tag.TAG_STRING)) {
+                        || !connection.contains(SINK_KEY, Tag.TAG_LONG)
+                        || !connection.contains(DIRECTION_KEY, Tag.TAG_BYTE)
+                        || !connection.contains(CHANNEL_KEY, Tag.TAG_STRING)) {
                     continue;
                 }
 
@@ -502,7 +502,7 @@ public final class CableNetworkManager {
                 final String channel = connection.getString(CHANNEL_KEY);
 
                 if (!isSameSubLevel(backupSubLevel, Sable.HELPER.getContaining(level, sourcePos))
-                    || !isSameSubLevel(backupSubLevel, Sable.HELPER.getContaining(level, sinkPos))) {
+                        || !isSameSubLevel(backupSubLevel, Sable.HELPER.getContaining(level, sinkPos))) {
                     deferredConnections++;
                     continue;
                 }
@@ -519,12 +519,12 @@ public final class CableNetworkManager {
         }
 
         return new RestoreResult(
-            restoredConnections,
-            existingConnections,
-            deferredConnections,
-            snapshot.getInt(UNSUPPORTED_CONNECTIONS_KEY),
-            expectedConnections,
-            true
+                restoredConnections,
+                existingConnections,
+                deferredConnections,
+                snapshot.getInt(UNSUPPORTED_CONNECTIONS_KEY),
+                expectedConnections,
+                true
         );
     }
 
@@ -542,9 +542,9 @@ public final class CableNetworkManager {
                 }
 
                 if (!connection.contains(SOURCE_KEY, Tag.TAG_LONG)
-                    || !connection.contains(SINK_KEY, Tag.TAG_LONG)
-                    || !connection.contains(DIRECTION_KEY, Tag.TAG_BYTE)
-                    || !connection.contains(CHANNEL_KEY, Tag.TAG_STRING)) {
+                        || !connection.contains(SINK_KEY, Tag.TAG_LONG)
+                        || !connection.contains(DIRECTION_KEY, Tag.TAG_BYTE)
+                        || !connection.contains(CHANNEL_KEY, Tag.TAG_STRING)) {
                     continue;
                 }
 
@@ -573,29 +573,29 @@ public final class CableNetworkManager {
         }
 
         return new RestoreResult(
-            restoredConnections,
-            existingConnections,
-            deferredConnections,
-            snapshot.getInt(UNSUPPORTED_CONNECTIONS_KEY),
-            expectedConnections,
-            true
+                restoredConnections,
+                existingConnections,
+                deferredConnections,
+                snapshot.getInt(UNSUPPORTED_CONNECTIONS_KEY),
+                expectedConnections,
+                true
         );
     }
 
     private ResolvedEndpoint resolveOwnerAwareEndpoint(
-        final Level level,
-        final CompoundTag connection,
-        final String positionKey,
-        final String ownerKey
+            final Level level,
+            final CompoundTag connection,
+            final String positionKey,
+            final String ownerKey
     ) {
         if (connection.hasUUID(ownerKey)) {
             final UUID ownerId = connection.getUUID(ownerKey);
             final SubLevel ownerSubLevel = SubLevelContainer.getContainer(level).getSubLevel(ownerId);
             if (ownerSubLevel == null) {
                 DriveBySableMod.LOGGER.info(
-                    "[schematic-debug] Deferred owner-aware endpoint {} because subLevel {} is not available yet.",
-                    positionKey,
-                    ownerId
+                        "[schematic-debug] Deferred owner-aware endpoint {} because subLevel {} is not available yet.",
+                        positionKey,
+                        ownerId
                 );
                 return ResolvedEndpoint.waiting();
             }
@@ -677,9 +677,9 @@ public final class CableNetworkManager {
             }
 
             if (!connection.contains(SOURCE_KEY, Tag.TAG_LONG)
-                || !connection.contains(SINK_KEY, Tag.TAG_LONG)
-                || !connection.contains(DIRECTION_KEY, Tag.TAG_BYTE)
-                || !connection.contains(CHANNEL_KEY, Tag.TAG_STRING)) {
+                    || !connection.contains(SINK_KEY, Tag.TAG_LONG)
+                    || !connection.contains(DIRECTION_KEY, Tag.TAG_BYTE)
+                    || !connection.contains(CHANNEL_KEY, Tag.TAG_STRING)) {
                 continue;
             }
 
@@ -760,7 +760,7 @@ public final class CableNetworkManager {
 
     private Set<CableNetworkSink> getOrCreateSinksOnChannel(final BlockPos source, final String channel) {
         return sinks.computeIfAbsent(source.asLong(), ignored -> new HashMap<>())
-            .computeIfAbsent(channel, ignored -> new HashSet<>());
+                .computeIfAbsent(channel, ignored -> new HashSet<>());
     }
 
     private void addSinkReference(final long sourcePos, final String channel, final CableNetworkSink sink) {
@@ -769,7 +769,7 @@ public final class CableNetworkManager {
 
     private void addSinkReference(final long sinkPos, final long sourcePos, final String channel, final int direction) {
         sinkReferences.computeIfAbsent(sinkPos, ignored -> new HashSet<>())
-            .add(new SinkReference(sourcePos, channel, direction));
+                .add(new SinkReference(sourcePos, channel, direction));
     }
 
     private void removeSinkReference(final long sourcePos, final String channel, final CableNetworkSink sink) {
@@ -821,11 +821,11 @@ public final class CableNetworkManager {
     }
 
     private void applySignalToSink(
-        final Level level,
-        final long sourcePos,
-        final String channel,
-        final CableNetworkSink sink,
-        final int signal
+            final Level level,
+            final long sourcePos,
+            final String channel,
+            final CableNetworkSink sink,
+            final int signal
     ) {
         final BlockPos sinkPos = BlockPos.of(sink.position());
         final Direction sinkDirection = Direction.from3DDataValue(sink.direction());
@@ -877,12 +877,12 @@ public final class CableNetworkManager {
     }
 
     public record RestoreResult(
-        int restoredConnections,
-        int existingConnections,
-        int deferredConnections,
-        int skippedConnections,
-        int expectedConnections,
-        boolean attempted
+            int restoredConnections,
+            int existingConnections,
+            int deferredConnections,
+            int skippedConnections,
+            int expectedConnections,
+            boolean attempted
     ) {
     }
 
@@ -916,9 +916,9 @@ public final class CableNetworkManager {
     }
 
     public static CompoundTag transformBackupSnapshotForPlacement(
-        final CompoundTag snapshot,
-        final BlockPos schematicBackupPos,
-        final SubLevelSchematicSerializationContext context
+            final CompoundTag snapshot,
+            final BlockPos schematicBackupPos,
+            final SubLevelSchematicSerializationContext context
     ) {
         if (context == null) {
             return snapshot;
@@ -944,12 +944,12 @@ public final class CableNetworkManager {
     }
 
     private static CompoundTag transformOwnerAwareSnapshotForPlacement(
-        final CompoundTag snapshot,
-        final SubLevelSchematicSerializationContext context
+            final CompoundTag snapshot,
+            final SubLevelSchematicSerializationContext context
     ) {
         if (snapshot.getBoolean(PLACEMENT_RESOLVED_KEY)
-            || context.getSetupTransform() == null
-            || context.getPlaceTransform() == null) {
+                || context.getSetupTransform() == null
+                || context.getPlaceTransform() == null) {
             return snapshot;
         }
 
@@ -995,9 +995,9 @@ public final class CableNetworkManager {
     }
 
     private static boolean rewriteOwnerUuidForPlacement(
-        final CompoundTag tag,
-        final String ownerKey,
-        final SubLevelSchematicSerializationContext context
+            final CompoundTag tag,
+            final String ownerKey,
+            final SubLevelSchematicSerializationContext context
     ) {
         if (!tag.hasUUID(ownerKey)) {
             return false;
@@ -1013,9 +1013,9 @@ public final class CableNetworkManager {
     }
 
     private static CompoundTag transformRelativeSnapshotForPlacement(
-        final CompoundTag snapshot,
-        final BlockPos schematicBackupPos,
-        final Function<BlockPos, BlockPos> setupTransform
+            final CompoundTag snapshot,
+            final BlockPos schematicBackupPos,
+            final Function<BlockPos, BlockPos> setupTransform
     ) {
         if (setupTransform == null) {
             return snapshot;
@@ -1030,8 +1030,8 @@ public final class CableNetworkManager {
             }
 
             if (!connection.contains(SOURCE_KEY, Tag.TAG_LONG)
-                || !connection.contains(SINK_KEY, Tag.TAG_LONG)
-                || !connection.contains(DIRECTION_KEY, Tag.TAG_BYTE)) {
+                    || !connection.contains(SINK_KEY, Tag.TAG_LONG)
+                    || !connection.contains(DIRECTION_KEY, Tag.TAG_BYTE)) {
                 continue;
             }
 
@@ -1058,8 +1058,8 @@ public final class CableNetworkManager {
     }
 
     private static BlockPos transformMainTemplatePosition(
-        final BlockPos schematicPosition,
-        final SubLevelSchematicSerializationContext context
+            final BlockPos schematicPosition,
+            final SubLevelSchematicSerializationContext context
     ) {
         return context.getPlaceTransform().apply(context.getSetupTransform().apply(schematicPosition));
     }
@@ -1089,9 +1089,9 @@ public final class CableNetworkManager {
     }
 
     private static Direction transformDirection(
-        final Direction direction,
-        final BlockPos origin,
-        final Function<BlockPos, BlockPos> setupTransform
+            final Direction direction,
+            final BlockPos origin,
+            final Function<BlockPos, BlockPos> setupTransform
     ) {
         if (direction.getAxis().isVertical()) {
             final BlockPos delta = setupTransform.apply(origin.relative(direction)).subtract(setupTransform.apply(origin));
