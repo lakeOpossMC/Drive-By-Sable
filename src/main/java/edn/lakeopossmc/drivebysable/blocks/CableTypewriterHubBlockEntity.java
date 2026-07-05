@@ -2,8 +2,10 @@ package edn.lakeopossmc.drivebysable.blocks;
 
 import dev.simulated_team.simulated.content.blocks.redstone.linked_typewriter.LinkedTypewriterBlockEntity;
 import edn.lakeopossmc.drivebysable.CableBlockEntities;
+import edn.lakeopossmc.drivebysable.DriveBySableMod;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import edn.lakeopossmc.drivebysable.compat.CableTypewriterHubServerHandler;
+import net.createmod.catnip.lang.Lang;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -11,6 +13,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.Collections;
@@ -119,6 +122,22 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
     @Override
     public Component getDisplayName() {
         return this.getBlockState().getBlock().getName();
+    }
+
+    @Override
+    public void sendConnectMessage(final Player player) {
+        player.displayClientMessage(
+                Lang.builder(DriveBySableMod.MOD_ID).translate("typewriter_hub.start_controlling").component(),
+                true
+        );
+    }
+
+    @Override
+    public void sendDisconnectMessage(final Player player) {
+        player.displayClientMessage(
+                Lang.builder(DriveBySableMod.MOD_ID).translate("typewriter_hub.stop_controlling").component(),
+                true
+        );
     }
 
     public static CableTypewriterHubBlockEntity getClientInstance() {
