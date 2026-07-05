@@ -9,7 +9,5 @@ KNOWN ISSUES:
 - Block sounds are still not what they should be, working on a fix.
 - Hitboxes still are not the correct shape to match new models.
 - Not happy with Simulated creative tab banner (aesthetic mismatch).
-- Tooltips do not function.
-- Ponders do not function.
 
 Fixes for these issues are coming in the next beta release. For now, the mod is stable and accomplishes the original goal.
