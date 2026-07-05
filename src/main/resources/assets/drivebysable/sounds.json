@@ -6,5 +6,34 @@
   "plug_out": {
     "subtitle": "subtitle.drivebysable.plug.out",
     "sounds" : [{ "name": "drivebysable:plug_out" }]
+  },
+  "block.backup_drive.break": {
+    "subtitle": "subtitle.block.generic.break",
+    "sounds": [
+      { "name": "drivebysable:block/backup_drive/break1" },
+      { "name": "drivebysable:block/backup_drive/break2" },
+      { "name": "drivebysable:block/backup_drive/break3" },
+      { "name": "drivebysable:block/backup_drive/break4" }
+    ]
+  },
+  "block.backup_drive.place": {
+    "subtitle": "subtitle.block.generic.place",
+    "sounds": [
+      { "name": "drivebysable:block/backup_drive/place1" },
+      { "name": "drivebysable:block/backup_drive/place2" },
+      { "name": "drivebysable:block/backup_drive/place3" },
+      { "name": "drivebysable:block/backup_drive/place4" }
+    ]
+  },
+  "block.backup_drive.step": {
+    "subtitle": "subtitle.block.generic.footsteps",
+    "sounds": [
+      { "name": "drivebysable:block/backup_drive/step1" },
+      { "name": "drivebysable:block/backup_drive/step2" },
+      { "name": "drivebysable:block/backup_drive/step3" },
+      { "name": "drivebysable:block/backup_drive/step4" },
+      { "name": "drivebysable:block/backup_drive/step5" },
+      { "name": "drivebysable:block/backup_drive/step6" }
+    ]
   }
 }

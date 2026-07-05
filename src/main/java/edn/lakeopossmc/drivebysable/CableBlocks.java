@@ -18,7 +18,7 @@ public final class CableBlocks {
         "backup_drive",
         () -> new NetworkBackupDriveBlock(BlockBehaviour.Properties.of()
                 .mapColor(MapColor.COLOR_ORANGE)
-                .sound(SoundType.LODESTONE)
+                .sound(CableSounds.backupDriveSoundType())
                 .strength(3.0F, 6.0F)
                 .requiresCorrectToolForDrops())
     );
