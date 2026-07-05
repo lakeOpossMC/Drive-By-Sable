@@ -1,6 +1,7 @@
 package edn.lakeopossmc.drivebysable.cable;
 
 import dev.ryanhcode.sable.Sable;
+import dev.ryanhcode.sable.api.SubLevelAssemblyHelper;
 import dev.ryanhcode.sable.api.schematic.SubLevelSchematicSerializationContext;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.sublevel.SubLevel;
@@ -110,15 +111,15 @@ public final class CableNetworkManager {
         final ServerLevel originLevel,
         final ServerLevel resultingLevel,
         final BlockPos oldPos,
-        final BlockPos newPos
+        final SubLevelAssemblyHelper.AssemblyTransform transform
     ) {
         final CableNetworkManager originManager = get(originLevel);
-        originManager.remapMovedBlockInternal(oldPos, newPos);
+        originManager.remapMovedBlockInternal(oldPos, transform);
 
         if (resultingLevel != originLevel) {
             final CableNetworkManager resultingManager = get(resultingLevel);
             if (resultingManager != originManager) {
-                resultingManager.remapMovedBlockInternal(oldPos, newPos);
+                resultingManager.remapMovedBlockInternal(oldPos, transform);
             }
         }
     }
@@ -692,7 +693,8 @@ public final class CableNetworkManager {
         }
     }
 
-    private void remapMovedBlockInternal(final BlockPos oldPos, final BlockPos newPos) {
+    private void remapMovedBlockInternal(final BlockPos oldPos, final SubLevelAssemblyHelper.AssemblyTransform transform) {
+        final BlockPos newPos = transform.apply(oldPos);
         if (oldPos.equals(newPos)) {
             return;
         }
@@ -742,8 +744,9 @@ public final class CableNetworkManager {
                 }
 
                 if (sinksOnChannel.remove(new CableNetworkSink(oldKey, reference.direction()))) {
-                    sinksOnChannel.add(new CableNetworkSink(newKey, reference.direction()));
-                    addSinkReference(newKey, reference.sourcePos(), reference.channel(), reference.direction());
+                    final Direction transformedDirection = transform.getRotation().rotate(Direction.from3DDataValue(reference.direction()));
+                    sinksOnChannel.add(new CableNetworkSink(newKey, transformedDirection.get3DDataValue()));
+                    addSinkReference(newKey, reference.sourcePos(), reference.channel(), transformedDirection.get3DDataValue());
                     changed = true;
                 }
             }
