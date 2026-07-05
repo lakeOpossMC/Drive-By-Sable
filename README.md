@@ -6,7 +6,6 @@ NOTE: There is likely to be bugs that I have not discovered in my testing. I'm a
 
 KNOWN ISSUES:
 - MOST issues were fixed in the latest full release up on CurseForge.
-- Block sounds are still not what they should be, working on a fix.
 - Hitboxes still are not the correct shape to match new models.
 - Not happy with Simulated creative tab banner (aesthetic mismatch).
 
