@@ -513,8 +513,8 @@ public class CableScenes {
                 .pointAt(vector.centerOf(hubPos));
         scene.idle(80);
         overlay.showControls(vector.centerOf(hubPos), Pointing.DOWN, 40)
-                .withItem(new ItemStack(net.minecraft.core.registries.BuiltInRegistries.ITEM.get(
-                        net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(
+                .withItem(new ItemStack(BuiltInRegistries.ITEM.get(
+                        ResourceLocation.fromNamespaceAndPath(
                                 "create_tweaked_controllers", "tweaked_linked_controller"))));
         scene.idle(50);
 

@@ -28,10 +28,14 @@ public final class CableItems {
             () -> new NetworkBackupDriveItem(CableBlocks.BACKUP_DRIVE.get(), new Item.Properties())
     );
     public static final DeferredItem<BlockItem> CABLE_HUB_BLOCK = ITEMS.registerSimpleBlockItem("cable_hub", CableBlocks.CABLE_HUB);
-    public static final DeferredItem<BlockItem> ADVANCED_CABLE_HUB_BLOCK = ITEMS.registerSimpleBlockItem(
-            "advanced_cable_hub",
-            CableBlocks.ADVANCED_CABLE_HUB
-    );
+
+    @Nullable
+    public static final DeferredItem<BlockItem> ADVANCED_CABLE_HUB_BLOCK =
+            ModList.get().isLoaded("create_tweaked_controllers")
+                ? ITEMS.registerSimpleBlockItem(
+                "advanced_cable_hub",
+                CableBlocks.ADVANCED_CABLE_HUB)
+                : null;
 
     @Nullable
     public static final DeferredItem<CableTypewriterHubItem> CABLE_TYPEWRITER_HUB =

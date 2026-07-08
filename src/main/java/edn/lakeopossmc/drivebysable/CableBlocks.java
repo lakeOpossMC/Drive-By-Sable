@@ -33,14 +33,18 @@ public final class CableBlocks {
                     .strength(3.0F, 6.0F)
                     .requiresCorrectToolForDrops())
     );
-    public static final DeferredBlock<AdvancedCableHubBlock> ADVANCED_CABLE_HUB = BLOCKS.register(
-            "advanced_cable_hub",
-            () -> new AdvancedCableHubBlock(BlockBehaviour.Properties.of()
-                    .mapColor(MapColor.TERRACOTTA_BLUE)
-                    .sound(SoundType.NETHERITE_BLOCK)
-                    .strength(3.0F, 6.0F)
-                    .requiresCorrectToolForDrops())
-    );
+
+    @Nullable
+    public static final DeferredBlock<AdvancedCableHubBlock> ADVANCED_CABLE_HUB =
+            ModList.get().isLoaded("create_tweaked_controllers")
+                ? BLOCKS.register(
+                "advanced_cable_hub",
+                () -> new AdvancedCableHubBlock(BlockBehaviour.Properties.of()
+                        .mapColor(MapColor.TERRACOTTA_BLUE)
+                        .sound(SoundType.NETHERITE_BLOCK)
+                        .strength(3.0F, 6.0F)
+                        .requiresCorrectToolForDrops()))
+                    : null;
 
     @Nullable
     public static final DeferredBlock<CableTypewriterHubBlock> CABLE_TYPEWRITER_HUB =
