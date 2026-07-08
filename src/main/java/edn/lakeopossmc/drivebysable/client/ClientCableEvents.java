@@ -8,6 +8,7 @@ import edn.lakeopossmc.drivebysable.DriveBySableMod;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlockEntity;
 import edn.lakeopossmc.drivebysable.compat.CableTypewriterHubServerHandler;
 import edn.lakeopossmc.drivebysable.network.CableTypewriterHubKeyPacket;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -49,6 +50,8 @@ public final class ClientCableEvents {
 
         if (!be.hasConnectionForChannel(channel)) return;
 
+        suppressMatchingKeyMappings(Minecraft.getInstance(), key, event.getScanCode());
+
         final boolean press = event.getAction() == GLFW.GLFW_PRESS;
 
         PacketDistributor.sendToServer(
@@ -67,6 +70,15 @@ public final class ClientCableEvents {
                 LinkedTypewriterInteractionHandler.getPressedKeys()
                         .remove(Integer.valueOf(keyToRenderIndex(key)));
             }
+        }
+    }
+
+    private static void suppressMatchingKeyMappings(final Minecraft mc, final int key, final int scanCode) {
+        for (final KeyMapping mapping : mc.options.keyMappings) {
+            if (!mapping.matches(key, scanCode)) continue;
+            while (mapping.consumeClick()) {
+            }
+            mapping.setDown(false);
         }
     }
 
