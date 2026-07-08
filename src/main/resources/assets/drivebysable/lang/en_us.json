@@ -21,7 +21,9 @@
 
   "item.drivebysable.cable_cutter.tooltip.summary": "Useful tool for handling _cable networks_.",
   "item.drivebysable.cable_cutter.tooltip.condition1": "When R-Clicked on a Cable Source",
-  "item.drivebysable.cable_cutter.tooltip.behaviour1": "Removes all _cable connections_ sourced from the targeted block.",
+  "item.drivebysable.cable_cutter.tooltip.behaviour1": "Opens _channel select mode_. R-click an _output_ to remove it from the selected _channel_.",
+  "item.drivebysable.cable_cutter.tooltip.condition2": "When Sneak + R-Clicked on a Cable Source",
+  "item.drivebysable.cable_cutter.tooltip.behaviour2": "Removes all _cable connections_ from the network source.",
 
   "drivebysable.cable_typewriter_hub.key_count": "%s configured keys",
   "block.drivebysable.cable_typewriter_hub.tooltip.summary": "Retains all the features of the _Linked Typewriter_ while also integrating with _cable networks_.",

@@ -11,6 +11,7 @@ import edn.lakeopossmc.drivebysable.cable.MultiChannelCableSource;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSink;
 import edn.lakeopossmc.drivebysable.compat.TweakedControllerCableServerHandler;
 import edn.lakeopossmc.drivebysable.items.CableItem;
+import edn.lakeopossmc.drivebysable.items.CableCutterItem;
 import edn.lakeopossmc.drivebysable.mixinducks.TweakedControllerDuck;
 import edn.lakeopossmc.drivebysable.network.CableAddConnectionPacket;
 import edn.lakeopossmc.drivebysable.network.CableNetworkRequestSyncPacket;
@@ -69,8 +70,16 @@ public final class ClientCableNetworkHandler {
     public static void onRightClickBlock(final PlayerInteractEvent.RightClickBlock event) {
         final Item eventItem = event.getItemStack().getItem();
         final BlockState hitBlock = event.getLevel().getBlockState(event.getHitVec().getBlockPos());
-        if (eventItem instanceof CableItem) {
+        final Player eventPlayer = event.getEntity();
+
+        final boolean isCutter = eventItem instanceof CableCutterItem;
+        final boolean cutterShiftDown = isCutter && eventPlayer != null && eventPlayer.isShiftKeyDown();
+
+        if (eventItem instanceof CableItem || isCutter) {
             event.setUseBlock(TriState.FALSE);
+        }
+        if (isCutter && !cutterShiftDown) {
+            event.setUseItem(TriState.FALSE);
         }
         if ((eventItem instanceof LinkedControllerItem && hitBlock.is(CableBlocks.CABLE_HUB) || (eventItem instanceof TweakedControllerDuck && hitBlock.is(CableBlocks.ADVANCED_CABLE_HUB)))) {
             event.setUseItem(TriState.FALSE);
@@ -79,7 +88,7 @@ public final class ClientCableNetworkHandler {
             return;
         }
 
-        final Player player = event.getEntity();
+        final Player player = eventPlayer;
         if (player == null || player.isSpectator()) {
             return;
         }
@@ -93,13 +102,18 @@ public final class ClientCableNetworkHandler {
         final BlockPos pos = event.getPos();
         final Direction face = event.getFace() == null ? Direction.UP : event.getFace();
 
-        if (!heldItem.is(CableItems.CABLE.get())) {
+        if (heldItem.is(CableItems.CABLE.get())) {
+            handleCableUse(player, heldItem, level, pos, face);
+            event.setCancellationResult(net.minecraft.world.InteractionResult.CONSUME);
+            event.setCanceled(true);
             return;
         }
 
-        handleCableUse(player, heldItem, level, pos, face);
-        event.setCancellationResult(net.minecraft.world.InteractionResult.CONSUME);
-        event.setCanceled(true);
+        if (heldItem.is(CableItems.CABLE_CUTTER.get()) && !cutterShiftDown) {
+            handleCutterUse(level, pos, face);
+            event.setCancellationResult(net.minecraft.world.InteractionResult.CONSUME);
+            event.setCanceled(true);
+        }
     }
 
     @SubscribeEvent
@@ -109,7 +123,8 @@ public final class ClientCableNetworkHandler {
             return;
         }
 
-        if (!player.getMainHandItem().is(CableItems.CABLE.get())) {
+        final ItemStack mainHandItem = player.getMainHandItem();
+        if (!mainHandItem.is(CableItems.CABLE.get()) && !mainHandItem.is(CableItems.CABLE_CUTTER.get())) {
             return;
         }
 
@@ -209,6 +224,26 @@ public final class ClientCableNetworkHandler {
 
         PacketDistributor.sendToServer(new CableAddConnectionPacket(selectedSource, pos, face, currentChannel));
         if (CableConfig.CONFIG.shouldConsumeCables.get()) heldItem.consume(1, player);
+    }
+
+    private static void handleCutterUse(final Level level, final BlockPos pos, final Direction face) {
+        if (selectedSource == null) {
+            selectedSource = pos.immutable();
+            changeChannel(level, selectedSource, true);
+            syncManager();
+            return;
+        }
+
+        if (selectedSource.equals(pos)) {
+            clearSource();
+            return;
+        }
+
+        final Map<String, Set<CableNetworkSink>> currentSelection = currentNetwork.get(selectedSource.asLong());
+        final CableNetworkSink sink = CableNetworkSink.of(pos, face);
+        if (currentSelection != null && currentSelection.getOrDefault(currentChannel, Set.of()).contains(sink)) {
+            PacketDistributor.sendToServer(new CableRemoveConnectionPacket(selectedSource, pos, face, currentChannel));
+        }
     }
 
     private static void syncManager() {
