@@ -14,8 +14,12 @@ public final class CableSimulatedTab {
         addItem(CableItems.CABLE.get());
         addItem(CableItems.CABLE_CUTTER.get());
         addItem(CableItems.CABLE_HUB_BLOCK.get());
-        addItem(CableItems.ADVANCED_CABLE_HUB_BLOCK.get());
-        addItem(CableItems.CABLE_TYPEWRITER_HUB.get());
+        if (CableItems.ADVANCED_CABLE_HUB_BLOCK != null) {
+            addItem(CableItems.ADVANCED_CABLE_HUB_BLOCK.get());
+        }
+        if (CableItems.CABLE_TYPEWRITER_HUB != null) {
+            addItem(CableItems.CABLE_TYPEWRITER_HUB.get());
+        }
         addItem(CableItems.BACKUP_DRIVE.get());
     }
 
