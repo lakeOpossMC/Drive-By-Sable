@@ -36,21 +36,22 @@ public final class ClientCableEvents {
     @SubscribeEvent
     public static void onKeyInput(final InputEvent.Key event) {
         if (!SIMULATED_LOADED) return;
-        if (event.getAction() == GLFW.GLFW_REPEAT) return;
-
+        
         final CableTypewriterHubBlockEntity be = CableTypewriterHubBlockEntity.getClientInstance();
         if (be == null) return;
         if (LinkedTypewriterInteractionHandler.getMode() != LinkedTypewriterInteractionHandler.Mode.ACTIVE) return;
-
+        
         final int key = event.getKey();
         final String channel = CableTypewriterHubServerHandler.KEY_TO_CHANNEL.get(key);
         if (channel == null) return;
 
         if (be.getTypewriterEntries().getEntry(key) != null) return;
-
+        
         if (!be.hasConnectionForChannel(channel)) return;
-
+        
         suppressMatchingKeyMappings(Minecraft.getInstance(), key, event.getScanCode());
+        
+        if (event.getAction() == GLFW.GLFW_REPEAT) return;
 
         final boolean press = event.getAction() == GLFW.GLFW_PRESS;
 
