@@ -22,6 +22,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -143,6 +144,10 @@ public final class CableNetworkManager {
             return ConnectionResult.FAIL_SAME_BLOCK;
         }
 
+        if (!isValidChannel(level, source, channel)) {
+            return ConnectionResult.FAIL_INVALID_CHANNEL;
+        }
+
         final long sourceKey = source.asLong();
         if (!sinks.containsKey(sourceKey) && countSourcesInSameDomain(level, source) >= MAX_SOURCES) {
             return ConnectionResult.FAIL_TOO_MANY_SOURCES;
@@ -162,6 +167,14 @@ public final class CableNetworkManager {
         dirtyMarker.run();
         applySignalToSink(level, sourceKey, channel, sink, getCurrentSignal(level, source, channel));
         return ConnectionResult.OK;
+    }
+
+    private boolean isValidChannel(final Level level, final BlockPos source, final String channel) {
+        final Block sourceBlock = level.getBlockState(source).getBlock();
+        if (sourceBlock instanceof final MultiChannelCableSource multiChannelSource) {
+            return multiChannelSource.cable$getChannels(level, source).contains(channel);
+        }
+        return WORLD_CHANNEL.equals(channel);
     }
 
     public boolean containsConnection(
@@ -932,7 +945,8 @@ public final class CableNetworkManager {
         FAIL_EXISTS("Connection already exists!"),
         FAIL_TOO_MANY_SOURCES("Exceeded source limit for this structure!"),
         FAIL_TOO_MANY_SINKS("Exceeded sink limit for this source!"),
-        FAIL_SAME_BLOCK("Source and sink must be different blocks!");
+        FAIL_SAME_BLOCK("Source and sink must be different blocks!"),
+        FAIL_INVALID_CHANNEL("This channel is not available on this source!");
 
         private final String description;
 

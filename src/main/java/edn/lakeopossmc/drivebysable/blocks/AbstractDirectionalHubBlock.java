@@ -2,6 +2,8 @@ package edn.lakeopossmc.drivebysable.blocks;
 
 import com.mojang.serialization.MapCodec;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
+import com.simibubi.create.foundation.block.IBE;
+import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import edn.lakeopossmc.drivebysable.cable.MultiChannelCableSource;
 import net.minecraft.core.BlockPos;
@@ -14,10 +16,12 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.FaceAttachedHorizontalDirectionalBlock;
 import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.AttachFace;
 import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 import javax.annotation.Nullable;
@@ -27,14 +31,32 @@ import java.util.List;
 // * Moved shape logic here so I don't have to type it twice in the block classes
 // * Moved some channel logic here for the same reason
 // * Subclasses will pass channel list and item to check for when right-clicked
-public abstract class AbstractDirectionalHubBlock extends FaceAttachedHorizontalDirectionalBlock implements MultiChannelCableSource, IWrenchable {
+public abstract class AbstractDirectionalHubBlock extends FaceAttachedHorizontalDirectionalBlock implements MultiChannelCableSource, IWrenchable, IBE<CableHubBlockEntity> {
     // --- SHAPE DEFS FOR ROTATION --- //
-    protected static final VoxelShape NORTH_AABB = Block.box(0.0, 0.0, 8.0, 16.0, 16.0, 16.0);
-    protected static final VoxelShape SOUTH_AABB = Block.box(0.0, 0.0, 0.0, 16.0, 16.0, 8.0);
-    protected static final VoxelShape WEST_AABB = Block.box(8.0, 0.0, 0.0, 16.0, 16.0, 16.0);
-    protected static final VoxelShape EAST_AABB = Block.box(0.0, 0.0, 0.0, 8.0, 16.0, 16.0);
-    protected static final VoxelShape UP_AABB = Block.box(0.0, 0.0, 0.0, 16.0, 8.0, 16.0);
-    protected static final VoxelShape DOWN_AABB = Block.box(0.0, 8.0, 0.0, 16.0, 16.0, 16.0);
+    protected static final VoxelShape NORTH_AABB = Shapes.or(
+            Block.box(0.0, 0.0, 14.0, 16.0, 16.0, 16.0),
+            Block.box(1.0, 1.0, 9.0, 15.0, 15.0, 14.0)
+    );
+    protected static final VoxelShape SOUTH_AABB = Shapes.or(
+            Block.box(0.0, 0.0, 0.0, 16.0, 16.0, 2.0),
+            Block.box(1.0, 1.0, 2.0, 15.0, 15.0, 7.0)
+    );
+    protected static final VoxelShape WEST_AABB = Shapes.or(
+            Block.box(14.0, 0.0, 0.0, 16.0, 16.0, 16.0),
+            Block.box(9.0, 1.0, 1.0, 14.0, 15.0, 15.0)
+    );
+    protected static final VoxelShape EAST_AABB = Shapes.or(
+            Block.box(0.0, 0.0, 0.0, 2.0, 16.0, 16.0),
+            Block.box(2.0, 1.0, 1.0, 7.0, 15.0, 15.0)
+    );
+    protected static final VoxelShape UP_AABB = Shapes.or(
+            Block.box(0.0, 0.0, 0.0, 16.0, 2.0, 16.0),
+            Block.box(1.0, 2.0, 1.0, 15.0, 7.0, 15.0)
+    );
+    protected static final VoxelShape DOWN_AABB = Shapes.or(
+            Block.box(0.0, 14.0, 0.0, 16.0, 16.0, 16.0),
+            Block.box(1.0, 9.0, 1.0, 15.0, 14.0, 15.0)
+    );
 
     // --- ATTACH PROPERTIES TO THIS CLASS --- //
     protected AbstractDirectionalHubBlock(final Properties properties) {
@@ -125,6 +147,16 @@ public abstract class AbstractDirectionalHubBlock extends FaceAttachedHorizontal
             CableNetworkManager.get(serverLevel).removeAllFromSourceInternal(null, serverLevel, pos);
         }
         super.onRemove(state, level, pos, newState, movedByPiston);
+    }
+
+    @Override
+    public Class<CableHubBlockEntity> getBlockEntityClass() {
+        return CableHubBlockEntity.class;
+    }
+
+    @Override
+    public BlockEntityType<? extends CableHubBlockEntity> getBlockEntityType() {
+        return CableBlockEntities.CABLE_HUB.get();
     }
 
     protected abstract List<String> channels();

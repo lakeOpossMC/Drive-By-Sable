@@ -286,14 +286,26 @@ public final class ClientCableNetworkHandler {
             final Map<String, Set<CableNetworkSink>> perChannel = entry.getValue();
 
             if (selectedSource != null && source.equals(selectedSource)) {
+                final Set<BlockFace> activeFaces = new java.util.HashSet<>();
+                final Set<CableNetworkSink> activeSinks = perChannel.get(activeChannel);
+                if (activeSinks != null) {
+                    for (final CableNetworkSink sink : activeSinks) {
+                        activeFaces.add(BlockFace.of(sink.position(), sink.direction()));
+                    }
+                }
+
                 for (final Map.Entry<String, Set<CableNetworkSink>> channelEntry : perChannel.entrySet()) {
                     final boolean active = channelEntry.getKey().equals(activeChannel);
                     for (final CableNetworkSink sink : channelEntry.getValue()) {
+                        if (!active && activeFaces.contains(BlockFace.of(sink.position(), sink.direction()))) {
+                            continue;
+                        }
                         drawConnection(
                                 level,
                                 source,
                                 BlockPos.of(sink.position()),
                                 Direction.from3DDataValue(sink.direction()),
+                                channelEntry.getKey(),
                                 active ? LineColor.SINK.SELECTED.getColor() : LineColor.SINK.SAME_SOURCE_DIFFERENT_CHANNEL.getColor(),
                                 active ? LineColor.CABLE.SELECTED.getColor() : LineColor.CABLE.SAME_SOURCE_DIFFERENT_CHANNEL.getColor()
                         );
@@ -310,22 +322,23 @@ public final class ClientCableNetworkHandler {
             final BlockPos start,
             final BlockPos end,
             final Direction direction,
+            final String channel,
             final int faceColor,
             final int cableColor
     ) {
-        drawOutlineFace(end, direction, faceColor);
+        drawOutlineFace(end, direction, channel, faceColor);
         Outliner.getInstance()
                 .showLine(
-                        net.createmod.catnip.data.Pair.of("cableConnection", net.createmod.catnip.data.Pair.of(end, direction)),
+                        net.createmod.catnip.data.Pair.of("cableConnection", net.createmod.catnip.data.Pair.of(net.createmod.catnip.data.Pair.of(start, end), net.createmod.catnip.data.Pair.of(direction, channel))),
                         Vec3.atCenterOf(start),
                         Vec3.atCenterOf(end).add(Vec3.atLowerCornerOf(direction.getNormal()).scale(0.5D))
                 )
                 .colored(cableColor);
     }
 
-    private static void drawOutlineFace(final BlockPos pos, final Direction direction, final int color) {
+    private static void drawOutlineFace(final BlockPos pos, final Direction direction, final String channel, final int color) {
         Outliner.getInstance()
-                .showAABB(net.createmod.catnip.data.Pair.of("cableFace", BlockFace.of(pos, direction)), FaceOutlines.getOutline(direction).move(pos))
+                .showAABB(net.createmod.catnip.data.Pair.of("cableFace", net.createmod.catnip.data.Pair.of(BlockFace.of(pos, direction), channel)), FaceOutlines.getOutline(direction).move(pos))
                 .colored(color)
                 .lineWidth(0.0625F);
     }
