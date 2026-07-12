@@ -5,10 +5,12 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 
+// --- ADD ITEMS TO SIMULATED CREATIVE SECTION --- //
 public final class CableSimulatedTab {
 
     private static final ResourceLocation SECTION_ID = DriveBySableMod.asResource("drivebysable_section");
 
+    // * Skip items tied to a mod that isnt loaded
     public static void register() {
         addItem(CableItems.CABLE_IO_BUS.get());
         addItem(CableItems.CABLE.get());

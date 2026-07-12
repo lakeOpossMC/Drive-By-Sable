@@ -11,6 +11,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+// --- HOOK PANEL TICK FOR CABLE BRIDGE --- //
+// * Pseudo since mod may not be loaded
 @Pseudo
 @Mixin(PanelBlockEntity.class)
 public abstract class MixinPanelBlockEntity {

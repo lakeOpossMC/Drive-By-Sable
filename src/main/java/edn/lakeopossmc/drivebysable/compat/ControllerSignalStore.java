@@ -6,6 +6,8 @@ import net.minecraft.world.level.Level;
 
 import java.util.Map;
 
+// --- BRIDGE FOR CONTROLLER SIGNAL VALUES --- //
+// * Wraps network manager calls for compat use
 public final class ControllerSignalStore {
     private ControllerSignalStore() {
     }

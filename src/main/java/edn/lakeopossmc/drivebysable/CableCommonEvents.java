@@ -13,10 +13,12 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 
+// --- SHARED SERVER SIDE EVENT HOOKS --- //
 public final class CableCommonEvents {
     private CableCommonEvents() {
     }
 
+    // * Flush graph rebuilds and tick controller compat
     public static void onLevelTick(final LevelTickEvent.Post event) {
         final Level level = event.getLevel();
         if (level.isClientSide()) {
@@ -30,6 +32,7 @@ public final class CableCommonEvents {
 
     private static final Direction[] DIRECTIONS = Direction.values();
 
+    //#region // --- REDSTONE PROPAGATION INTO NETWORK --- //
     public static void onNeighborNotify(final BlockEvent.NeighborNotifyEvent event) {
         if (!(event.getLevel() instanceof final ServerLevel level)) {
             return;
@@ -38,6 +41,7 @@ public final class CableCommonEvents {
         final CableNetworkManager manager = CableNetworkManager.get(level);
         final BlockPos pos = event.getPos();
 
+        // * Read strongest signal out of the source itself
         if (manager.hasSinks(pos, CableNetworkManager.WORLD_CHANNEL)) {
             final BlockState state = level.getBlockState(pos);
             if (state.isSignalSource()) {
@@ -52,6 +56,7 @@ public final class CableCommonEvents {
             }
         }
 
+        // * Same but for each notified neighbor
         for (final Direction notifiedSide : event.getNotifiedSides()) {
             final BlockPos neighborPos = pos.relative(notifiedSide);
             if (!manager.hasSinks(neighborPos, CableNetworkManager.WORLD_CHANNEL)) {
@@ -67,7 +72,9 @@ public final class CableCommonEvents {
             }
         }
     }
+    //#endregion
 
+    // * Drop connections when a source is mined
     @SubscribeEvent
     public static void onBlockBreak(final BlockEvent.BreakEvent event) {
         if (event.getLevel() instanceof final ServerLevel level) {

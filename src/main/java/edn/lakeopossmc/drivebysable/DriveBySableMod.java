@@ -18,11 +18,16 @@ import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.common.NeoForge;
 import org.slf4j.Logger;
 
+// --- MOD ENTRY POINT --- //
 @Mod(DriveBySableMod.MOD_ID)
 public class DriveBySableMod {
     public static final String MOD_ID = "drivebysable";
     public static final Logger LOGGER = LogUtils.getLogger();
 
+    //#region // --- CONSTRUCTOR SETUP --- //
+    // * Register configs and screens
+    // * Register blocks, entities, items, sounds
+    // * Skip creative tab if simulated handles it
     public DriveBySableMod(final IEventBus modEventBus, final ModContainer modContainer, final Dist dist) {
         modContainer.registerConfig(ModConfig.Type.COMMON, CableConfig.CONFIG_SPEC);
         if (dist == Dist.CLIENT) {
@@ -42,7 +47,9 @@ public class DriveBySableMod {
         NeoForge.EVENT_BUS.addListener(CableCommonEvents::onNeighborNotify);
         NeoForge.EVENT_BUS.addListener(CableCommonEvents::onBlockBreak);
     }
+    //#endregion
 
+    // * Register simulated tab and ponder plugin
     private void clientSetup(final FMLCommonSetupEvent event) {
         if (ModList.get().isLoaded("simulated")) {
             event.enqueueWork(CableSimulatedTab::register);

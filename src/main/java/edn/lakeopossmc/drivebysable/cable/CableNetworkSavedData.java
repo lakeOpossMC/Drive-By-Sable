@@ -5,6 +5,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 
+// --- PERSISTS CABLE NETWORK PER LEVEL --- //
 public final class CableNetworkSavedData extends SavedData {
     private static final String DATA_NAME = "drivebysable_network";
 
@@ -18,6 +19,7 @@ public final class CableNetworkSavedData extends SavedData {
         return new Factory<>(CableNetworkSavedData::new, CableNetworkSavedData::load);
     }
 
+    // * Fetch or create then bind to this level
     public static CableNetworkManager get(final ServerLevel level) {
         final CableNetworkSavedData data = level.getDataStorage().computeIfAbsent(factory(), DATA_NAME);
         data.manager.attachLevel(level);

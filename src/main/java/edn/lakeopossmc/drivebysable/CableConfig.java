@@ -3,6 +3,7 @@ package edn.lakeopossmc.drivebysable;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
+// --- MOD CONFIG DEF --- //
 public class CableConfig {
 
     public static final CableConfig CONFIG;
@@ -14,6 +15,7 @@ public class CableConfig {
         shouldConsumeCables = builder.define("shouldConsumeCables", false);
     }
 
+    // * Build config and spec together
     static {
         Pair<CableConfig, ModConfigSpec> pair = new ModConfigSpec.Builder().configure(CableConfig::new);
         CONFIG = pair.getLeft();

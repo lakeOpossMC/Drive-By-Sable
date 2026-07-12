@@ -10,6 +10,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+// --- CLIENT SENDS KEY PRESS TO A TYPEWRITER HUB --- //
 public record CableTypewriterHubKeyPacket(BlockPos pos, int glfwKey, boolean press)
         implements CustomPacketPayload {
 
@@ -33,6 +34,7 @@ public record CableTypewriterHubKeyPacket(BlockPos pos, int glfwKey, boolean pre
     @Override
     public Type<? extends CustomPacketPayload> type() { return TYPE; }
 
+    // * Only accept from the player currently bound
     public static void handle(final CableTypewriterHubKeyPacket packet, final IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
             if (!(ctx.player() instanceof final ServerPlayer player)) return;

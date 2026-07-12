@@ -12,8 +12,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+// --- CLEAR CABLE SIGNALS WHEN CONTROLLER STOPS --- //
 @Mixin(LinkedControllerStopLecternPacket.class)
 public class MixinLinkedControllerStopLecternPacket {
+    // * Reset lectern and any bound hub too
     @Inject(method = "handleLectern", at = @At("RETURN"), remap = false)
     private void drivebysable$handleLectern(final ServerPlayer player, final LecternControllerBlockEntity lectern, final CallbackInfo ci) {
         LinkedControllerCableServerHandler.reset(player.level(), lectern.getBlockPos());
@@ -22,6 +24,7 @@ public class MixinLinkedControllerStopLecternPacket {
         }
     }
 
+    // * Reset hub bound to held item
     @Inject(method = "handleItem", at = @At("RETURN"), remap = false)
     private void drivebysable$handleItem(final ServerPlayer player, final ItemStack heldItem, final CallbackInfo ci) {
         HubItem.ifHubPresent(heldItem, pos -> LinkedControllerCableServerHandler.reset(player.level(), pos));

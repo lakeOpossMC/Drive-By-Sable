@@ -1,5 +1,6 @@
 package edn.lakeopossmc.drivebysable.client;
 
+import com.simibubi.create.CreateClient;
 import com.simibubi.create.content.kinetics.mechanicalArm.ArmInteractionPoint.Mode;
 import com.simibubi.create.content.redstone.link.controller.LinkedControllerItem;
 import edn.lakeopossmc.drivebysable.CableBlocks;
@@ -25,6 +26,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -33,6 +35,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -44,6 +48,8 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -103,15 +109,15 @@ public final class ClientCableNetworkHandler {
         final Direction face = event.getFace() == null ? Direction.UP : event.getFace();
 
         if (heldItem.is(CableItems.CABLE.get())) {
-            handleCableUse(player, heldItem, level, pos, face);
-            event.setCancellationResult(net.minecraft.world.InteractionResult.CONSUME);
+            final boolean acted = handleCableUse(player, heldItem, level, pos, face);
+            event.setCancellationResult(acted ? net.minecraft.world.InteractionResult.SUCCESS : net.minecraft.world.InteractionResult.FAIL);
             event.setCanceled(true);
             return;
         }
 
         if (heldItem.is(CableItems.CABLE_CUTTER.get()) && !cutterShiftDown) {
-            handleCutterUse(level, pos, face);
-            event.setCancellationResult(net.minecraft.world.InteractionResult.CONSUME);
+            final boolean acted = handleCutterUse(player, level, pos, face);
+            event.setCancellationResult(acted ? net.minecraft.world.InteractionResult.SUCCESS : net.minecraft.world.InteractionResult.FAIL);
             event.setCanceled(true);
         }
     }
@@ -137,7 +143,7 @@ public final class ClientCableNetworkHandler {
         event.setCanceled(true);
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.HIGH)
     public static void onClientTick(final ClientTickEvent.Post event) {
         final Minecraft minecraft = Minecraft.getInstance();
         final Player player = minecraft.player;
@@ -174,6 +180,10 @@ public final class ClientCableNetworkHandler {
             syncManager();
         }
 
+        if (mainHand.is(CableItems.CABLE.get())) {
+            showCableHoverTip(minecraft, level);
+        }
+
         if (selectedSource != null) {
             drawOutline(level, selectedSource, LineColor.SOURCE.SELECTED.getColor());
         }
@@ -202,48 +212,95 @@ public final class ClientCableNetworkHandler {
         syncManager();
     }
 
-    private static void handleCableUse(final Player player, final ItemStack heldItem, final Level level, final BlockPos pos, final Direction face) {
+    private static boolean handleCableUse(final Player player, final ItemStack heldItem, final Level level, final BlockPos pos, final Direction face) {
         if (selectedSource == null) {
             selectedSource = pos.immutable();
             changeChannel(level, selectedSource, true);
             syncManager();
-            return;
+            return true;
         }
 
         if (selectedSource.equals(pos)) {
             clearSource();
-            return;
+            return true;
         }
 
         final Map<String, Set<CableNetworkSink>> currentSelection = currentNetwork.get(selectedSource.asLong());
         final CableNetworkSink sink = CableNetworkSink.of(pos, face);
         if (currentSelection != null && currentSelection.getOrDefault(currentChannel, Set.of()).contains(sink)) {
             PacketDistributor.sendToServer(new CableRemoveConnectionPacket(selectedSource, pos, face, currentChannel));
-            return;
+            return true;
         }
 
         PacketDistributor.sendToServer(new CableAddConnectionPacket(selectedSource, pos, face, currentChannel));
         if (CableConfig.CONFIG.shouldConsumeCables.get()) heldItem.consume(1, player);
+        return true;
     }
 
-    private static void handleCutterUse(final Level level, final BlockPos pos, final Direction face) {
+    public static boolean hasConnections(final BlockPos pos) {
+        final Map<String, Set<CableNetworkSink>> perChannel = currentNetwork.get(pos.asLong());
+        return perChannel != null && perChannel.values().stream().anyMatch(sinks -> !sinks.isEmpty());
+    }
+
+    private static boolean handleCutterUse(final Player player, final Level level, final BlockPos pos, final Direction face) {
         if (selectedSource == null) {
+            if (!hasConnections(pos)) {
+                player.displayClientMessage(
+                        Component.translatable("drivebysable.invalid_op.no_connections").withStyle(ChatFormatting.RED),
+                        true
+                );
+                return false;
+            }
+
             selectedSource = pos.immutable();
             changeChannel(level, selectedSource, true);
             syncManager();
-            return;
+            return true;
         }
 
         if (selectedSource.equals(pos)) {
             clearSource();
-            return;
+            return true;
         }
 
         final Map<String, Set<CableNetworkSink>> currentSelection = currentNetwork.get(selectedSource.asLong());
         final CableNetworkSink sink = CableNetworkSink.of(pos, face);
         if (currentSelection != null && currentSelection.getOrDefault(currentChannel, Set.of()).contains(sink)) {
             PacketDistributor.sendToServer(new CableRemoveConnectionPacket(selectedSource, pos, face, currentChannel));
+            return true;
         }
+
+        return false;
+    }
+
+    private static void showCableHoverTip(final Minecraft minecraft, final Level level) {
+        final List<MutableComponent> tip = new ArrayList<>();
+        tip.add(Component.translatable("drivebysable.cable_actions.header"));
+
+        if (selectedSource != null) {
+            final HitResult hitResult = minecraft.hitResult;
+            final boolean targetingSource = hitResult instanceof final BlockHitResult blockHit
+                    && blockHit.getType() == HitResult.Type.BLOCK
+                    && selectedSource.equals(blockHit.getBlockPos());
+
+            if (targetingSource) {
+                tip.add(Component.translatable("drivebysable.cable_actions.exit_setup", Component.keybind("key.use")));
+            } else {
+                tip.add(Component.translatable("drivebysable.cable_actions.select_channel"));
+                tip.add(Component.translatable("drivebysable.cable_actions.toggle_output", Component.keybind("key.use")));
+            }
+
+            CreateClient.VALUE_SETTINGS_HANDLER.showHoverTip(tip);
+            return;
+        }
+
+        final HitResult hitResult = minecraft.hitResult;
+        if (!(hitResult instanceof final BlockHitResult blockHit) || blockHit.getType() != HitResult.Type.BLOCK) {
+            return;
+        }
+
+        tip.add(Component.translatable("drivebysable.cable_actions.enter_setup", Component.keybind("key.use")));
+        CreateClient.VALUE_SETTINGS_HANDLER.showHoverTip(tip);
     }
 
     private static void syncManager() {

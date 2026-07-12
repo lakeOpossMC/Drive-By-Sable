@@ -12,6 +12,8 @@ import net.minecraft.world.item.TooltipFlag;
 
 import java.util.List;
 
+// --- ITEM CLASS FOR CABLE --- //
+// * Builds tooltip, actual connect logic lives client side
 public class CableItem extends Item {
 
     private static final String TOOLTIP_KEY = "item.drivebysable.cable.tooltip";
@@ -28,8 +30,10 @@ public class CableItem extends Item {
                                 final List<Component> tooltip, final TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
 
+        // * Check if shift held
         final boolean shiftDown = Screen.hasShiftDown();
 
+        // * Find translation key for tip Hold [Shift] hint and apply color
         final Component shiftKey = Component.translatable("create.tooltip.keyShift")
                 .copy().withStyle(shiftDown ? ChatFormatting.WHITE : ChatFormatting.GRAY);
         tooltip.add(Component.translatable("create.tooltip.holdForDescription", shiftKey)

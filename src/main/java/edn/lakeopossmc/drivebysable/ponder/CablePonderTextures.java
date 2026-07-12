@@ -6,6 +6,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
 
+// --- ICON SPRITES FOR PONDER OVERLAYS --- //
 public enum CablePonderTextures implements ScreenElement {
 
     KEY_W   (0,  0),

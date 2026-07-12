@@ -19,16 +19,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
-// --- SIMPLIFIED DIRECTIONAL VARIANT OF TWEAKED CONTROLLER HUB --- //
-// * Shape handler no longer needs to be retyped, all handled in main class (yay!)
-// * Still keeps check for correct controller type
-// * Lists channels correctly while maintaining the og logic - again, no retyping needed (yay! x2)
+// --- DIRECTIONAL ADVANCED CONTROLLER HUB --- //
+// * Define channel list based on tweaked controller
+// * Link to tweaked controller on use
 public class AdvancedCableHubBlock extends AbstractDirectionalHubBlock {
-    // --- DEF FOR CHANNELS --- //
+    //#region // --- DEF CHANNELS AND APPEND TO LIST --- //
     private static final List<String> CHANNELS = Stream.concat(
             Arrays.stream(TweakedControllerCableServerHandler.AXIS_TO_CHANNEL),
             Arrays.stream(TweakedControllerCableServerHandler.BUTTON_TO_CHANNEL)
     ).toList();
+    //#endregion
 
     // --- GET PROPS FROM MAIN --- //
     public AdvancedCableHubBlock(final Properties properties) {
@@ -41,7 +41,7 @@ public class AdvancedCableHubBlock extends AbstractDirectionalHubBlock {
         return CHANNELS;
     }
 
-    // --- CHECK FOR TWEAKED CONTROLLER --- //
+    //#region // --- CHECK FOR TWEAKED CONTROLLER USE --- //
     @Override
     protected ItemInteractionResult useItemOn(
             final ItemStack itemStack,
@@ -52,16 +52,18 @@ public class AdvancedCableHubBlock extends AbstractDirectionalHubBlock {
             final InteractionHand interactionHand,
             final BlockHitResult hitResult
     ) {
+        // * Make sure we're looking for the correct item for linking
         if (!(itemStack.getItem() instanceof TweakedControllerDuck)) {
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
-
+        // * When successful, show message and play sound
         if (!level.isClientSide()) {
             HubItem.putHub(itemStack, blockPos);
             level.playSound(null, blockPos, CableSounds.PLUG_IN.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
             player.displayClientMessage(Component.literal("Controller connected!"), true);
         }
-
+        // * Return a success trigger
         return ItemInteractionResult.SUCCESS;
     }
+    //#endregion
 }

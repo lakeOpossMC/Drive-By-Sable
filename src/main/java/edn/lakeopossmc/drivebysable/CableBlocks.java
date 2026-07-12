@@ -14,6 +14,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 import javax.annotation.Nullable;
 
+// --- REGISTERS ALL BLOCKS --- //
 public final class CableBlocks {
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(DriveBySableMod.MOD_ID);
 
@@ -34,18 +35,20 @@ public final class CableBlocks {
                     .requiresCorrectToolForDrops())
     );
 
+    // * Null when tweaked controllers isnt loaded
     @Nullable
     public static final DeferredBlock<AdvancedCableHubBlock> ADVANCED_CABLE_HUB =
             ModList.get().isLoaded("create_tweaked_controllers")
-                ? BLOCKS.register(
-                "advanced_cable_hub",
-                () -> new AdvancedCableHubBlock(BlockBehaviour.Properties.of()
-                        .mapColor(MapColor.TERRACOTTA_BLUE)
-                        .sound(SoundType.NETHERITE_BLOCK)
-                        .strength(3.0F, 6.0F)
-                        .requiresCorrectToolForDrops()))
+                    ? BLOCKS.register(
+                    "advanced_cable_hub",
+                    () -> new AdvancedCableHubBlock(BlockBehaviour.Properties.of()
+                            .mapColor(MapColor.TERRACOTTA_BLUE)
+                            .sound(SoundType.NETHERITE_BLOCK)
+                            .strength(3.0F, 6.0F)
+                            .requiresCorrectToolForDrops()))
                     : null;
 
+    // * Null when simulated isnt loaded
     @Nullable
     public static final DeferredBlock<CableTypewriterHubBlock> CABLE_TYPEWRITER_HUB =
             ModList.get().isLoaded("simulated")

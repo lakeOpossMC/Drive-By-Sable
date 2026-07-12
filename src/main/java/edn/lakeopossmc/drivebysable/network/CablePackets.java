@@ -2,6 +2,7 @@ package edn.lakeopossmc.drivebysable.network;
 
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 
+// --- REGISTERS ALL NETWORK PACKETS --- //
 public final class CablePackets {
     private CablePackets() {
     }
