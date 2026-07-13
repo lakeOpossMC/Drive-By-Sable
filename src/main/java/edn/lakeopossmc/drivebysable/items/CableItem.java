@@ -1,6 +1,7 @@
 package edn.lakeopossmc.drivebysable.items;
 
 import com.simibubi.create.foundation.item.TooltipHelper;
+import edn.lakeopossmc.drivebysable.client.ClientCableNetworkHandler;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -9,6 +10,8 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLLoader;
 
 import java.util.List;
 
@@ -23,6 +26,12 @@ public class CableItem extends Item {
 
     public CableItem(final Properties properties) {
         super(properties);
+    }
+
+    // * Glint while a source is selected
+    @Override
+    public boolean isFoil(final ItemStack stack) {
+        return FMLLoader.getDist() == Dist.CLIENT && ClientCableNetworkHandler.isInSetupMode();
     }
 
     @Override
