@@ -21,6 +21,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.ArrayList;
 import java.util.List;
 
+// --- RESYNC CABLE MIRROR AROUND SCHEMATIC ACTIONS --- //
 @Mixin(SchematicAndQuillHandler.class)
 public abstract class MixinSchematicAndQuillHandler {
     @Shadow
@@ -29,6 +30,7 @@ public abstract class MixinSchematicAndQuillHandler {
     @Shadow
     public BlockPos secondPos;
 
+    // * Request sync after picking either corner
     @Inject(
         method = "onMouseInput",
         at = @At(
@@ -75,6 +77,7 @@ public abstract class MixinSchematicAndQuillHandler {
         logSelectionState(name);
     }
 
+    // * Debug log for selection and sublevel state on save
     private void logSelectionState(final String name) {
         final Level level = Minecraft.getInstance().level;
         if (level == null || this.firstPos == null || this.secondPos == null) {

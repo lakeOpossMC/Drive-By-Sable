@@ -19,6 +19,7 @@ import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
 
+// --- CLIENT SIDE TYPEWRITER HUB KEY HANDLING --- //
 @EventBusSubscriber(modid = DriveBySableMod.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class ClientCableEvents {
 
@@ -33,6 +34,9 @@ public final class ClientCableEvents {
                 LinkedTypewriterRenderer::new);
     }
 
+    //#region // --- KEY PRESS FORWARDING --- //
+    // * Only forward keys tied to a channel with a live connection
+    // * Suppresses matching keybinds so movement etc doesnt trigger
     @SubscribeEvent
     public static void onKeyInput(final InputEvent.Key event) {
         if (!SIMULATED_LOADED) return;
@@ -82,7 +86,9 @@ public final class ClientCableEvents {
             mapping.setDown(false);
         }
     }
+    //#endregion
 
+    // * Maps keycodes to the typewriter render model slots
     private static int keyToRenderIndex(final int keycode) {
         return switch (keycode) {
             case 81, 49, 321  -> 0;   // Q, 1, KP_1

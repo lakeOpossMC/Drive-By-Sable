@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.Mixin;
 
 import java.util.function.Supplier;
 
+// --- BLENDS CABLE SIGNAL INTO VANILLA REDSTONE READ --- //
 @Mixin(ServerLevel.class)
 public abstract class MixinServerLevel extends Level {
     protected MixinServerLevel(
@@ -42,6 +43,7 @@ public abstract class MixinServerLevel extends Level {
         );
     }
 
+    // * Also check cable network on the opposite face
     public int getSignal(final BlockPos pos, final Direction direction) {
         final BlockState state = this.getBlockState(pos);
         int signal = state.getSignal(this, pos, direction);

@@ -57,6 +57,7 @@ public class NetworkBackupDriveBlock extends Block implements EntityBlock {
         );
     }
 
+    // * Drop connections when block actually replaced
     @Override
     protected void onRemove(final BlockState state, final Level level, final BlockPos pos,
                             final BlockState newState, final boolean movedByPiston) {

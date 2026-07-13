@@ -17,11 +17,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
+// --- FORWARD TWEAKED CONTROLLER BUTTONS TO CABLES --- //
+// * Pseudo since mod may not be loaded
 @Pseudo
 @Mixin(TweakedLinkedControllerButtonPacket.class)
 public abstract class MixinTweakedControllerButtonPacket {
     @Shadow private short buttonStates;
 
+    // * Push to lectern hub
     @Inject(method = "handleLectern", at = @At("RETURN"), remap = false)
     private void drivebysable$handleLectern(
         final ServerPlayer player,
@@ -37,6 +40,7 @@ public abstract class MixinTweakedControllerButtonPacket {
         }
     }
 
+    // * Push to hub bound on held item
     @Inject(method = "handleItem", at = @At("RETURN"), remap = false)
     private void drivebysable$handleItem(final ServerPlayer player, final ItemStack heldItem, final CallbackInfo ci) {
         HubItem.ifHubPresent(heldItem, pos -> {

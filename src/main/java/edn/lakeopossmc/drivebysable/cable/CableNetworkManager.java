@@ -29,6 +29,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import java.util.*;
 import java.util.function.Function;
 
+// --- CORE MANAGER FOR THE CABLE NETWORK --- //
+// * One instance per level, server is authoritative, client keeps a mirror
+// * Handles connections, signals, sublevel moves, and schematic backup
 public final class CableNetworkManager {
     public static final String WORLD_CHANNEL = "world";
     private static final String CONNECTIONS_KEY = "Connections";
@@ -62,6 +65,7 @@ public final class CableNetworkManager {
         this.dirtyMarker = dirtyMarker;
     }
 
+    // * Server uses saved data, client uses a per level mirror
     public static CableNetworkManager get(final Level level) {
         if (level instanceof final ServerLevel serverLevel) {
             return CableNetworkSavedData.get(serverLevel);
@@ -70,6 +74,8 @@ public final class CableNetworkManager {
         return CLIENT_MANAGERS.get(level);
     }
 
+    //#region // --- STATIC ENTRY POINTS --- //
+    // * Thin wrappers so callers dont need a manager instance
     public static ConnectionResult createConnection(
             final Level level,
             final BlockPos source,
@@ -116,6 +122,7 @@ public final class CableNetworkManager {
         get(level).setSource(level, source, channel, value);
     }
 
+    // * Remaps both origin and destination manager if a sublevel move crosses levels
     public static void handleAssemblyMove(
             final ServerLevel originLevel,
             final ServerLevel resultingLevel,
@@ -132,7 +139,9 @@ public final class CableNetworkManager {
             }
         }
     }
-
+    //#endregion
+    //#region // --- CONNECTION ADD AND REMOVE --- //
+    // * Validates block distance, channel, and source/sink caps before linking
     public ConnectionResult addConnection(
             final Level level,
             final BlockPos source,
@@ -169,6 +178,7 @@ public final class CableNetworkManager {
         return ConnectionResult.OK;
     }
 
+    // * Multi channel sources must offer the channel, otherwise only world channel is valid
     private boolean isValidChannel(final Level level, final BlockPos source, final String channel) {
         final Block sourceBlock = level.getBlockState(source).getBlock();
         if (sourceBlock instanceof final MultiChannelCableSource multiChannelSource) {
@@ -224,7 +234,10 @@ public final class CableNetworkManager {
         dirtyMarker.run();
         return true;
     }
+    //#endregion
 
+    //#region // --- BULK REMOVE AND REMAP --- //
+    // * Refunds cables to player if given, used by block break and cutter
     public boolean removeAllFromSourceInternal(final ServerPlayer serverPlayer, final Level level, final BlockPos source) {
         final long sourceKey = source.asLong();
         final Map<String, Set<CableNetworkSink>> perChannel = sinks.remove(sourceKey);
@@ -280,6 +293,7 @@ public final class CableNetworkManager {
         return true;
     }
 
+    // * Moves connections to a new channel name without touching endpoints
     public boolean remapSourceChannelInternal(final Level level, final BlockPos source, final String oldChannel, final String newChannel) {
         final long sourceKey = source.asLong();
         final Map<String, Set<CableNetworkSink>> perChannel = sinks.get(sourceKey);
@@ -314,7 +328,10 @@ public final class CableNetworkManager {
         dirtyMarker.run();
         return true;
     }
+    //#endregion
 
+    //#region // --- SIGNAL SETTING --- //
+    // * Called from redstone and controller compat to push a value in
     public void setSource(final Level level, final BlockPos source, final String channel, final int signal) {
         final long sourceKey = source.asLong();
         final Map<String, Integer> values = sourceValues.computeIfAbsent(sourceKey, ignored -> new HashMap<>());
@@ -348,12 +365,15 @@ public final class CableNetworkManager {
             }
         });
     }
+    //#endregion
 
+    //#region // --- READ ONLY ACCESSORS --- //
     public Map<String, Integer> getSourceSignals(final BlockPos source) {
         final Map<String, Integer> values = sourceValues.get(source.asLong());
         return values == null ? Map.of() : Map.copyOf(values);
     }
 
+    // * Deep copy so callers cant mutate live state
     public Map<Long, Map<String, Set<CableNetworkSink>>> getNetwork() {
         final Map<Long, Map<String, Set<CableNetworkSink>>> copy = new HashMap<>();
         sinks.forEach((source, perChannel) -> {
@@ -369,6 +389,7 @@ public final class CableNetworkManager {
         return node == null ? 0 : node.getSignal();
     }
 
+    // * Strongest signal out of a vanilla signal source, else best neighbor
     public static int computeWorldSignal(final Level level, final BlockPos pos) {
         final BlockState state = level.getBlockState(pos);
         if (state.isSignalSource()) {
@@ -380,7 +401,11 @@ public final class CableNetworkManager {
 
         return level.getBestNeighborSignal(pos);
     }
+    //#endregion
 
+    //#region // --- SCHEMATIC BACKUP SNAPSHOTS --- //
+    // * Backup drive uses these to save and restore connections through schematics
+    // * Relative snapshots are for placing directly, owner aware ones track which sublevel each end belongs to
     public BackupSnapshot createBackupSnapshot(final Level level, final BlockPos backupPos, final Direction savedFacing) {
         final SubLevel backupSubLevel = Sable.HELPER.getContaining(level, backupPos);
         if (backupSubLevel == null) {
@@ -395,6 +420,7 @@ public final class CableNetworkManager {
         return createRelativeBackupSnapshot(level, backupPos, backupSubLevel, savedFacing);
     }
 
+    // * Picks relative or owner aware restore based on stored snapshot version
     public RestoreResult restoreBackupSnapshot(
             final Level level,
             final BlockPos backupPos,
@@ -409,6 +435,7 @@ public final class CableNetworkManager {
         return restoreRelativeBackupSnapshot(level, backupPos, currentFacing, snapshot);
     }
 
+    // * Stores endpoints as offsets from the backup block itself
     private BackupSnapshot createRelativeBackupSnapshot(
             final Level level,
             final BlockPos backupPos,
@@ -456,6 +483,7 @@ public final class CableNetworkManager {
         return new BackupSnapshot(tag, internalConnections, skippedConnections);
     }
 
+    // * Only keeps links whose both ends stay inside the same blueprint batch
     private BackupSnapshot createSchematicBackupSnapshot(
             final Level level,
             final BlockPos backupPos,
@@ -549,6 +577,7 @@ public final class CableNetworkManager {
         return true;
     }
 
+    // * Reapplies offsets from the relative snapshot at the current backup pos
     private RestoreResult restoreRelativeBackupSnapshot(
             final Level level,
             final BlockPos backupPos,
@@ -617,6 +646,7 @@ public final class CableNetworkManager {
         );
     }
 
+    // * Waits for both endpoints sublevels to exist before wiring back up
     private RestoreResult restoreOwnerAwareBackupSnapshot(final Level level, final CompoundTag snapshot) {
         int restoredConnections = 0;
         int deferredConnections = 0;
@@ -671,6 +701,7 @@ public final class CableNetworkManager {
         );
     }
 
+    // * Finds current position for a saved endpoint, deferred if its sublevel isnt loaded yet
     private ResolvedEndpoint resolveOwnerAwareEndpoint(
             final Level level,
             final CompoundTag connection,
@@ -694,7 +725,9 @@ public final class CableNetworkManager {
 
         return ResolvedEndpoint.resolved(BlockPos.of(connection.getLong(positionKey)));
     }
+    //#endregion
 
+    //#region // --- LEVEL ATTACH AND PERSISTENCE --- //
     public void attachLevel(final Level level) {
         if (attachedToLevel) {
             return;
@@ -713,6 +746,7 @@ public final class CableNetworkManager {
         });
     }
 
+    // * Rebuilds node graph for stale faces, run once per tick
     public void flushPendingGraphRebuild(final Level level) {
         if (!graphDirty) {
             return;
@@ -746,6 +780,7 @@ public final class CableNetworkManager {
         return tag;
     }
 
+    // * Rebuilds sinkReferences and nodes from the raw sinks map after loading
     public void load(final CompoundTag tag) {
         sinks.clear();
         sinkReferences.clear();
@@ -782,6 +817,10 @@ public final class CableNetworkManager {
         }
     }
 
+    //#endregion
+
+    //#region // --- SUBLEVEL MOVE REMAP --- //
+    // * Rewrites stored positions when a sublevel structure gets moved or rotated
     private void remapMovedBlockInternal(final BlockPos oldPos, final SubLevelAssemblyHelper.AssemblyTransform transform) {
         final BlockPos newPos = transform.apply(oldPos);
         if (oldPos.equals(newPos)) {
@@ -847,6 +886,9 @@ public final class CableNetworkManager {
         }
     }
 
+    //#endregion
+
+    //#region // --- INTERNAL HELPERS --- //
     private Set<CableNetworkSink> getOrCreateSinksOnChannel(final BlockPos source, final String channel) {
         return sinks.computeIfAbsent(source.asLong(), ignored -> new HashMap<>())
                 .computeIfAbsent(channel, ignored -> new HashSet<>());
@@ -939,7 +981,9 @@ public final class CableNetworkManager {
         final BlockPos updatedPos = sinkPos.relative(sinkDirection);
         level.updateNeighborsAt(updatedPos, level.getBlockState(updatedPos).getBlock());
     }
+    //#endregion
 
+    // --- NESTED TYPES --- //
     public enum ConnectionResult {
         OK(""),
         FAIL_EXISTS("Connection already exists!"),
@@ -989,6 +1033,7 @@ public final class CableNetworkManager {
     private record SinkReference(long sourcePos, String channel, int direction) {
     }
 
+    //#region // --- SNAPSHOT QUERY HELPERS --- //
     public static int countConnectionsInBackupSnapshot(final CompoundTag snapshot) {
         if (!snapshot.contains(CONNECTIONS_KEY, Tag.TAG_LIST)) {
             return 0;
@@ -1005,6 +1050,7 @@ public final class CableNetworkManager {
         return snapshot.hasUUID(OWNER_SUB_LEVEL_KEY);
     }
 
+    // * Picks the right transform path based on snapshot version
     public static CompoundTag transformBackupSnapshotForPlacement(
             final CompoundTag snapshot,
             final BlockPos schematicBackupPos,
@@ -1025,6 +1071,7 @@ public final class CableNetworkManager {
 
         return transformRelativeSnapshotForPlacement(snapshot, schematicBackupPos, context.getSetupTransform());
     }
+    //#endregion
 
     public boolean hasSinks(final BlockPos pos, final String channel) {
         final Map<String, Set<CableNetworkSink>> channels = this.sinks.get(pos.asLong());
@@ -1033,6 +1080,8 @@ public final class CableNetworkManager {
         return sinkSet != null && !sinkSet.isEmpty();
     }
 
+    //#region // --- PLACEMENT TRANSFORM MATH --- //
+    // * Rewrites saved positions and directions to match rotation on paste
     private static CompoundTag transformOwnerAwareSnapshotForPlacement(
             final CompoundTag snapshot,
             final SubLevelSchematicSerializationContext context
@@ -1102,6 +1151,7 @@ public final class CableNetworkManager {
         return true;
     }
 
+    // * Same idea but for relative version snapshots
     private static CompoundTag transformRelativeSnapshotForPlacement(
             final CompoundTag snapshot,
             final BlockPos schematicBackupPos,
@@ -1201,4 +1251,5 @@ public final class CableNetworkManager {
             case COUNTERCLOCKWISE_90 -> new BlockPos(relative.getZ(), relative.getY(), -relative.getX());
         };
     }
+    //#endregion
 }

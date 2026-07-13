@@ -6,12 +6,15 @@ import net.minecraft.server.level.ServerLevel;
 
 import java.util.*;
 
+// --- KEYCODE TO CHANNEL MAP FOR TYPEWRITER HUB --- //
 public final class CableTypewriterHubServerHandler {
 
     public static final Map<Integer, String> KEY_TO_CHANNEL;
     public static final List<String> CHANNELS;
     public static final Map<String, String> CHANNEL_TO_DISPLAY;
 
+    //#region // --- BUILD KEY TABLES --- //
+    // * Big flat table of glfw code, channel id, display label
     static {
         final Map<Integer, String> keys = new LinkedHashMap<>();
         final Map<String, String> display = new LinkedHashMap<>();
@@ -102,6 +105,7 @@ public final class CableTypewriterHubServerHandler {
         CHANNELS = List.copyOf(new LinkedHashSet<>(keys.values()));
         CHANNEL_TO_DISPLAY = Collections.unmodifiableMap(display);
     }
+    //#endregion
 
     public static void receiveKey(final ServerLevel level, final BlockPos pos,
                                   final int glfwKey, final boolean press) {

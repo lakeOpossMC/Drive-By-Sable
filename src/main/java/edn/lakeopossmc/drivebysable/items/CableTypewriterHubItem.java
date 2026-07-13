@@ -16,6 +16,8 @@ import net.minecraft.world.item.TooltipFlag;
 
 import java.util.List;
 
+// --- ITEM CLASS FOR TYPEWRITER HUB --- //
+// * Builds tooltip, includes condition/behaviour pairs and key count
 public class CableTypewriterHubItem extends LinkedTypewriterItem {
 
     private static final String TOOLTIP_KEY = "block.drivebysable.cable_typewriter_hub.tooltip";
@@ -38,6 +40,7 @@ public class CableTypewriterHubItem extends LinkedTypewriterItem {
         tooltip.add(Component.translatable("create.tooltip.holdForDescription", shiftKey)
                 .withStyle(ChatFormatting.DARK_GRAY));
 
+        //#region // --- CONDITION AND BEHAVIOUR LINES --- //
         if (shiftDown) {
             tooltip.add(Component.empty());
 
@@ -46,6 +49,7 @@ public class CableTypewriterHubItem extends LinkedTypewriterItem {
 
             tooltip.add(Component.empty());
 
+            // * Only show pairs that actually have translations
             for (int i = 1; i <= 4; i++) {
                 final String conditionKey = TOOLTIP_KEY + ".condition" + i;
                 final String behaviourKey = TOOLTIP_KEY + ".behaviour" + i;
@@ -59,7 +63,9 @@ public class CableTypewriterHubItem extends LinkedTypewriterItem {
                         .forEach(line -> tooltip.add(Component.literal("  ").append(line)));
             }
         }
+        //#endregion
 
+        // * Show how many keys are saved on this item
         if (stack.has(DataComponents.BLOCK_ENTITY_DATA)) {
             final CompoundTag tag = stack.get(DataComponents.BLOCK_ENTITY_DATA).copyTag();
             if (tag.contains("Keys", CompoundTag.TAG_LIST)) {

@@ -34,7 +34,8 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity {
         super(CableBlockEntities.BACKUP_DRIVE.get(), pos, blockState);
     }
 
-    // --- HANDLE CONNECTION SAVES IN SCHEMATICS --- //
+    //#region // --- HANDLE CONNECTION SAVES IN SCHEMATICS --- //
+    // * Reuse loaded snapshot if placing, else build fresh from live network
     @Override
     protected void saveAdditional(final CompoundTag tag, final HolderLookup.Provider registries) {
         super.saveAdditional(tag, registries);
@@ -102,7 +103,9 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity {
             );
         }
     }
+    //#endregion
 
+    // * Stash payload, actual restore happens on tick
     @Override
     protected void loadAdditional(final CompoundTag tag, final HolderLookup.Provider registries) {
         super.loadAdditional(tag, registries);
@@ -129,6 +132,7 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity {
         }
     }
 
+    //#region // --- RETRY RESTORE UNTIL SUBLEVEL READY --- //
     public static void serverTick(
         final Level level,
         final BlockPos pos,
@@ -198,6 +202,7 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity {
         blockEntity.restoreAttempts = 0;
         blockEntity.setChanged();
     }
+    //#endregion
 
     // --- LEFTOVER FROM DRIVEBYWIRE --- //
     // * Probably useless, since the blockstates have been removed from the main block for simplicity

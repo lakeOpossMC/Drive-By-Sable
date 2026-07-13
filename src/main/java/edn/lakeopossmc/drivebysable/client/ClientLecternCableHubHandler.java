@@ -14,11 +14,13 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+// --- EMPTY HAND CLICK BINDS LECTERN TO HUB --- //
 @EventBusSubscriber(modid = DriveBySableMod.MOD_ID, value = Dist.CLIENT)
 public final class ClientLecternCableHubHandler {
     private ClientLecternCableHubHandler() {
     }
 
+    // * Only fires with a lectern controller open and empty hand
     @SubscribeEvent
     public static void onRightClickBlock(final PlayerInteractEvent.RightClickBlock event) {
         if (event.getSide().isServer()) {

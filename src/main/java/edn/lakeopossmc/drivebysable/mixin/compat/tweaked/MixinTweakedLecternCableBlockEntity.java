@@ -15,6 +15,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+// --- LETS TWEAKED LECTERN REMEMBER ITS BOUND HUB --- //
+// * Pseudo since mod may not be loaded
 @Pseudo
 @Mixin(targets = "com.getitemfromblock.create_tweaked_controllers.block.TweakedLecternControllerBlockEntity", remap = false)
 public abstract class MixinTweakedLecternCableBlockEntity implements LecternCableHubDuck {
@@ -27,6 +29,7 @@ public abstract class MixinTweakedLecternCableBlockEntity implements LecternCabl
     @Shadow(remap = false)
     public abstract ItemStack getController();
 
+    //#region // --- SAVE AND LOAD HUB POS --- //
     @Inject(method = "write", at = @At("TAIL"), remap = false)
     private void drivebysable$writeHub(
         final CompoundTag compound,
@@ -50,6 +53,7 @@ public abstract class MixinTweakedLecternCableBlockEntity implements LecternCabl
         }
     }
 
+    // * Fall back to controller item hub if tag missing
     @Inject(method = "read", at = @At("TAIL"), remap = false)
     private void drivebysable$readHub(
         final CompoundTag compound,
@@ -64,12 +68,15 @@ public abstract class MixinTweakedLecternCableBlockEntity implements LecternCabl
             drivebysable$hubPos = controller == null ? null : HubItem.getHubPos(controller).orElse(null);
         }
     }
+    //#endregion
 
+    // * Grab hub pos off whatever controller gets inserted
     @Inject(method = "setController", at = @At("TAIL"), remap = false)
     private void drivebysable$captureHubFromController(final ItemStack newController, final CallbackInfo ci) {
         drivebysable$hubPos = newController == null ? null : HubItem.getHubPos(newController).orElse(null);
     }
 
+    // * Stamp hub pos back onto returned controller
     @Inject(method = "getController", at = @At("RETURN"), cancellable = true, remap = false)
     private void drivebysable$restoreHubOnController(final CallbackInfoReturnable<ItemStack> cir) {
         final ItemStack controller = cir.getReturnValue();

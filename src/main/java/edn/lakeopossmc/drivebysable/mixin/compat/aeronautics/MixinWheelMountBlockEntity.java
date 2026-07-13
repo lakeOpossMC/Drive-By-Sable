@@ -9,9 +9,12 @@ import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
+// --- LET WHEEL MOUNT READ CABLES FOR BRAKE AND STEER --- //
+// * Pseudo since mod may not be loaded
 @Pseudo
 @Mixin(targets = "dev.ryanhcode.offroad.content.blocks.wheel_mount.WheelMountBlockEntity", remap = false)
 public abstract class MixinWheelMountBlockEntity {
+    // * Swap signal read used for brake physics
     @Redirect(
         method = "sable$physicsTick",
         at = @At(
@@ -24,6 +27,7 @@ public abstract class MixinWheelMountBlockEntity {
         return CableRedstoneCompat.getSignalIncludingReverseCable(level, pos, direction);
     }
 
+    // * Swap signal read used for client side brake
     @Redirect(
         method = "tick",
         at = @At(
@@ -36,6 +40,7 @@ public abstract class MixinWheelMountBlockEntity {
         return CableRedstoneCompat.getSignalIncludingReverseCable(level, pos, direction);
     }
 
+    // * Swap signal read used for left steer
     @Redirect(
         method = "getSteeringSignal",
         at = @At(
@@ -49,6 +54,7 @@ public abstract class MixinWheelMountBlockEntity {
         return CableRedstoneCompat.getSignalIncludingReverseCable(level, pos, direction);
     }
 
+    // * Swap signal read used for right steer
     @Redirect(
         method = "getSteeringSignal",
         at = @At(

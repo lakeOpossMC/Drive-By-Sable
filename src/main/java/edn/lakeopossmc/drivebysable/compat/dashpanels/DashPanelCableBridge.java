@@ -30,6 +30,7 @@ public final class DashPanelCableBridge {
     private DashPanelCableBridge() {
     }
 
+    // * List every input module as a channel, splitting multi inputs
     public static List<String> getChannels(final Level level, final BlockPos pos) {
         final PanelBlockEntity panel = getPanel(level, pos);
         if (panel == null) {
@@ -64,6 +65,9 @@ public final class DashPanelCableBridge {
 
     private static final int BOOKKEEPING_INTERVAL_TICKS = 10;
 
+    //#region // --- PER TICK PANEL SCAN --- //
+    // * Push changed values every tick, cheap
+    // * Every 10th tick also detect renamed or removed modules
     public static void tick(final Level level, final BlockPos pos, final PanelBlockEntity panel) {
         if (level.isClientSide) {
             return;
@@ -126,6 +130,7 @@ public final class DashPanelCableBridge {
             return;
         }
 
+        // * Same module, different name means it got renamed, remap it
         for (final Map.Entry<ModuleKey, Map<String, String>> entry : currentChannelsByModule.entrySet()) {
             final Map<String, String> previousExtensions = state.lastChannelsByModule.get(entry.getKey());
             if (previousExtensions == null) {
@@ -147,6 +152,7 @@ public final class DashPanelCableBridge {
         state.lastChannelsByModule.clear();
         state.lastChannelsByModule.putAll(currentChannelsByModule);
 
+        // * Anything not seen this pass got removed, drop its connections
         state.lastValues.keySet().removeIf(channel -> {
             if (seenChannels.contains(channel)) {
                 return false;
@@ -155,6 +161,7 @@ public final class DashPanelCableBridge {
             return true;
         });
     }
+    //#endregion
 
     public static void clear(final Level level, final BlockPos pos) {
         final Map<BlockPos, PanelState> perLevel = STATE.get(level);
@@ -185,6 +192,7 @@ public final class DashPanelCableBridge {
     private record ModuleKey(ModuleType<?> type, int x, int y) {
     }
 
+    // * Per panel tick state, keyed off level and pos
     private static final class PanelState {
         private final Map<String, Integer> lastValues = new HashMap<>();
         private final Map<ModuleKey, Map<String, String>> lastChannelsByModule = new HashMap<>();

@@ -36,6 +36,8 @@ import net.minecraft.world.phys.Vec3;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+// --- ALL PONDER SCENES FOR THE MOD --- //
+// * Story boards for hub, lectern, and typewriter intros
 public class CableScenes {
     // --- SINGLE FACE BOX HELPER --- //
     private static AABB faceBox(final BlockPos pos, final Direction face) {
@@ -88,7 +90,7 @@ public class CableScenes {
         }
     }
 
-    // --- CABLE HUB INTRO SCENE --- //
+    //#region // --- CABLE HUB INTRO SCENE --- //
     public static void cableHubIntro(final SceneBuilder builder, final SceneBuildingUtil util) {
         final CreateSceneBuilder scene = new CreateSceneBuilder(builder);
         final var world = scene.world();
@@ -238,7 +240,8 @@ public class CableScenes {
         // END SCENE
         scene.markAsFinished();
     }
-    // --- CABLE HUB LECTERN SCENE --- //
+    //#endregion
+    //#region // --- CABLE HUB LECTERN SCENE --- //
     public static void cableHubLecternIntro(final SceneBuilder builder, final SceneBuildingUtil util) {
         final CreateSceneBuilder scene = new CreateSceneBuilder(builder);
         final var world = scene.world();
@@ -377,8 +380,9 @@ public class CableScenes {
         // END SCENE
         scene.markAsFinished();
     }
+    //#endregion
 
-    // --- ADVANCED CABLE HUB INTRO SCENE --- //
+    //#region // --- ADVANCED CABLE HUB INTRO SCENE --- //
     public static void cableAdvancedHubIntro(final SceneBuilder builder, final SceneBuildingUtil util) {
         final CreateSceneBuilder scene = new CreateSceneBuilder(builder);
         final var world = scene.world();
@@ -562,7 +566,8 @@ public class CableScenes {
         // END SCENE
         scene.markAsFinished();
     }
-    // --- ADVANCED CABLE HUB LECTERN SCENE --- //
+    //#endregion
+    //#region // --- ADVANCED CABLE HUB LECTERN SCENE --- //
     public static void advancedCableHubLecternIntro(final SceneBuilder builder, final SceneBuildingUtil util) {
         final CreateSceneBuilder scene = new CreateSceneBuilder(builder);
         final var world = scene.world();
@@ -705,8 +710,9 @@ public class CableScenes {
         // END SCENE
         scene.markAsFinished();
     }
+    //#endregion
 
-    // --- CABLE TYPEWRITER HUB INTRO SCENE --- //
+    //#region // --- CABLE TYPEWRITER HUB INTRO SCENE --- //
     public static void cableTypewriterHubIntro(final SceneBuilder builder, final SceneBuildingUtil util) {
         final CreateSceneBuilder scene = new CreateSceneBuilder(builder);
         final var world = scene.world();
@@ -916,4 +922,5 @@ public class CableScenes {
         // END SCENE
         scene.markAsFinished();
     }
+    //#endregion
 }

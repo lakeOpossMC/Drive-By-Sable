@@ -10,6 +10,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+// --- BRIDGES TWEAKED CONTROLLER INPUT TO CABLES --- //
+// * Buttons and axis auto release after timeout in case a stop packet is missed
 public final class TweakedControllerCableServerHandler {
     public static final String[] BUTTON_TO_CHANNEL = new String[] {
         "buttonA",
@@ -41,12 +43,10 @@ public final class TweakedControllerCableServerHandler {
         "axisTriggerRight"
     };
 
-    // ==============================================
-    // 👇 【关键修改】强绑定：内部名 → 多语言键（一一对应，永不乱序）
-    // ==============================================
+    // * Fixed mapping from channel id to its lang key
     public static final Map<String, String> CHANNEL_TO_LANG_KEY = Map.ofEntries(
             Map.entry("world","drivebysable.cable.channel.world"),
-            // 按钮映射
+            // * Buttons
             Map.entry("buttonA", "drivebysable.controller.button.a"),
             Map.entry("buttonB", "drivebysable.controller.button.b"),
             Map.entry("buttonX", "drivebysable.controller.button.x"),
@@ -63,7 +63,7 @@ public final class TweakedControllerCableServerHandler {
             Map.entry("dPadDown", "drivebysable.controller.button.dpad_down"),
             Map.entry("dPadLeft", "drivebysable.controller.button.dpad_left"),
 
-            // 轴映射
+            // * Axis
             Map.entry("axisLeftX+", "drivebysable.controller.axis.left_x_positive"),
             Map.entry("axisLeftX-", "drivebysable.controller.axis.left_x_negative"),
             Map.entry("axisLeftY+", "drivebysable.controller.axis.left_y_positive"),
@@ -75,7 +75,7 @@ public final class TweakedControllerCableServerHandler {
             Map.entry("axisTriggerLeft", "drivebysable.controller.axis.left_trigger"),
             Map.entry("axisTriggerRight", "drivebysable.controller.axis.right_trigger"),
 
-            // 键盘按键映射
+            // * Keyboard keys
             Map.entry("keyUp",    "drivebysable.controller.key.up"),
             Map.entry("keyDown",  "drivebysable.controller.key.down"),
             Map.entry("keyLeft",  "drivebysable.controller.key.left"),
@@ -136,6 +136,7 @@ public final class TweakedControllerCableServerHandler {
         }
     }
 
+    // * Count down held inputs, clear signal once expired
     private static void tickTimeouts(
         final Level level,
         final Map<Pair<BlockPos, Integer>, Integer> timeoutMap,

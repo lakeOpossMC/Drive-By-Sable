@@ -45,6 +45,8 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 import java.util.List;
 import java.util.UUID;
 
+// --- BLOCK FOR TYPEWRITER HUB --- //
+// * Extends the typewriter with cable channel support
 public class CableTypewriterHubBlock extends HorizontalDirectionalBlock
         implements IBE<CableTypewriterHubBlockEntity>, MultiChannelCableSource, IWrenchable {
 
@@ -71,6 +73,7 @@ public class CableTypewriterHubBlock extends HorizontalDirectionalBlock
         super.createBlockStateDefinition(builder);
     }
 
+    // * Shift place faces towards the player
     @Override
     public BlockState getStateForPlacement(final BlockPlaceContext context) {
         assert context.getPlayer() != null;
@@ -79,6 +82,10 @@ public class CableTypewriterHubBlock extends HorizontalDirectionalBlock
                 context.getPlayer().isShiftKeyDown() ? dir.getOpposite() : dir);
     }
 
+    //#region // --- RIGHT CLICK BEHAVIOUR --- //
+    // * Linked controller copies bindings instead of opening menu
+    // * Shift click with empty hand opens the screen
+    // * Empty hand claims or releases use
     @Override
     protected ItemInteractionResult useItemOn(final ItemStack stack, final BlockState state,
                                               final Level level, final BlockPos pos,
@@ -132,11 +139,13 @@ public class CableTypewriterHubBlock extends HorizontalDirectionalBlock
 
         return super.useItemOn(stack, state, level, pos, player, hand, hit);
     }
+    //#endregion
 
     private void displayScreen(final CableTypewriterHubBlockEntity be, final Player player) {
         SimMenuService.INSTANCE.openScreen((ServerPlayer) player, be, be::sendToMenu);
     }
 
+    // * Wrench release drops keys back to player if creative
     @Override
     public InteractionResult onSneakWrenched(final BlockState state, final UseOnContext context) {
         final Level level = context.getLevel();
@@ -173,6 +182,7 @@ public class CableTypewriterHubBlock extends HorizontalDirectionalBlock
         return CableBlockEntities.CABLE_TYPEWRITER_HUB.get();
     }
 
+    // * Save keys to a dropped item in creative
     @Override
     public BlockState playerWillDestroy(final Level level, final BlockPos pos, final BlockState state, final Player player) {
         final BlockEntity blockEntity = level.getBlockEntity(pos);
@@ -203,6 +213,7 @@ public class CableTypewriterHubBlock extends HorizontalDirectionalBlock
         return channels.get(idx);
     }
 
+    // * Non creative drops keep the saved keys too
     @Override
     public List<ItemStack> getDrops(final BlockState state, final LootParams.Builder params) {
         final BlockEntity blockEntity = params.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
@@ -214,6 +225,7 @@ public class CableTypewriterHubBlock extends HorizontalDirectionalBlock
         return super.getDrops(state, params);
     }
 
+    // * Drop connections when block actually replaced
     @Override
     protected void onRemove(final BlockState state, final Level level, final BlockPos pos,
                             final BlockState newState, final boolean movedByPiston) {

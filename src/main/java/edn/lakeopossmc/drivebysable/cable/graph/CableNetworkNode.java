@@ -7,6 +7,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
+// --- ONE SINK POSITION IN THE NETWORK --- //
+// * Tracks each source input feeding this sink face
 public class CableNetworkNode {
     private final Map<InputKey, Integer> inputs = new HashMap<>();
     private final long position;
@@ -21,6 +23,7 @@ public class CableNetworkNode {
         this.direction = direction;
     }
 
+    // * Zero signal just clears the input
     public boolean setInput(final InputKey key, final int signal) {
         if (signal <= 0) {
             return inputs.remove(key) != null;
@@ -34,6 +37,7 @@ public class CableNetworkNode {
         return inputs.isEmpty();
     }
 
+    // * Strongest input wins, like vanilla redstone
     public int getSignal() {
         return inputs.values().stream().max(Comparator.naturalOrder()).orElse(0);
     }

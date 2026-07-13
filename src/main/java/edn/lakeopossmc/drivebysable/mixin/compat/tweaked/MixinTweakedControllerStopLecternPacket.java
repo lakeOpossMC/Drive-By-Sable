@@ -13,9 +13,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+// --- CLEAR CABLE SIGNALS WHEN TWEAKED CONTROLLER STOPS --- //
+// * Pseudo since mod may not be loaded
 @Pseudo
 @Mixin(TweakedLinkedControllerStopLecternPacket.class)
 public class MixinTweakedControllerStopLecternPacket {
+    // * Reset lectern and any bound hub too
     @Inject(method = "handleLectern", at = @At("RETURN"), remap = false)
     private void drivebysable$handleLectern(
         final ServerPlayer player,
@@ -28,6 +31,7 @@ public class MixinTweakedControllerStopLecternPacket {
         }
     }
 
+    // * Reset hub bound to held item
     @Inject(method = "handleItem", at = @At("RETURN"), remap = false)
     private void drivebysable$handleItem(final ServerPlayer player, final ItemStack heldItem, final CallbackInfo ci) {
         HubItem.ifHubPresent(heldItem, pos -> TweakedControllerCableServerHandler.reset(player.level(), pos));

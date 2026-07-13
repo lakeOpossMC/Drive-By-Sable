@@ -18,11 +18,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.ArrayList;
 import java.util.List;
 
+// --- FORWARD TWEAKED CONTROLLER AXIS TO CABLES --- //
+// * Pseudo since mod may not be loaded
 @Pseudo
 @Mixin(TweakedLinkedControllerAxisPacket.class)
 public abstract class MixinTweakedControllerAxisPacket {
     @Shadow private int axis;
 
+    // * Push to lectern hub
     @Inject(method = "handleLectern", at = @At("RETURN"), remap = false)
     private void drivebysable$handleLectern(
         final ServerPlayer player,
@@ -36,11 +39,13 @@ public abstract class MixinTweakedControllerAxisPacket {
         }
     }
 
+    // * Push to hub bound on held item
     @Inject(method = "handleItem", at = @At("RETURN"), remap = false)
     private void drivebysable$handleItem(final ServerPlayer player, final ItemStack heldItem, final CallbackInfo ci) {
         HubItem.ifHubPresent(heldItem, pos -> TweakedControllerCableServerHandler.receiveAxis(player.level(), pos, decodeAxis(axis)));
     }
 
+    // * Unpack packed axis bits into per channel values
     private static List<Byte> decodeAxis(final int axis) {
         final ControllerRedstoneOutput output = new ControllerRedstoneOutput();
         final List<Byte> axisValues = new ArrayList<>(TweakedControllerCableServerHandler.AXIS_TO_CHANNEL.length);

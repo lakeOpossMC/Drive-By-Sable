@@ -15,11 +15,13 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+// --- SAME AS LECTERN HANDLER BUT FOR TWEAKED --- //
 @EventBusSubscriber(modid = DriveBySableMod.MOD_ID, value = Dist.CLIENT)
 public final class ClientAdvancedLecternCableHubHandler {
     private ClientAdvancedLecternCableHubHandler() {
     }
 
+    // * Only fires with a tweaked lectern open and empty hand
     @SubscribeEvent
     public static void onRightClickBlock(final PlayerInteractEvent.RightClickBlock event) {
         if (event.getSide().isServer() || !ModList.get().isLoaded("create_tweaked_controllers")) {

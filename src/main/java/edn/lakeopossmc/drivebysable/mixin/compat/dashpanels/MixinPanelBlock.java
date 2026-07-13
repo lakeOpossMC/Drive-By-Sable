@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 
 // --- MAKES THE DASH PANEL A DYNAMIC CABLE SOURCE --- //
+// * Pseudo since mod may not be loaded
 @Pseudo
 @Mixin(PanelBlock.class)
 public abstract class MixinPanelBlock implements MultiChannelCableSource {
@@ -30,6 +31,7 @@ public abstract class MixinPanelBlock implements MultiChannelCableSource {
         return DashPanelCableBridge.nextChannel(level, pos, current, forward);
     }
 
+    // * Clear bridge state when block actually replaced
     @Inject(
             method = "onRemove",
             at = @At("TAIL")

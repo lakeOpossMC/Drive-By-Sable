@@ -17,6 +17,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+// --- CLIENT ASKS SERVER TO ADD A CONNECTION --- //
 public record CableAddConnectionPacket(BlockPos source, BlockPos sink, Direction direction, String channel) implements CustomPacketPayload {
     public static final Type<CableAddConnectionPacket> TYPE = new Type<>(DriveBySableMod.asResource("wire_add_connection"));
     public static final StreamCodec<ByteBuf, CableAddConnectionPacket> STREAM_CODEC = StreamCodec.composite(
@@ -32,6 +33,7 @@ public record CableAddConnectionPacket(BlockPos source, BlockPos sink, Direction
         return TYPE;
     }
 
+    // * Consume a cable on success, else show reason
     public static void handle(final CableAddConnectionPacket payload, final IPayloadContext context) {
         if (!(context.player() instanceof final ServerPlayer player)) {
             return;

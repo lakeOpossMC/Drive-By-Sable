@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+// --- BRIDGES LINKED CONTROLLER BUTTONS TO CABLES --- //
+// * Buttons auto release after timeout in case a stop packet is missed
 public final class LinkedControllerCableServerHandler {
     public static final String[] KEY_TO_CHANNEL = new String[] {"keyUp", "keyDown", "keyLeft", "keyRight", "keyJump", "keyShift"};
     private static final int TIMEOUT = 30;
@@ -18,6 +20,7 @@ public final class LinkedControllerCableServerHandler {
     private LinkedControllerCableServerHandler() {
     }
 
+    // * Count down held buttons, clear signal once expired
     public static void tick(final Level level) {
         final Iterator<Map.Entry<Pair<BlockPos, Integer>, Integer>> iterator = TIMEOUT_MAP.get(level).entrySet().iterator();
         while (iterator.hasNext()) {

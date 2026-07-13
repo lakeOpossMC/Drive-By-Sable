@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+// --- LETS LECTERN REMEMBER ITS BOUND HUB --- //
 @Mixin(LecternControllerBlockEntity.class)
 public abstract class MixinLecternControllerBlockEntity implements LecternCableHubDuck {
     @Unique
@@ -22,6 +23,7 @@ public abstract class MixinLecternControllerBlockEntity implements LecternCableH
     @Unique
     private BlockPos drivebysable$hubPos;
 
+    //#region // --- SAVE AND LOAD HUB POS --- //
     @Inject(method = "write", at = @At("TAIL"), remap = false)
     private void drivebysable$writeHub(
         final CompoundTag compound,
@@ -54,12 +56,15 @@ public abstract class MixinLecternControllerBlockEntity implements LecternCableH
     ) {
         drivebysable$hubPos = compound.contains(DRIVEBYSABLE$HUB_KEY) ? BlockPos.of(compound.getLong(DRIVEBYSABLE$HUB_KEY)) : null;
     }
+    //#endregion
 
+    // * Grab hub pos off whatever controller gets inserted
     @Inject(method = "setController", at = @At("TAIL"), remap = false)
     private void drivebysable$captureHubFromInsertedController(final ItemStack newController, final CallbackInfo ci) {
         drivebysable$hubPos = newController == null ? null : HubItem.getHubPos(newController).orElse(null);
     }
 
+    // * Stamp hub pos onto controller item when its generated
     @Inject(method = "createLinkedController", at = @At("RETURN"), cancellable = true, remap = false)
     private void drivebysable$restoreHubOnGeneratedController(final CallbackInfoReturnable<ItemStack> cir) {
         if (drivebysable$hubPos == null) {

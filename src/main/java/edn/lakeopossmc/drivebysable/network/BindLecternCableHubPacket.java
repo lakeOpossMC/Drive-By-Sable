@@ -18,6 +18,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+// --- LINKS A LECTERN CONTROLLER TO A HUB --- //
 public record BindLecternCableHubPacket(BlockPos lecternPos, BlockPos hubPos) implements CustomPacketPayload {
     public static final Type<BindLecternCableHubPacket> TYPE = new Type<>(DriveBySableMod.asResource("bind_lectern_controller_hub"));
     public static final StreamCodec<ByteBuf, BindLecternCableHubPacket> STREAM_CODEC = StreamCodec.composite(
@@ -31,6 +32,7 @@ public record BindLecternCableHubPacket(BlockPos lecternPos, BlockPos hubPos) im
         return TYPE;
     }
 
+    // * Only bind if player is actually using the lectern
     public static void handle(final BindLecternCableHubPacket payload, final IPayloadContext context) {
         if (!(context.player() instanceof final ServerPlayer player)) {
             return;
@@ -50,6 +52,7 @@ public record BindLecternCableHubPacket(BlockPos lecternPos, BlockPos hubPos) im
         player.displayClientMessage(Component.literal("Controller connected!"), true);
     }
 
+    // * Reflection since isUsedBy isnt on a shared type
     private static boolean isUsedByPlayer(final BlockEntity blockEntity, final Player player) {
         try {
             final Method isUsedBy = blockEntity.getClass().getMethod("isUsedBy", Player.class);
