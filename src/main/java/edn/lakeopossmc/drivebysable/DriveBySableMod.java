@@ -12,6 +12,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
@@ -41,6 +42,7 @@ public class DriveBySableMod {
         }
         CableSounds.register(modEventBus);
         modEventBus.addListener(CablePackets::register);
+        modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::clientSetup);
 
         NeoForge.EVENT_BUS.addListener(CableCommonEvents::onLevelTick);
@@ -49,12 +51,14 @@ public class DriveBySableMod {
     }
     //#endregion
 
-    // * Register simulated tab and ponder plugin
-    private void clientSetup(final FMLCommonSetupEvent event) {
+    // * Register simulated tab
+    private void commonSetup(final FMLCommonSetupEvent event) {
         if (ModList.get().isLoaded("simulated")) {
             event.enqueueWork(CableSimulatedTab::register);
         }
-
+    }
+    // * Register ponder plugin
+    private void clientSetup(final FMLClientSetupEvent event) {
         event.enqueueWork(() -> PonderIndex.addPlugin(new DriveBySablePonderPlugin()));
     }
 
