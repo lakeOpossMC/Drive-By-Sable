@@ -34,11 +34,11 @@ public final class CableServerFeedback {
     // * Uses the deny sound, matches how create's track item flags bad placement
     public static void showInvalidOperationMessage(final ServerPlayer player, final String langKey) {
         player.displayClientMessage(Component.translatable(langKey).withStyle(ChatFormatting.RED), true);
-        scheduledActions.add(new ScheduledAction(4, () -> {
+        scheduledActions.add(new ScheduledAction(2, () -> {
             player.displayClientMessage(Component.translatable(langKey).withStyle(ChatFormatting.WHITE), true);
             player.level().playSound(null, player.blockPosition(), AllSoundEvents.DENY.getMainEvent(), SoundSource.PLAYERS, 1.0F, 0.5F);
         }));
-        scheduledActions.add(new ScheduledAction(8, () ->
+        scheduledActions.add(new ScheduledAction(4, () ->
                 player.displayClientMessage(Component.translatable(langKey).withStyle(ChatFormatting.RED), true)));
     }
 
