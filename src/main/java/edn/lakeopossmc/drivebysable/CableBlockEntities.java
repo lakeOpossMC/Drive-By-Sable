@@ -15,12 +15,14 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+// --- REGISTERS ALL BLOCK ENTITY TYPES --- //
 public final class CableBlockEntities {
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister.create(
             Registries.BLOCK_ENTITY_TYPE,
             DriveBySableMod.MOD_ID
     );
 
+    // * One entity type shared by both hub blocks
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CableHubBlockEntity>> CABLE_HUB =
             BLOCK_ENTITY_TYPES.register(
                     "cable_hub",
@@ -38,6 +40,7 @@ public final class CableBlockEntities {
             () -> BlockEntityType.Builder.of(NetworkBackupDriveBlockEntity::new, CableBlocks.BACKUP_DRIVE.get()).build(null)
     );
 
+    // * Null when simulated isnt loaded
     @Nullable
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CableTypewriterHubBlockEntity>>
             CABLE_TYPEWRITER_HUB = ModList.get().isLoaded("simulated")

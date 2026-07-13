@@ -18,13 +18,13 @@ import net.minecraft.world.phys.BlockHitResult;
 import java.util.Arrays;
 import java.util.List;
 
-// --- SIMPLIFIED DIRECTIONAL VARIANT OF CONTROLLER HUB --- //
-// * Shape handler no longer needs to be retyped, all handled in main class (yay!)
-// * Still keeps check for correct controller type
-// * Lists channels correctly while maintaining the og logic - again, no retyping needed (yay! x2)
+// --- DIRECTIONAL CABLE HUB --- //
+// * Define channel list based on linked controller
+// * Link to linked controller on use
 public class CableHubBlock extends AbstractDirectionalHubBlock {
-    // --- DEF FOR CHANNELS --- //
+    //#region // --- DEF CHANNELS AND APPEND TO LIST --- //
     private static final List<String> CHANNELS = Arrays.stream(LinkedControllerCableServerHandler.KEY_TO_CHANNEL).toList();
+    //#endregion
 
     // --- GET PROPS FROM MAIN --- //
     public CableHubBlock(final Properties properties) {
@@ -37,7 +37,7 @@ public class CableHubBlock extends AbstractDirectionalHubBlock {
         return CHANNELS;
     }
 
-    // --- CHECK FOR LINKED CONTROLLER --- //
+    //#region // --- CHECK FOR LINKED CONTROLLER USE --- //
     @Override
     protected ItemInteractionResult useItemOn(
             final ItemStack itemStack,
@@ -48,16 +48,18 @@ public class CableHubBlock extends AbstractDirectionalHubBlock {
             final InteractionHand interactionHand,
             final BlockHitResult hitResult
     ) {
+        // * Make sure we're looking for the correct item for linking
         if (!AllItems.LINKED_CONTROLLER.isIn(itemStack)) {
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
-
+        // * When successful, show message and play sound
         if (!level.isClientSide()) {
             HubItem.putHub(itemStack, blockPos);
             level.playSound(null, blockPos, CableSounds.PLUG_IN.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
             player.displayClientMessage(Component.literal("Controller connected!"), true);
         }
-
+        // * Return a success trigger
         return ItemInteractionResult.SUCCESS;
     }
+    //#endregion
 }

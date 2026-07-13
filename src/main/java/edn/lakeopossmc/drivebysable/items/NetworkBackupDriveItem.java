@@ -13,6 +13,8 @@ import net.minecraft.world.item.TooltipFlag;
 
 import java.util.List;
 
+// --- ITEM CLASS FOR BACKUP DRIVE --- //
+// * Builds tooltip only, block does the work
 public class NetworkBackupDriveItem extends BlockItem {
 
     private static final String TOOLTIP_KEY = "block.drivebysable.backup_drive.tooltip";

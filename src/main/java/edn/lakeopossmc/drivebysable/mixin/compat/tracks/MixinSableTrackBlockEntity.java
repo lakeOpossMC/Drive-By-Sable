@@ -9,9 +9,12 @@ import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
+// --- LET SABLE TRACK POWER READ CABLES TOO --- //
+// * Pseudo since mod may not be loaded
 @Pseudo
 @Mixin(targets = "dev.qwxon.tracks.content.blocks.sable_track.SableTrackBlockEntity", remap = false)
 public abstract class MixinSableTrackBlockEntity {
+    // * Swap signal read used for physics
     @Redirect(
         method = "sable$physicsTick",
         at = @At(
@@ -24,6 +27,7 @@ public abstract class MixinSableTrackBlockEntity {
         return CableRedstoneCompat.getSignalIncludingReverseCable(level, pos, direction);
     }
 
+    // * Swap signal read used for visuals
     @Redirect(
         method = "tick",
         at = @At(

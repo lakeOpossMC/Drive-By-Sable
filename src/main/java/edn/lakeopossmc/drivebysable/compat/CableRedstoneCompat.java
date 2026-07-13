@@ -5,10 +5,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 
+// --- VANILLA REDSTONE + CABLE SIGNAL BLEND --- //
 public final class CableRedstoneCompat {
     private CableRedstoneCompat() {
     }
 
+    // * Take the strongest of vanilla and both cable sides
     public static int getSignalIncludingReverseCable(
         final Level level,
         final BlockPos queriedPos,

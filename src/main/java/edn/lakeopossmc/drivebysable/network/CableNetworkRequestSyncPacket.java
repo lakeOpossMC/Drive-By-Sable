@@ -7,6 +7,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+// --- CLIENT ASKS SERVER FOR A FULL RESYNC --- //
 public record CableNetworkRequestSyncPacket() implements CustomPacketPayload {
     public static final CableNetworkRequestSyncPacket INSTANCE = new CableNetworkRequestSyncPacket();
     public static final Type<CableNetworkRequestSyncPacket> TYPE = new Type<>(DriveBySableMod.asResource("wire_network_request_sync"));

@@ -16,14 +16,15 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+// --- CLIENT ASKS SERVER TO DROP A CONNECTION --- //
 public record CableRemoveConnectionPacket(BlockPos source, BlockPos sink, Direction direction, String channel) implements CustomPacketPayload {
     public static final Type<CableRemoveConnectionPacket> TYPE = new Type<>(DriveBySableMod.asResource("wire_remove_connection"));
     public static final StreamCodec<ByteBuf, CableRemoveConnectionPacket> STREAM_CODEC = StreamCodec.composite(
-        BlockPos.STREAM_CODEC, CableRemoveConnectionPacket::source,
-        BlockPos.STREAM_CODEC, CableRemoveConnectionPacket::sink,
-        ByteBufCodecs.VAR_INT, packet -> packet.direction().get3DDataValue(),
-        ByteBufCodecs.STRING_UTF8, CableRemoveConnectionPacket::channel,
-        (source, sink, direction, channel) -> new CableRemoveConnectionPacket(source, sink, Direction.from3DDataValue(direction), channel)
+            BlockPos.STREAM_CODEC, CableRemoveConnectionPacket::source,
+            BlockPos.STREAM_CODEC, CableRemoveConnectionPacket::sink,
+            ByteBufCodecs.VAR_INT, packet -> packet.direction().get3DDataValue(),
+            ByteBufCodecs.STRING_UTF8, CableRemoveConnectionPacket::channel,
+            (source, sink, direction, channel) -> new CableRemoveConnectionPacket(source, sink, Direction.from3DDataValue(direction), channel)
     );
 
     @Override
@@ -31,6 +32,7 @@ public record CableRemoveConnectionPacket(BlockPos source, BlockPos sink, Direct
         return TYPE;
     }
 
+    // * Refund a cable on success then resync
     public static void handle(final CableRemoveConnectionPacket payload, final IPayloadContext context) {
         if (!(context.player() instanceof final ServerPlayer player)) {
             return;

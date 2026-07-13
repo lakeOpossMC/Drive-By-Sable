@@ -12,10 +12,13 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+// --- LET TYPEWRITER HUB ITEM COUNT AS BOUND HAND --- //
+// * Pseudo since mod may not be loaded
 @Pseudo
 @Mixin(LinkedTypewriterItemBindHandler.class)
 public abstract class MixinLinkedTypewriterItemBindHandler {
 
+    // * Check both hands for our hub item
     @Inject(method = "getHand", at = @At("HEAD"), cancellable = true)
     private static void drivebysable$getHand(final CallbackInfoReturnable<InteractionHand> cir) {
         final LocalPlayer player = Minecraft.getInstance().player;

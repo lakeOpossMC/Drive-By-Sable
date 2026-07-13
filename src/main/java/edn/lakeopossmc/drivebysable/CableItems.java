@@ -13,6 +13,7 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 import javax.annotation.Nullable;
 
+// --- REGISTERS ALL ITEMS --- //
 public final class CableItems {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(DriveBySableMod.MOD_ID);
 
@@ -29,14 +30,16 @@ public final class CableItems {
     );
     public static final DeferredItem<BlockItem> CABLE_HUB_BLOCK = ITEMS.registerSimpleBlockItem("cable_hub", CableBlocks.CABLE_HUB);
 
+    // * Null when tweaked controllers isnt loaded
     @Nullable
     public static final DeferredItem<BlockItem> ADVANCED_CABLE_HUB_BLOCK =
             ModList.get().isLoaded("create_tweaked_controllers")
-                ? ITEMS.registerSimpleBlockItem(
-                "advanced_cable_hub",
-                CableBlocks.ADVANCED_CABLE_HUB)
-                : null;
+                    ? ITEMS.registerSimpleBlockItem(
+                    "advanced_cable_hub",
+                    CableBlocks.ADVANCED_CABLE_HUB)
+                    : null;
 
+    // * Null when simulated isnt loaded
     @Nullable
     public static final DeferredItem<CableTypewriterHubItem> CABLE_TYPEWRITER_HUB =
             ModList.get().isLoaded("simulated")

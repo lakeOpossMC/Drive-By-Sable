@@ -8,6 +8,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.registries.DeferredHolder;
 
+// --- REGISTERS PONDER SCENES PER BLOCK --- //
+// * Skips scenes tied to a block that isnt registered
 public class DriveBySablePonderScenes {
     public static void register(final PonderSceneRegistrationHelper<ResourceLocation> registry) {
 

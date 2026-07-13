@@ -7,6 +7,7 @@ import net.createmod.ponder.api.registration.PonderSceneRegistrationHelper;
 import net.createmod.ponder.api.registration.PonderTagRegistrationHelper;
 import net.minecraft.resources.ResourceLocation;
 
+// --- PONDER PLUGIN ENTRY POINT --- //
 public class DriveBySablePonderPlugin extends CreatePonderPlugin {
     public static final ResourceLocation DRIVE_BY_SABLE_TAG =
             ResourceLocation.fromNamespaceAndPath("drivebysable", "main");
@@ -21,6 +22,8 @@ public class DriveBySablePonderPlugin extends CreatePonderPlugin {
         DriveBySablePonderScenes.register(helper);
     }
 
+    //#region // --- TAG SETUP FOR PONDER INDEX --- //
+    // * Skip items tied to a mod that isnt loaded
     @Override
     public void registerTags(final PonderTagRegistrationHelper<ResourceLocation> helper) {
         helper.registerTag(DRIVE_BY_SABLE_TAG)
@@ -42,4 +45,5 @@ public class DriveBySablePonderPlugin extends CreatePonderPlugin {
 
         tag.add(CableItems.BACKUP_DRIVE.getId());
     }
+    //#endregion
 }

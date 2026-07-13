@@ -8,12 +8,14 @@ import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
+// --- MAIN CREATIVE TAB FOR THE MOD --- //
 public final class CableCreativeTabs {
     private static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(
             Registries.CREATIVE_MODE_TAB,
             DriveBySableMod.MOD_ID
     );
 
+    // * Only show hub items tied to a loaded compat mod
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> BASE_CREATIVE_TAB = CREATIVE_MODE_TABS.register(
             "main",
             () -> CreativeModeTab.builder()

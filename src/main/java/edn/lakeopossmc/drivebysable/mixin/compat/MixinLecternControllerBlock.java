@@ -11,6 +11,7 @@ import org.spongepowered.asm.mixin.Unique;
 import java.util.Arrays;
 import java.util.List;
 
+// --- LET LECTERN CONTROLLER ACT AS CABLE SOURCE --- //
 @Mixin(LecternControllerBlock.class)
 public abstract class MixinLecternControllerBlock implements MultiChannelCableSource {
     @Unique
@@ -21,6 +22,7 @@ public abstract class MixinLecternControllerBlock implements MultiChannelCableSo
         return DRIVEBYSABLE$CHANNELS;
     }
 
+    // * Wrap around channel list on scroll
     @Override
     public String cable$nextChannel(final Level level, final BlockPos pos, final String current, final boolean forward) {
         final int currentIndex = DRIVEBYSABLE$CHANNELS.indexOf(current);

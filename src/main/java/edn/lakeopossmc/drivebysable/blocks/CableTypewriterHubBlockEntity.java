@@ -231,7 +231,7 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
 
         if (!anyChannelMatched) {
             player.displayClientMessage(
-                    Component.literal("Invalid paste: matching output channels not found").withStyle(ChatFormatting.RED),
+                    Component.translatable("drivebysable.invalid_op.invalid_paste").withStyle(ChatFormatting.RED),
                     true
             );
             return readKeyBindings;

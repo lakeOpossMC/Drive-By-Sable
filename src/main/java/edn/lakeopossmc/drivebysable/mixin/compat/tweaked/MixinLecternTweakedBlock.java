@@ -13,6 +13,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
+// --- LET TWEAKED LECTERN ACT AS CABLE SOURCE --- //
+// * Pseudo since mod may not be loaded
 @Pseudo
 @Mixin(TweakedLecternControllerBlock.class)
 public abstract class MixinLecternTweakedBlock implements MultiChannelCableSource {
@@ -27,6 +29,7 @@ public abstract class MixinLecternTweakedBlock implements MultiChannelCableSourc
         return DRIVEBYSABLE$CHANNELS;
     }
 
+    // * Wrap around channel list on scroll
     @Override
     public String cable$nextChannel(final Level level, final BlockPos pos, final String current, final boolean forward) {
         final int currentIndex = DRIVEBYSABLE$CHANNELS.indexOf(current);

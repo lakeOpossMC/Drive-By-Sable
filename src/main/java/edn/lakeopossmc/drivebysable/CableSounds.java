@@ -7,6 +7,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
+// --- ALL CUSTOM SOUND EVENTS --- //
 public final class CableSounds {
     private static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, DriveBySableMod.MOD_ID);
 
@@ -39,6 +40,7 @@ public final class CableSounds {
         SOUND_EVENTS.register(modEventBus);
     }
 
+    // * Reuse step sound for hit and fall too
     public static SoundType backupDriveSoundType() {
         return new SoundType(
                 1.0F, 1.0F,

@@ -9,8 +9,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+// --- KEEP CABLE NETWORK IN SYNC WITH SUBLEVEL MOVES --- //
 @Mixin(value = SubLevelAssemblyHelper.class, remap = false)
 public abstract class MixinSubLevelAssemblyHelper {
+    // * Remap each moved block after sable finishes moving it
     @Inject(
         method = "moveBlocks(Lnet/minecraft/server/level/ServerLevel;Ldev/ryanhcode/sable/api/SubLevelAssemblyHelper$AssemblyTransform;Ljava/lang/Iterable;)V",
         at = @At("RETURN")

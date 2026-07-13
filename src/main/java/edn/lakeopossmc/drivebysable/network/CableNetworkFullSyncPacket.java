@@ -11,6 +11,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
+// --- SERVER SENDS WHOLE NETWORK TO A PLAYER --- //
 public record CableNetworkFullSyncPacket(CompoundTag network) implements CustomPacketPayload {
     public static final Type<CableNetworkFullSyncPacket> TYPE = new Type<>(DriveBySableMod.asResource("wire_network_full_sync"));
     public static final StreamCodec<ByteBuf, CableNetworkFullSyncPacket> STREAM_CODEC = StreamCodec.composite(
