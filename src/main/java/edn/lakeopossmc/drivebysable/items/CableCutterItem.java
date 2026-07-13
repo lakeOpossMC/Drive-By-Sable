@@ -2,6 +2,7 @@ package edn.lakeopossmc.drivebysable.items;
 
 import com.simibubi.create.foundation.item.TooltipHelper;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
+import edn.lakeopossmc.drivebysable.cable.CableServerFeedback;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSink;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
@@ -55,11 +56,8 @@ public class CableCutterItem extends Item {
             // * Play shear use sound if success
             level.playSound(null, pos, SoundEvents.SHEEP_SHEAR, SoundSource.BLOCKS, 1.0F, 1.0F);
         } else {
-            // * Show error message if fail
-            context.getPlayer().displayClientMessage(
-                    Component.translatable("drivebysable.invalid_op.no_connections").withStyle(ChatFormatting.RED),
-                    true
-            );
+            // * Flash the error and play the deny sound
+            CableServerFeedback.showInvalidOperationMessage((ServerPlayer) context.getPlayer(), "drivebysable.invalid_op.no_connections");
         }
 
         // * Return correct trigger for item use anim
