@@ -16,6 +16,14 @@
   "subtitle.drivebysable.plug.out" : "Cable disconnected",
   "drivebysable.typewriter_hub.start_controlling": "Now controlling Typewriter Cable Hub",
   "drivebysable.typewriter_hub.stop_controlling": "Stopped controlling Typewriter Cable Hub",
+  "drivebysable.invalid_op.no_connections": "Invalid Operation: No Cable Connections at this Network Source.",
+  "drivebysable.invalid_op.invalid_paste": "Invalid Operation: Matching Output Channels not found.",
+
+  "drivebysable.cable_actions.header": "Cable Actions",
+  "drivebysable.cable_actions.enter_setup": "%s to enter Setup Mode",
+  "drivebysable.cable_actions.exit_setup": "%s to exit Setup Mode",
+  "drivebysable.cable_actions.select_channel": "Scroll to select Channel",
+  "drivebysable.cable_actions.toggle_output": "%s to add or remove Output",
 
   "item.drivebysable.cable.tooltip.summary": "Connects _redstone input sources_ to any number of _outputs_",
 
