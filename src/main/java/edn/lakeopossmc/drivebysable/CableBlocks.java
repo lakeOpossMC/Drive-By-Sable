@@ -21,7 +21,7 @@ public final class CableBlocks {
     public static final DeferredBlock<NetworkBackupDriveBlock> BACKUP_DRIVE = BLOCKS.register(
             "backup_drive",
             () -> new NetworkBackupDriveBlock(BlockBehaviour.Properties.of()
-                    .mapColor(MapColor.COLOR_ORANGE)
+                    .mapColor(MapColor.TERRACOTTA_BLACK)
                     .sound(CableSounds.backupDriveSoundType())
                     .strength(3.0F, 6.0F)
                     .requiresCorrectToolForDrops())
@@ -55,7 +55,7 @@ public final class CableBlocks {
                     ? BLOCKS.register(
                     "cable_typewriter_hub",
                     () -> new CableTypewriterHubBlock(BlockBehaviour.Properties.of()
-                            .mapColor(MapColor.METAL)
+                            .mapColor(MapColor.GOLD)
                             .sound(SoundType.METAL)
                             .strength(2.5F, 4.0F)
                             .requiresCorrectToolForDrops()))
