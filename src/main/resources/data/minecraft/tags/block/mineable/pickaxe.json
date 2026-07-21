@@ -2,7 +2,6 @@
   "replace": false,
   "values": [
     "drivebysable:cable_hub",
-    "drivebysable:advanced_cable_hub",
     "drivebysable:backup_drive",
     "drivebysable:cable_typewriter_hub"
   ]
