@@ -134,7 +134,7 @@ public class CableConfig {
                         "Existing Anchors already placed in a world are unaffected."
                 )
                 .translation("drivebysable.config.networkAnchor")
-                .define("networkAnchor", false);
+                .define("networkAnchor", true);
 
         builder.pop();
         //#endregion
