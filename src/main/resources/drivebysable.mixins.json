@@ -12,7 +12,6 @@
     "compat.MixinLecternControllerBlockEntity",
     "compat.MixinLinkedControllerInputPacket",
     "compat.MixinLinkedControllerStopLecternPacket",
-    "compat.MixinLinkedTypewriterBlockEntity",
     "compat.tracks.MixinSableTrackBlockEntity",
     "compat.tweaked.MixinLecternTweakedBlock",
     "compat.tweaked.MixinTweakedLecternCableBlockEntity",

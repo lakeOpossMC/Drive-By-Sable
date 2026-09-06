@@ -1,5 +1,7 @@
 package edn.lakeopossmc.drivebysable.compat.computercraft;
 
+import dev.simulated_team.simulated.compat.computercraft.AttachedComputerHandler;
+
 import java.util.List;
 
 import org.jspecify.annotations.Nullable;
@@ -25,16 +27,16 @@ public class CableHubPeripheral implements IPeripheral {
     @Override
     public void attach(IComputerAccess computer) {
         IPeripheral.super.attach(computer);
-        if (this.blockEntity.computerHandler != null) {
-            this.blockEntity.computerHandler.attach(computer);
+        if (this.blockEntity.getComputerHandler() instanceof final AttachedComputerHandler handler) {
+            handler.attach(computer);
         }
     }
-    
+
     @Override
     public void detach(IComputerAccess computer) {
         IPeripheral.super.detach(computer);
-        if (this.blockEntity.computerHandler != null) {
-            this.blockEntity.computerHandler.detach(computer);
+        if (this.blockEntity.getComputerHandler() instanceof final AttachedComputerHandler handler) {
+            handler.detach(computer);
         }
     }
 
@@ -48,12 +50,12 @@ public class CableHubPeripheral implements IPeripheral {
         return LinkedControllerCableServerHandler.getPressed(blockEntity.getLevel(), blockEntity.getBlockPos());
     }
 
-    @LuaFunction 
+    @LuaFunction
     public String getEventPrefix() {
         return this.blockEntity.getComputerEventPrefix();
     }
 
-    @LuaFunction 
+    @LuaFunction
     public void setEventPrefix(String eventPrefix) {
         this.blockEntity.setComputerEventPrefix(eventPrefix);
     }

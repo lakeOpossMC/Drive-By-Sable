@@ -1,16 +1,17 @@
 package edn.lakeopossmc.drivebysable.compat.computercraft;
 
 import com.simibubi.create.compat.Mods;
-import dan200.computercraft.api.peripheral.PeripheralCapability;
-import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.blocks.CableHubBlockEntity;
+import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 
-public class ComputerCraftCompat {
+import javax.annotation.Nullable;
+
+// --- THE ONLY COMPUTER CRAFT ENTRY POINT --- //
+public final class ComputerCraftCompat {
     private ComputerCraftCompat() {
     }
 
@@ -19,60 +20,52 @@ public class ComputerCraftCompat {
     }
 
     public static void register(final IEventBus modBus) {
-        if (!ComputerCraftCompat.isLoaded()) {
+        if (!isLoaded()) {
             return;
         }
 
-        modBus.addListener((final RegisterCapabilitiesEvent event) -> {
-            ComputerCraftCompat.registerPeripherals(event);
-        });
+        modBus.addListener((final RegisterCapabilitiesEvent event) -> ComputerCraftBridge.registerPeripherals(event));
     }
 
-    public static void registerPeripherals(final RegisterCapabilitiesEvent event) {
-        final var peripheralCapability = PeripheralCapability.get();
-        if (peripheralCapability == null) {
-            return;
-        }
-
-        final var cableTypewriterHubHolder = CableBlockEntities.CABLE_TYPEWRITER_HUB;
-        if (cableTypewriterHubHolder != null) {
-            final var cableTypewriterHub = cableTypewriterHubHolder.get();
-            if (cableTypewriterHub != null) {
-                event.registerBlockEntity(peripheralCapability, cableTypewriterHub,
-                        (b, d) -> new LinkedTypewriterHubPeripheral(b));
-            }
-        }
-
-        final var cableHubHolder = CableBlockEntities.CABLE_HUB;
-        if (cableHubHolder != null) {
-            final var cableHub = cableHubHolder.get();
-            if (cableHub != null) {
-                event.registerBlockEntity(peripheralCapability, cableHub,
-                        (b, d) -> new CableHubPeripheral(b));
-            }
-        }
+    // * Null when Computer Craft is absent
+    @Nullable
+    public static Object newComputerHandler() {
+        return isLoaded() ? ComputerCraftBridge.newComputerHandler() : null;
     }
 
-    public static void handleCableHubKeyPress(final Level level, final BlockPos blockPos, final int button,
-            final boolean pressed, final boolean wasPressed) {
-        if (!ComputerCraftCompat.isLoaded()) {
+    public static void queueTypewriterKey(
+            final CableTypewriterHubBlockEntity hub,
+            final String eventName,
+            final int key,
+            final Boolean repeated
+    ) {
+        // * The handler itself is null checked in the bridge
+        if (!isLoaded()) {
             return;
         }
 
-        BlockEntity blockEntity = level.getBlockEntity(blockPos);
-        if (blockEntity == null || !(blockEntity instanceof CableHubBlockEntity)) {
+        ComputerCraftBridge.queueTypewriterKey(hub, eventName, key, repeated);
+    }
+
+    public static void handleCableHubKeyPress(
+            final Level level,
+            final BlockPos blockPos,
+            final int button,
+            final boolean pressed,
+            final boolean wasPressed
+    ) {
+        if (!isLoaded()) {
             return;
         }
 
-        final CableHubBlockEntity cableHub = (CableHubBlockEntity) blockEntity;
-        if (cableHub.computerHandler == null) {
+        if (!(level.getBlockEntity(blockPos) instanceof final CableHubBlockEntity cableHub)) {
             return;
         }
 
-        if (pressed) {
-            cableHub.computerHandler.queueEvent(cableHub.getComputerEventName("button"), button, wasPressed);
-        } else {
-            cableHub.computerHandler.queueEvent(cableHub.getComputerEventName("button_up"), button);
+        if (cableHub.getComputerHandler() == null) {
+            return;
         }
+
+        ComputerCraftBridge.queueKeyPress(cableHub, button, pressed, wasPressed);
     }
 }

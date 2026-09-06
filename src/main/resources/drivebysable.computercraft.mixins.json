@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "edn.lakeopossmc.drivebysable.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "minVersion": "0.8",
+  "refmap": "drivebysable.refmap.json",
+  "mixins": [
+    "compat.MixinLinkedTypewriterBlockEntity"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

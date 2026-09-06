@@ -3,7 +3,6 @@ package edn.lakeopossmc.drivebysable.blocks;
 import com.simibubi.create.content.equipment.clipboard.ClipboardCloneable;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import dev.simulated_team.simulated.compat.computercraft.AttachedComputerHandler;
 
 import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.CableBlocks;
@@ -39,17 +38,14 @@ public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCl
     private static final String DIRECTION_KEY = "Direction";
     private static final String CHANNEL_KEY = "Channel";
 
-    public final AttachedComputerHandler computerHandler;
+    // * Typed as Object on purpose, the real type drags in Computer Craft
+    private final Object computerHandler;
     public String computerEventPrefix = "";
 
     public CableHubBlockEntity(final BlockPos pos, final BlockState state) {
         super(CableBlockEntities.CABLE_HUB.get(), pos, state);
 
-        if (ComputerCraftCompat.isLoaded()) {
-            this.computerHandler = new AttachedComputerHandler();
-        } else {
-            this.computerHandler = null;
-        }
+        this.computerHandler = ComputerCraftCompat.newComputerHandler();
     }
 
     // * Cable hub speaks linked controller, advanced hub speaks tweaked controller
@@ -175,6 +171,11 @@ public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCl
     //#endregion
 
     //#region // --- COMPUTER CRAFT COMPAT --- //
+    // * Opaque to everything but the bridge
+    public Object getComputerHandler() {
+        return this.computerHandler;
+    }
+
     public String getComputerEventPrefix() {
         return computerEventPrefix;
     }

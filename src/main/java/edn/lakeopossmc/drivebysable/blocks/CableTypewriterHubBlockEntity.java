@@ -10,6 +10,7 @@ import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSin
 import edn.lakeopossmc.drivebysable.compat.CableTypewriterHubServerHandler;
 import edn.lakeopossmc.drivebysable.compat.keytranslator.ControllerChannelTranslator;
 import edn.lakeopossmc.drivebysable.compat.keytranslator.ControllerChannelTranslator.Vocabulary;
+import edn.lakeopossmc.drivebysable.compat.computercraft.ComputerCraftCompat;
 import edn.lakeopossmc.drivebysable.mixinducks.LinkedTypewriterBlockEntityDuck;
 import net.createmod.catnip.lang.Lang;
 import net.minecraft.core.BlockPos;
@@ -110,12 +111,9 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
 
             if (!isEventHandledBySuper) {
                 this.getPressedKeys().add(key);
-                if (this.computerHandler != null) {
-                    // * This event is only sent to the computer once per key press, so we always
-                    // pass false for the repeated parameter, see https://tweaked.cc/event/key.html
-                    LinkedTypewriterBlockEntityDuck linkedTypewriter = (LinkedTypewriterBlockEntityDuck) this;
-                    this.computerHandler.queueEvent(linkedTypewriter.drivebysable$getComputerEventName("key"), key, false);
-                }
+                // * This event is only sent to the computer once per key press, so we
+                // always pass false for repeated, see https://tweaked.cc/event/key.html
+                ComputerCraftCompat.queueTypewriterKey(this, "key", key, false);
             }
         }
     }
@@ -133,10 +131,7 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
 
             if (!isEventHandledBySuper) {
                 this.getPressedKeys().removeIf(x -> x == key);
-                if (this.computerHandler != null) {
-                    LinkedTypewriterBlockEntityDuck linkedTypewriter = (LinkedTypewriterBlockEntityDuck) this;
-                    this.computerHandler.queueEvent(linkedTypewriter.drivebysable$getComputerEventName("key_up"), key);
-                }
+                ComputerCraftCompat.queueTypewriterKey(this, "key_up", key, null);
             }
         }
     }
@@ -162,7 +157,7 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
     // * Sync state to client only, not saved to disk
     @Override
     protected void write(final CompoundTag tag, final HolderLookup.Provider registries,
-            final boolean clientPacket) {
+                         final boolean clientPacket) {
         super.write(tag, registries, clientPacket);
         if (clientPacket) {
             final ListTag list = new ListTag();

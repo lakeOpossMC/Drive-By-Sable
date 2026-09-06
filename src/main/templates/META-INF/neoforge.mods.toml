@@ -22,7 +22,7 @@ license="MIT"
 # The modid of the mod
 modId="drivebysable" #mandatory
 # The version number of the mod
-version="1.5.1" #mandatory
+version="1.5.2" #mandatory
 # A display name for the mod
 displayName="Drive-By-Sable" #mandatory
 # A URL to query for updates for this mod. See the JSON update specification https://docs.neoforged.net/docs/misc/updatechecker/
@@ -43,6 +43,11 @@ A version of Drive-By-Wire that works with the Sable physics environment.
 # The [[mixins]] block allows you to declare your mixin config to FML so that it gets loaded.
 [[mixins]]
 config="${mod_id}.mixins.json"
+
+# Names Computer Craft types directly, so it must not load without it.
+[[mixins]]
+config="${mod_id}.computercraft.mixins.json"
+requiredMods = ["computercraft"]
 
 # The [[accessTransformers]] block allows you to declare where your AT file is.
 # If this block is omitted, a fallback attempt will be made to load an AT from META-INF/accesstransformer.cfg
