@@ -65,10 +65,18 @@ public record BackupDriveLoadReportPacket(
             return;
         }
 
-        lines.add(Component.translatable(complete
-                        ? "drivebysable.backup_drive.load_report.complete"
-                        : "drivebysable.backup_drive.load_report.partial")
-                .withStyle(complete ? ChatFormatting.GREEN : ChatFormatting.GOLD));
+        final boolean nothingRestored = payload.restoredConnections() == 0;
+
+        if (complete) {
+            lines.add(Component.translatable("drivebysable.backup_drive.load_report.complete")
+                    .withStyle(ChatFormatting.GREEN));
+        } else if (nothingRestored) {
+            lines.add(Component.translatable("drivebysable.backup_drive.load_report.unchanged")
+                    .withStyle(ChatFormatting.RED));
+        } else {
+            lines.add(Component.translatable("drivebysable.backup_drive.load_report.partial")
+                    .withStyle(ChatFormatting.GOLD));
+        }
 
         lines.add(line("drivebysable.backup_drive.load_report.sources",
                 payload.loadedSources(), payload.missingSources(), SOURCE_COLOR));
