@@ -5,7 +5,7 @@ import edn.lakeopossmc.drivebysable.blocks.CableHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.NetworkAnchorBlock;
 import edn.lakeopossmc.drivebysable.blocks.NetworkBackupDriveBlock;
-import net.minecraft.resources.ResourceLocation;
+import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -20,7 +20,7 @@ import javax.annotation.Nullable;
 // --- REGISTERS ALL BLOCKS --- //
 public final class CableBlocks {
     // * Namespace the aeronautics toolgun still hardcodes
-    private static final String LEGACY_NAMESPACE = "drivebywire";
+    private static final String LEGACY_NAMESPACE = LegacyWireCompat.LEGACY_MOD_ID;
 
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(DriveBySableMod.MOD_ID);
 
@@ -84,18 +84,18 @@ public final class CableBlocks {
     // * Aliases resolve those to DBS whenever DBW is absent
     private static void addLegacyAliases() {
         BLOCKS.addAlias(
-                ResourceLocation.fromNamespaceAndPath(LEGACY_NAMESPACE, "backup_block"),
+                ResourceLocation.fromNamespaceAndPath(LEGACY_NAMESPACE, LegacyWireCompat.LEGACY_BACKUP_BLOCK),
                 ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, "backup_drive")
         );
         BLOCKS.addAlias(
-                ResourceLocation.fromNamespaceAndPath(LEGACY_NAMESPACE, "controller_hub"),
+                ResourceLocation.fromNamespaceAndPath(LEGACY_NAMESPACE, LegacyWireCompat.LEGACY_CONTROLLER_HUB),
                 ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, "cable_hub")
         );
 
         // * Only registered when tweaked controllers is loaded
         if (ADVANCED_CABLE_HUB != null) {
             BLOCKS.addAlias(
-                    ResourceLocation.fromNamespaceAndPath(LEGACY_NAMESPACE, "tweaked_controller_hub"),
+                    ResourceLocation.fromNamespaceAndPath(LEGACY_NAMESPACE, LegacyWireCompat.LEGACY_TWEAKED_CONTROLLER_HUB),
                     ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, "advanced_cable_hub")
             );
         }

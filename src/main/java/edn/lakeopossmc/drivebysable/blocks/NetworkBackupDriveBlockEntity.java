@@ -5,6 +5,7 @@ import dev.ryanhcode.sable.api.schematic.SubLevelSchematicSerializationContext;
 import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
+import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 
@@ -111,8 +112,110 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity implements Partia
             }
         }
         //#endregion
+
+        //#region // --- DRIVE BY WIRE PAYLOAD BECOMES SAVE --- //
+        // * An old Backup Block
+        if (this.boundedSnapshot == null) {
+            final CompoundTag inherited = LegacyWireCompat.readBackupPayload(tag);
+
+            if (inherited != null) {
+                this.boundedSnapshot = inherited;
+                onLegacyPayloadAdopted();
+
+                DriveBySableMod.LOGGER.info(
+                        "[drivebywire-migration] Adopted a Drive-By-Wire payload at {} as saved data: {} connections.",
+                        this.worldPosition,
+                        LegacyWireCompat.countConnections(inherited)
+                );
+            }
+        }
+        //#endregion
+
+        //#region // --- A PAYLOAD WITH NO REGION TO GO WITH IT --- //
+        if (this.boundedSnapshot != null
+                && this.regionOffset.equals(BlockPos.ZERO)
+                && this.regionSize.equals(DEFAULT_REGION_SIZE)
+                && CableNetworkManager.countConnectionsInBackupSnapshot(this.boundedSnapshot) > 0) {
+            this.regionFitPending = true;
+        }
+        //#endregion
     }
 
+    // * Fit the region around what we inherited
+    private boolean regionFitPending;
+
+    // * Set while this Drive is holding an inherited payload
+    private boolean legacyPayloadAwaitingLoad;
+
+    // * Called once a Drive-By-Wire payload lands on this Drive
+    public void onLegacyPayloadAdopted() {
+        this.legacyPayloadAwaitingLoad = true;
+        this.regionFitPending = true;
+        registerLegacyPayload();
+        tryFitLegacyRegion();
+    }
+
+    // * Tells the network a payload is sitting here unloaded
+    private void registerLegacyPayload() {
+        if (!this.legacyPayloadAwaitingLoad || this.boundedSnapshot == null) {
+            return;
+        }
+
+        if (this.level == null || this.level.isClientSide()) {
+            return;
+        }
+
+        CableNetworkManager.get(this.level).recordLegacyPayloadAwaitingLoad(
+                this.worldPosition,
+                CableNetworkManager.countConnectionsInBackupSnapshot(this.boundedSnapshot)
+        );
+    }
+
+    public void tryFitLegacyRegion() {
+        if (!this.regionFitPending || this.boundedSnapshot == null) {
+            return;
+        }
+
+        if (this.level == null || this.level.isClientSide()) {
+            return;
+        }
+
+        // * The player has set a region of their own, leave it be
+        if (!this.regionOffset.equals(BlockPos.ZERO) || !this.regionSize.equals(DEFAULT_REGION_SIZE)) {
+            this.regionFitPending = false;
+            return;
+        }
+
+        final CableNetworkManager.SnapshotRegion region = CableNetworkManager.get(this.level)
+                .deriveSnapshotRegion(this.level, this.worldPosition, getFacing(), this.boundedSnapshot);
+
+        // * Nothing resolved yet, stay pending and try on the next read
+        if (region == null) {
+            return;
+        }
+
+        this.regionOffset = region.offset();
+        this.regionSize = region.size();
+        this.regionRotation = 0;
+        this.regionFitPending = false;
+
+        DriveBySableMod.LOGGER.info(
+                "[drivebywire-migration] Fitted region offset {} size {} around the adopted payload at {}.",
+                this.regionOffset,
+                this.regionSize,
+                this.worldPosition
+        );
+
+        setChanged();
+        syncToClients();
+    }
+
+    @Override
+    public void setLevel(final Level level) {
+        super.setLevel(level);
+        registerLegacyPayload();
+        tryFitLegacyRegion();
+    }
 
     // * The player's region and whatever they saved into it
     private void readRegionData(final CompoundTag tag) {
@@ -248,6 +351,8 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity implements Partia
 
     // * One cable per stored connection
     public int getPendingConnectionCount() {
+        tryFitLegacyRegion();
+
         if (this.boundedSnapshot == null) {
             return 0;
         }
@@ -276,6 +381,13 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity implements Partia
         this.regionOffset = BlockPos.ZERO;
         this.regionSize = DEFAULT_REGION_SIZE;
         this.regionRotation = 0;
+
+        // * Loaded, so it is no longer waiting
+        this.legacyPayloadAwaitingLoad = false;
+        this.regionFitPending = false;
+        if (this.level != null && !this.level.isClientSide()) {
+            CableNetworkManager.get(this.level).forgetLegacyPayloadAwaitingLoad(this.worldPosition);
+        }
         setChanged();
         syncToClients();
     }

@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
+import edn.lakeopossmc.drivebysable.compat.photomancy.PhotomancyCableCompat;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
@@ -63,6 +64,11 @@ public class DriveBySableMod {
     private void commonSetup(final FMLCommonSetupEvent event) {
         if (ModList.get().isLoaded("simulated")) {
             event.enqueueWork(CableSimulatedTab::register);
+        }
+
+        // * Photomancy only wires up its own cable handling for Drive-By-Wire
+        if (ModList.get().isLoaded(PhotomancyCableCompat.PHOTOMANCY_MOD_ID)) {
+            event.enqueueWork(PhotomancyCableCompat::register);
         }
     }
 

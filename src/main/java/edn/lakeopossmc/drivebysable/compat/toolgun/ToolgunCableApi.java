@@ -2,7 +2,9 @@ package edn.lakeopossmc.drivebysable.compat.toolgun;
 
 import dev.ryanhcode.sable.api.schematic.SubLevelSchematicSerializationContext;
 import edn.lakeopossmc.drivebysable.blocks.NetworkBackupDriveBlockEntity;
+import edn.lakeopossmc.drivebysable.DriveBySableMod;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
+import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -57,16 +59,56 @@ public final class ToolgunCableApi {
         }
 
         if (!(level.getBlockEntity(backupBlockPos) instanceof final NetworkBackupDriveBlockEntity drive)) {
+            if (LegacyWireCompat.isOwnerAware(snapshot)) {
+                if (this.real.hasLegacyPayloadAwaitingLoad(expected)) {
+                    DriveBySableMod.LOGGER.info(
+                            "[drivebywire-migration] Toolgun snapshot of {} connections is already on a Drive "
+                                    + "awaiting a manual load. Not restoring it automatically.",
+                            expected
+                    );
+
+                    return new CableNetworkManager.RestoreResult(0, expected, 0, 0, expected, true);
+                }
+
+                // * Nothing is holding it
+                DriveBySableMod.LOGGER.warn(
+                        "[drivebywire-migration] Toolgun snapshot of {} connections has no Drive holding it. "
+                                + "Nothing was restored, and nothing was placed automatically.",
+                        expected
+                );
+
+                return new CableNetworkManager.RestoreResult(0, 0, 0, 0, expected, false);
+            }
+
+            // * A drive that has not been placed yet, worth another pass
             return new CableNetworkManager.RestoreResult(0, 0, 0, 0, expected, false);
         }
 
-        // * Never over the top of a save the player made
+        final CableNetworkManager.RestoreResult done =
+                new CableNetworkManager.RestoreResult(0, expected, 0, 0, expected, true);
+
+        // * Never over the top of a save
         if (drive.hasStoredSnapshot()) {
-            return new CableNetworkManager.RestoreResult(0, 0, 0, 0, expected, false);
+            return done;
         }
 
-        drive.storeBoundedSnapshot(snapshot.copy());
-        return new CableNetworkManager.RestoreResult(0, 0, expected, 0, expected, true);
+        final CompoundTag inherited = LegacyWireCompat.normalizeFacing(snapshot.copy());
+
+        // * Before storing, so the sync that storing triggers carries the region
+        drive.storeBoundedSnapshot(inherited);
+        drive.onLegacyPayloadAdopted();
+
+        DriveBySableMod.LOGGER.info(
+                "[drivebywire-migration] Toolgun handed a payload to the Drive at {}: "
+                        + "{} connections, snapshotVersion={}, region offset {} size {}.",
+                backupBlockPos,
+                expected,
+                LegacyWireCompat.snapshotVersion(inherited),
+                drive.getRegionOffset(),
+                drive.getRegionSize()
+        );
+
+        return done;
     }
 
     public static CompoundTag transformBackupSnapshotForPlacement(

@@ -4,7 +4,9 @@ import edn.lakeopossmc.drivebysable.blocks.CableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.NetworkAnchorBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.NetworkBackupDriveBlockEntity;
+import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
@@ -62,7 +64,17 @@ public final class CableBlockEntities {
     private CableBlockEntities() {
     }
 
+    //#region // --- LEGACY ALIASES --- //
+    private static void addLegacyAliases() {
+        BLOCK_ENTITY_TYPES.addAlias(
+                ResourceLocation.fromNamespaceAndPath(LegacyWireCompat.LEGACY_MOD_ID, LegacyWireCompat.LEGACY_BACKUP_BLOCK),
+                ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, "backup_drive")
+        );
+    }
+    //#endregion
+
     public static void register(final IEventBus modEventBus) {
+        addLegacyAliases();
         BLOCK_ENTITY_TYPES.register(modEventBus);
     }
 }

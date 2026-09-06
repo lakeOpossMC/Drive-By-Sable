@@ -1,5 +1,6 @@
 package edn.lakeopossmc.drivebysable.util;
 
+import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
@@ -38,7 +39,8 @@ public final class HubItem {
             return Optional.of(BlockPos.of(tag.getLong(LEGACY_HUB_KEY)));
         }
 
-        return Optional.empty();
+        // * Controllers bound while Drive-By-Wire was installed
+        return Optional.ofNullable(LegacyWireCompat.readLegacyHub(tag));
     }
 
     public static void ifHubPresent(final ItemStack itemStack, final Consumer<BlockPos> consumer) {

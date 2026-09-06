@@ -30,6 +30,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Function;
 import net.minecraft.core.SectionPos;
@@ -1088,6 +1089,7 @@ public final class CableNetworkManager {
         }
 
         final Rotation rotation = placementRotation(snapshot, currentFacing);
+        final boolean ownerAware = isOwnerAware(snapshot);
         final ListTag remaining = new ListTag();
 
         for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
@@ -1101,21 +1103,26 @@ public final class CableNetworkManager {
                 continue;
             }
 
-            final BlockPos sourcePos = resolveSource(connection, backupPos, rotation);
-            final BlockPos sinkPos = resolveSink(connection, backupPos, rotation);
             final String channel = connection.getString(CHANNEL_KEY);
             final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
-            final Direction sinkDirection = resolveSinkDirection(connection, sinkChannel, rotation);
+            final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware);
 
-            // * Already placed
+            // * Cannot judge it yet, so hold on to it
+            if (resolved.deferred()) {
+                remaining.add(connection.copy());
+                continue;
+            }
+
+            final BlockPos sourcePos = resolved.source();
+            final BlockPos sinkPos = resolved.sink();
+            final Direction sinkDirection = resolved.sinkDirection();
+
+            // * Already placed, so there is nothing left to hold on to
             if (containsConnection(sourcePos, sinkPos, sinkDirection, channel, sinkChannel)) {
                 continue;
             }
 
-            if (!isRestorable(level, sourcePos, channel, sinkPos, sinkChannel)) {
-                continue;
-            }
-
+            // * Anything still missing is kept
             remaining.add(connection.copy());
         }
 
@@ -1127,6 +1134,12 @@ public final class CableNetworkManager {
         pruned.put(CONNECTIONS_KEY, remaining);
         pruned.putString(FACING_KEY, snapshot.getString(FACING_KEY));
         pruned.putInt(SNAPSHOT_VERSION_KEY, snapshot.getInt(SNAPSHOT_VERSION_KEY));
+        if (snapshot.hasUUID(OWNER_SUB_LEVEL_KEY)) {
+            pruned.putUUID(OWNER_SUB_LEVEL_KEY, snapshot.getUUID(OWNER_SUB_LEVEL_KEY));
+        }
+        if (snapshot.contains(PLACEMENT_RESOLVED_KEY)) {
+            pruned.putBoolean(PLACEMENT_RESOLVED_KEY, snapshot.getBoolean(PLACEMENT_RESOLVED_KEY));
+        }
         if (snapshot.contains(UNSUPPORTED_CONNECTIONS_KEY)) {
             pruned.putInt(UNSUPPORTED_CONNECTIONS_KEY, snapshot.getInt(UNSUPPORTED_CONNECTIONS_KEY));
         }
@@ -1171,17 +1184,27 @@ public final class CableNetworkManager {
         }
 
         final Rotation rotation = placementRotation(snapshot, currentFacing);
+        final boolean ownerAware = isOwnerAware(snapshot);
 
         for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
             if (!(entry instanceof final CompoundTag connection) || !isReadable(connection)) {
                 continue;
             }
 
-            final BlockPos sourcePos = resolveSource(connection, backupPos, rotation);
-            final BlockPos sinkPos = resolveSink(connection, backupPos, rotation);
             final String channel = connection.getString(CHANNEL_KEY);
             final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
-            final Direction sinkDirection = resolveSinkDirection(connection, sinkChannel, rotation);
+            final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware);
+
+            // * Still waiting on a sublevel
+            if (resolved.deferred()) {
+                sources.merge("deferred|" + sources.size(), false, Boolean::logicalOr);
+                sinks.merge("deferred|" + sinks.size(), false, Boolean::logicalOr);
+                continue;
+            }
+
+            final BlockPos sourcePos = resolved.source();
+            final BlockPos sinkPos = resolved.sink();
+            final Direction sinkDirection = resolved.sinkDirection();
 
             final boolean present = containsConnection(sourcePos, sinkPos, sinkDirection, channel, sinkChannel);
 
@@ -1216,17 +1239,23 @@ public final class CableNetworkManager {
         }
 
         final Rotation rotation = placementRotation(snapshot, currentFacing);
+        final boolean ownerAware = isOwnerAware(snapshot);
 
         for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
             if (!(entry instanceof final CompoundTag connection) || !isReadable(connection)) {
                 continue;
             }
 
-            final BlockPos sourcePos = resolveSource(connection, backupPos, rotation);
-            final BlockPos sinkPos = resolveSink(connection, backupPos, rotation);
             final String channel = connection.getString(CHANNEL_KEY);
             final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
-            final Direction sinkDirection = resolveSinkDirection(connection, sinkChannel, rotation);
+            final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware);
+            if (resolved.deferred()) {
+                continue;
+            }
+
+            final BlockPos sourcePos = resolved.source();
+            final BlockPos sinkPos = resolved.sink();
+            final Direction sinkDirection = resolved.sinkDirection();
 
             if (!containsConnection(sourcePos, sinkPos, sinkDirection, channel, sinkChannel)) {
                 continue;
@@ -1271,6 +1300,7 @@ public final class CableNetworkManager {
         }
 
         final Rotation rotation = placementRotation(snapshot, currentFacing);
+        final boolean ownerAware = isOwnerAware(snapshot);
         int pending = 0;
 
         for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
@@ -1278,11 +1308,18 @@ public final class CableNetworkManager {
                 continue;
             }
 
-            final BlockPos sourcePos = resolveSource(connection, backupPos, rotation);
-            final BlockPos sinkPos = resolveSink(connection, backupPos, rotation);
             final String channel = connection.getString(CHANNEL_KEY);
             final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
-            final Direction sinkDirection = resolveSinkDirection(connection, sinkChannel, rotation);
+            final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware);
+
+            // * Not chargeable until we know where it lands
+            if (resolved.deferred()) {
+                continue;
+            }
+
+            final BlockPos sourcePos = resolved.source();
+            final BlockPos sinkPos = resolved.sink();
+            final Direction sinkDirection = resolved.sinkDirection();
 
             // * Counted only when it is missing
             if (!containsConnection(sourcePos, sinkPos, sinkDirection, channel, sinkChannel)
@@ -1294,6 +1331,155 @@ public final class CableNetworkManager {
     }
 
     //#region // --- SHARED SNAPSHOT READING --- //
+    // * One connection's endpoints, resolved in whatever space the snapshot uses
+    private record ResolvedPair(BlockPos source, BlockPos sink, Direction sinkDirection, boolean deferred) {
+        private static ResolvedPair waiting() {
+            return new ResolvedPair(BlockPos.ZERO, BlockPos.ZERO, Direction.UP, true);
+        }
+    }
+
+    private static boolean isOwnerAware(final CompoundTag snapshot) {
+        return snapshot.getInt(SNAPSHOT_VERSION_KEY) >= OWNER_AWARE_SNAPSHOT_VERSION;
+    }
+
+    private ResolvedPair resolveEndpoints(
+            final Level level,
+            final CompoundTag connection,
+            final BlockPos backupPos,
+            final Rotation rotation,
+            final boolean ownerAware
+    ) {
+        if (ownerAware) {
+            final ResolvedEndpoint source = resolveOwnerAwareEndpoint(level, connection, SOURCE_KEY, SOURCE_OWNER_KEY);
+            final ResolvedEndpoint sink = resolveOwnerAwareEndpoint(level, connection, SINK_KEY, SINK_OWNER_KEY);
+            if (source.isDeferred() || sink.isDeferred()) {
+                return ResolvedPair.waiting();
+            }
+
+            return new ResolvedPair(
+                    source.position(),
+                    sink.position(),
+                    Direction.from3DDataValue(connection.getByte(DIRECTION_KEY)),
+                    false
+            );
+        }
+
+        final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
+        return new ResolvedPair(
+                resolveSource(connection, backupPos, rotation),
+                resolveSink(connection, backupPos, rotation),
+                resolveSinkDirection(connection, sinkChannel, rotation),
+                false
+        );
+    }
+
+    // --- LEGACY PAYLOADS WAITING ON A MANUAL LOAD --- //
+    // * Runtime only, never saved
+    private final Map<BlockPos, Integer> legacyPayloadsAwaitingLoad = new HashMap<>();
+
+    public void recordLegacyPayloadAwaitingLoad(final BlockPos drivePos, final int connections) {
+        if (drivePos == null || connections <= 0) {
+            return;
+        }
+
+        this.legacyPayloadsAwaitingLoad.put(drivePos.immutable(), connections);
+    }
+
+    public void forgetLegacyPayloadAwaitingLoad(final BlockPos drivePos) {
+        if (drivePos != null) {
+            this.legacyPayloadsAwaitingLoad.remove(drivePos.immutable());
+        }
+    }
+
+    // * Is some Drive holding at least this much, still unloaded
+    public boolean hasLegacyPayloadAwaitingLoad(final int atLeast) {
+        return this.legacyPayloadsAwaitingLoad.values().stream().anyMatch(held -> held >= atLeast);
+    }
+
+    private static final int REGION_SANITY_LIMIT = 512;
+
+    // --- REGION THAT COVERS A SNAPSHOT --- //
+    // * Offset and size relative to the drive
+    public record SnapshotRegion(BlockPos offset, BlockPos size) {
+    }
+
+    // * Measures where a snapshot actually lands
+    @Nullable
+    public SnapshotRegion deriveSnapshotRegion(
+            final Level level,
+            final BlockPos drivePos,
+            final Direction currentFacing,
+            final CompoundTag snapshot
+    ) {
+        if (snapshot == null || !snapshot.contains(CONNECTIONS_KEY, Tag.TAG_LIST)) {
+            return null;
+        }
+
+        final Rotation rotation = placementRotation(snapshot, currentFacing);
+        final boolean ownerAware = isOwnerAware(snapshot);
+
+        int minX = 0;
+        int minY = 0;
+        int minZ = 0;
+        int maxX = 0;
+        int maxY = 0;
+        int maxZ = 0;
+        boolean any = false;
+
+        for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
+            if (!(entry instanceof final CompoundTag connection) || !isReadable(connection)) {
+                continue;
+            }
+
+            final ResolvedPair resolved = resolveEndpoints(level, connection, drivePos, rotation, ownerAware);
+
+            if (resolved.deferred()) {
+                return null;
+            }
+
+            for (final BlockPos endpoint : List.of(resolved.source(), resolved.sink())) {
+                final BlockPos relative = endpoint.subtract(drivePos);
+                minX = Math.min(minX, relative.getX());
+                minY = Math.min(minY, relative.getY());
+                minZ = Math.min(minZ, relative.getZ());
+                maxX = Math.max(maxX, relative.getX());
+                maxY = Math.max(maxY, relative.getY());
+                maxZ = Math.max(maxZ, relative.getZ());
+                any = true;
+            }
+        }
+
+        if (!any) {
+            return null;
+        }
+
+        final BlockPos offset = new BlockPos(minX, minY, minZ);
+        final BlockPos size = new BlockPos(maxX - minX + 1, maxY - minY + 1, maxZ - minZ + 1);
+
+        // * A box this big means the endpoints did not land where they should have,
+        // * not that the player built something enormous. Refuse it and say where
+        // * they actually resolved, rather than writing a nonsense region
+        if (size.getX() > REGION_SANITY_LIMIT
+                || size.getY() > REGION_SANITY_LIMIT
+                || size.getZ() > REGION_SANITY_LIMIT) {
+            DriveBySableMod.LOGGER.warn(
+                    "[drivebywire-migration] Refusing a fitted region of {} at offset {} for the Drive at {}. "
+                            + "Endpoints resolved to a box that large, which means they did not resolve correctly. "
+                            + "snapshotVersion={}, ownerSnapshot={}, connections={}.",
+                    size,
+                    offset,
+                    drivePos,
+                    snapshot.getInt(SNAPSHOT_VERSION_KEY),
+                    isSubLevelOwnedBackupSnapshot(snapshot),
+                    countConnectionsInBackupSnapshot(snapshot)
+            );
+            return null;
+        }
+
+        // * Bounds are inclusive, the region size is not
+        return new SnapshotRegion(offset, size);
+    }
+
     private static boolean isReadable(final CompoundTag connection) {
         return connection.contains(SOURCE_KEY, Tag.TAG_LONG)
                 && connection.contains(SINK_KEY, Tag.TAG_LONG)
@@ -1775,6 +1961,50 @@ public final class CableNetworkManager {
 
         // * Moved reload marker here
         graphDirty = true;
+    }
+
+    public int mergeSavedConnections(final CompoundTag tag) {
+        if (tag == null || !tag.contains(CONNECTIONS_KEY, Tag.TAG_LIST)) {
+            return 0;
+        }
+
+        int merged = 0;
+        final ListTag connections = tag.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND);
+        for (final Tag entry : connections) {
+            if (!(entry instanceof final CompoundTag connection)) {
+                continue;
+            }
+
+            if (!connection.contains(SOURCE_KEY, Tag.TAG_LONG)
+                    || !connection.contains(SINK_KEY, Tag.TAG_LONG)
+                    || !connection.contains(DIRECTION_KEY, Tag.TAG_BYTE)
+                    || !connection.contains(CHANNEL_KEY, Tag.TAG_STRING)) {
+                continue;
+            }
+
+            final long sourceKey = connection.getLong(SOURCE_KEY);
+            final long sinkKey = connection.getLong(SINK_KEY);
+            final int direction = connection.getByte(DIRECTION_KEY);
+            final String channel = connection.getString(CHANNEL_KEY);
+            // * Absent on anything DBW wrote
+            final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
+            final CableNetworkSink sink = new CableNetworkSink(sinkKey, direction, sinkChannel);
+
+            // * A duplicate is a no op
+            if (!getOrCreateSinksOnChannel(BlockPos.of(sourceKey), channel).add(sink)) {
+                continue;
+            }
+
+            addSinkReference(sourceKey, channel, sink);
+            merged++;
+        }
+
+        if (merged > 0) {
+            graphDirty = true;
+            dirtyMarker.run();
+        }
+
+        return merged;
     }
 
     //#endregion

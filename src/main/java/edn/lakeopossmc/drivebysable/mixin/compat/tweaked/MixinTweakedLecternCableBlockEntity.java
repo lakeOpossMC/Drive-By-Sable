@@ -1,6 +1,7 @@
 package edn.lakeopossmc.drivebysable.mixin.compat.tweaked;
 
 import edn.lakeopossmc.drivebysable.mixinducks.LecternCableHubDuck;
+import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import edn.lakeopossmc.drivebysable.util.HubItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -63,10 +64,18 @@ public abstract class MixinTweakedLecternCableBlockEntity implements LecternCabl
     ) {
         if (compound.contains(DRIVEBYSABLE$HUB_KEY)) {
             drivebysable$hubPos = BlockPos.of(compound.getLong(DRIVEBYSABLE$HUB_KEY));
-        } else {
-            final ItemStack controller = getController();
-            drivebysable$hubPos = controller == null ? null : HubItem.getHubPos(controller).orElse(null);
+            return;
         }
+
+        // * Lecterns bound while Drive-By-Wire was installed
+        final BlockPos legacyHub = LegacyWireCompat.readLegacyHub(compound);
+        if (legacyHub != null) {
+            drivebysable$hubPos = legacyHub;
+            return;
+        }
+
+        final ItemStack controller = getController();
+        drivebysable$hubPos = controller == null ? null : HubItem.getHubPos(controller).orElse(null);
     }
     //#endregion
 

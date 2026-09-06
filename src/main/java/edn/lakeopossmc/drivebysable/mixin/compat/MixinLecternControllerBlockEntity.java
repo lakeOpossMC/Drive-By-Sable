@@ -1,6 +1,7 @@
 package edn.lakeopossmc.drivebysable.mixin.compat;
 
 import com.simibubi.create.content.redstone.link.controller.LecternControllerBlockEntity;
+import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import edn.lakeopossmc.drivebysable.mixinducks.LecternCableHubDuck;
 import edn.lakeopossmc.drivebysable.util.HubItem;
 import net.minecraft.core.BlockPos;
@@ -54,7 +55,13 @@ public abstract class MixinLecternControllerBlockEntity implements LecternCableH
         final boolean clientPacket,
         final CallbackInfo ci
     ) {
-        drivebysable$hubPos = compound.contains(DRIVEBYSABLE$HUB_KEY) ? BlockPos.of(compound.getLong(DRIVEBYSABLE$HUB_KEY)) : null;
+        if (compound.contains(DRIVEBYSABLE$HUB_KEY)) {
+            drivebysable$hubPos = BlockPos.of(compound.getLong(DRIVEBYSABLE$HUB_KEY));
+            return;
+        }
+
+        // * Lecterns bound while Drive-By-Wire was installed
+        drivebysable$hubPos = LegacyWireCompat.readLegacyHub(compound);
     }
     //#endregion
 

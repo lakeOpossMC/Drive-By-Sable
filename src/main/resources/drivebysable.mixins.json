@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "MixinServerLevel",
+    "MixinStructureTemplate",
     "MixinDiodeBlock",
     "compat.aeronautics.MixinWheelMountBlockEntity",
     "compat.MixinSubLevelAssemblyHelper",
@@ -24,7 +25,8 @@
     "compat.MixinDriveByWireBlueprintEvent",
     "compat.dashpanels.MixinAbstractPanelBlock",
     "compat.dashpanels.MixinAbstractPanelBlockEntity",
-    "compat.toolgun.MixinToolgunApiBridge"
+    "compat.toolgun.MixinToolgunApiBridge",
+    "compat.toolgun.MixinToolgunBlueprintSanitizer"
   ],
   "client": [
     "client.MixinLinkedControllerClientHandlerAccessor",

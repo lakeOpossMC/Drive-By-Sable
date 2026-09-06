@@ -5,6 +5,8 @@ import edn.lakeopossmc.drivebysable.items.CableItem;
 import edn.lakeopossmc.drivebysable.items.CableTypewriterHubItem;
 import edn.lakeopossmc.drivebysable.items.NetworkBackupDriveItem;
 import edn.lakeopossmc.drivebysable.items.NetworkAnchorItem;
+import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
@@ -56,7 +58,29 @@ public final class CableItems {
     private CableItems() {
     }
 
+    //#region // --- LEGACY ALIASES --- //
+    private static void addLegacyAliases() {
+        alias(LegacyWireCompat.LEGACY_WIRE, "cable");
+        alias(LegacyWireCompat.LEGACY_WIRE_CUTTER, "cable_cutter");
+        alias(LegacyWireCompat.LEGACY_BACKUP_BLOCK, "backup_drive");
+        alias(LegacyWireCompat.LEGACY_CONTROLLER_HUB, "cable_hub");
+
+        // * Only registered when tweaked controllers is loaded
+        if (ADVANCED_CABLE_HUB_BLOCK != null) {
+            alias(LegacyWireCompat.LEGACY_TWEAKED_CONTROLLER_HUB, "advanced_cable_hub");
+        }
+    }
+
+    private static void alias(final String legacyPath, final String currentPath) {
+        ITEMS.addAlias(
+                ResourceLocation.fromNamespaceAndPath(LegacyWireCompat.LEGACY_MOD_ID, legacyPath),
+                ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, currentPath)
+        );
+    }
+    //#endregion
+
     public static void register(final IEventBus modEventBus) {
+        addLegacyAliases();
         ITEMS.register(modEventBus);
     }
 }
