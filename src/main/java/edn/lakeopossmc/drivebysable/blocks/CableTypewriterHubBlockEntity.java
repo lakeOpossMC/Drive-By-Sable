@@ -10,6 +10,7 @@ import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSin
 import edn.lakeopossmc.drivebysable.compat.CableTypewriterHubServerHandler;
 import edn.lakeopossmc.drivebysable.compat.keytranslator.ControllerChannelTranslator;
 import edn.lakeopossmc.drivebysable.compat.keytranslator.ControllerChannelTranslator.Vocabulary;
+import edn.lakeopossmc.drivebysable.mixinducks.LinkedTypewriterBlockEntityDuck;
 import net.createmod.catnip.lang.Lang;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -41,7 +42,6 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
     private static CableTypewriterHubBlockEntity clientInstance;
 
     private final Set<String> connectedChannels = new HashSet<>();
-    private String computerEventPrefix = "";
     private boolean promiscuousMode = false;
 
     public CableTypewriterHubBlockEntity(final BlockPos pos, final BlockState state) {
@@ -113,7 +113,8 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
                 if (this.computerHandler != null) {
                     // * This event is only sent to the computer once per key press, so we always
                     // pass false for the repeated parameter, see https://tweaked.cc/event/key.html
-                    this.computerHandler.queueEvent("key", key, false);
+                    LinkedTypewriterBlockEntityDuck linkedTypewriter = (LinkedTypewriterBlockEntityDuck) this;
+                    this.computerHandler.queueEvent(linkedTypewriter.drivebysable$getComputerEventName("key"), key, false);
                 }
             }
         }
@@ -133,7 +134,8 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
             if (!isEventHandledBySuper) {
                 this.getPressedKeys().removeIf(x -> x == key);
                 if (this.computerHandler != null) {
-                    this.computerHandler.queueEvent("key_up", key);
+                    LinkedTypewriterBlockEntityDuck linkedTypewriter = (LinkedTypewriterBlockEntityDuck) this;
+                    this.computerHandler.queueEvent(linkedTypewriter.drivebysable$getComputerEventName("key_up"), key);
                 }
             }
         }
@@ -326,22 +328,6 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
     // #endregion
 
     //#region // --- COMPUTER CRAFT COMPAT --- //
-    // * Prefixing Computer Craft events helps the computer to distinguish
-    // between the internal keyboard and external linked typewriter key presses
-    public String getComputerEventPrefix() {
-        return computerEventPrefix;
-    }
-
-    public void setComputerEventPrefix(final String computerEventPrefix) {
-        this.computerEventPrefix = computerEventPrefix;
-    }
-
-    public String getComputerEventName(final String eventName) {
-        return (this.computerEventPrefix != null && !this.computerEventPrefix.isEmpty())
-                ? String.format("%s_%s", this.computerEventPrefix, eventName)
-                : eventName;
-    }
-
     // * Promiscuous mode allows the typewriter hub to relay all key events to
     // connected computers, regardless of channel matching.
     public boolean isInPromiscuousMode() {
