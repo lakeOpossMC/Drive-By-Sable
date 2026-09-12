@@ -68,7 +68,7 @@ public final class CableNetworkSavedData extends SavedData {
         }
 
         // * Anything the player already built in this level wins on collision
-        final int adopted = this.manager.mergeSavedConnections(legacy);
+        final int adopted = this.manager.mergeSavedConnections(level, legacy);
 
         DriveBySableMod.LOGGER.info(
                 "[drivebywire-migration] Imported {} of {} Drive-By-Wire connections into {}.",
