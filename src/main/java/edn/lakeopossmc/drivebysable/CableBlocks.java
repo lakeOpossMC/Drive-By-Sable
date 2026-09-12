@@ -7,6 +7,7 @@ import edn.lakeopossmc.drivebysable.blocks.NetworkAnchorBlock;
 import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlock;
 import edn.lakeopossmc.drivebysable.blocks.MultiChannelCableBusBlock;
 import edn.lakeopossmc.drivebysable.blocks.NetworkBackupDriveBlock;
+import edn.lakeopossmc.drivebysable.legacy.LegacyRuthlessCompat;
 import edn.lakeopossmc.drivebysable.legacy.LegacyTypewriterCompat;
 import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import net.minecraft.resources.ResourceLocation;
@@ -131,6 +132,18 @@ public final class CableBlocks {
                     ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, "advanced_cable_hub")
             );
         }
+
+        // * Create: Ruthless Industrialism blocks this mod ported
+        BLOCKS.addAlias(
+                ResourceLocation.fromNamespaceAndPath(
+                        LegacyRuthlessCompat.LEGACY_MOD_ID, LegacyRuthlessCompat.LEGACY_MULTI_CHANNEL_CABLE_BUS),
+                ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, "multi_channel_cable_bus")
+        );
+        BLOCKS.addAlias(
+                ResourceLocation.fromNamespaceAndPath(
+                        LegacyRuthlessCompat.LEGACY_MOD_ID, LegacyRuthlessCompat.LEGACY_INTEGRATED_SENSOR_BUS),
+                ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, "integrated_sensor_bus")
+        );
     }
 
     public static void register(final IEventBus modEventBus) {
