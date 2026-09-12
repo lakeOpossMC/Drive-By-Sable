@@ -1,6 +1,5 @@
 package edn.lakeopossmc.drivebysable.legacy;
 
-import edn.lakeopossmc.drivebysable.DriveBySableMod;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -38,6 +37,9 @@ public final class LegacyWireCompat {
     private static final String OWNER_SUB_LEVEL_KEY = "OwnerSubLevel";
     private static final String SOURCE_OWNER_KEY = "SourceOwnerSubLevel";
     private static final String SINK_OWNER_KEY = "SinkOwnerSubLevel";
+
+    public static final String SOURCE_DRIVE_RELATIVE_KEY = "SourceDriveRelative";
+    public static final String SINK_DRIVE_RELATIVE_KEY = "SinkDriveRelative";
     private static final int RELATIVE_SNAPSHOT_VERSION = 2;
     private static final int OWNER_AWARE_SNAPSHOT_VERSION = 3;
 
@@ -64,6 +66,9 @@ public final class LegacyWireCompat {
             return null;
         }
 
+        // * An old world may have used the third party Typewriter addon
+        LegacyTypewriterCompat.translateChannels(payload);
+
         return normalizeFacing(payload);
     }
 
@@ -71,22 +76,42 @@ public final class LegacyWireCompat {
         if (payload == null
                 || templatePos == null
                 || snapshotVersion(payload) < OWNER_AWARE_SNAPSHOT_VERSION
-                || hasOwnerUuids(payload)
                 || countConnections(payload) == 0) {
             return false;
         }
 
+        boolean rebased = false;
         for (final Tag entry : payload.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
             if (!(entry instanceof final CompoundTag connection)) {
                 continue;
             }
 
-            rebaseEndpoint(connection, SOURCE_KEY, templatePos);
-            rebaseEndpoint(connection, SINK_KEY, templatePos);
+            rebased |= rebaseUnownedEndpoint(connection, SOURCE_KEY, SOURCE_OWNER_KEY, templatePos);
+            rebased |= rebaseUnownedEndpoint(connection, SINK_KEY, SINK_OWNER_KEY, templatePos);
         }
 
-        payload.putInt(SNAPSHOT_VERSION_KEY, RELATIVE_SNAPSHOT_VERSION);
+        if (!rebased) {
+            return false;
+        }
+
         payload.putString(FACING_KEY, NEUTRAL_FACING);
+        return true;
+    }
+
+    // * An end with an owner is already in its sublevel's own space
+    private static boolean rebaseUnownedEndpoint(
+            final CompoundTag connection,
+            final String positionKey,
+            final String ownerKey,
+            final BlockPos templatePos
+    ) {
+        if (connection.hasUUID(ownerKey) || !connection.contains(positionKey, Tag.TAG_LONG)) {
+            return false;
+        }
+
+        rebaseEndpoint(connection, positionKey, templatePos);
+        connection.putBoolean(
+                SOURCE_KEY.equals(positionKey) ? SOURCE_DRIVE_RELATIVE_KEY : SINK_DRIVE_RELATIVE_KEY, true);
         return true;
     }
 
@@ -130,11 +155,6 @@ public final class LegacyWireCompat {
 
         if (payload.contains(FACING_KEY, Tag.TAG_STRING)
                 && !NEUTRAL_FACING.equals(payload.getString(FACING_KEY))) {
-            DriveBySableMod.LOGGER.info(
-                    "[drivebywire-migration] Rewrote stored facing {} to {} on an adopted payload.",
-                    payload.getString(FACING_KEY),
-                    NEUTRAL_FACING
-            );
             payload.putString(FACING_KEY, NEUTRAL_FACING);
         }
 

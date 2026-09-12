@@ -60,13 +60,8 @@ public final class ToolgunCableApi {
 
         if (!(level.getBlockEntity(backupBlockPos) instanceof final NetworkBackupDriveBlockEntity drive)) {
             if (LegacyWireCompat.isOwnerAware(snapshot)) {
+                // * Already on a Drive, waiting on a manual load. Nothing to say
                 if (this.real.hasLegacyPayloadAwaitingLoad(expected)) {
-                    DriveBySableMod.LOGGER.info(
-                            "[drivebywire-migration] Toolgun snapshot of {} connections is already on a Drive "
-                                    + "awaiting a manual load. Not restoring it automatically.",
-                            expected
-                    );
-
                     return new CableNetworkManager.RestoreResult(0, expected, 0, 0, expected, true);
                 }
 
@@ -97,16 +92,6 @@ public final class ToolgunCableApi {
         // * Before storing, so the sync that storing triggers carries the region
         drive.storeBoundedSnapshot(inherited);
         drive.onLegacyPayloadAdopted();
-
-        DriveBySableMod.LOGGER.info(
-                "[drivebywire-migration] Toolgun handed a payload to the Drive at {}: "
-                        + "{} connections, snapshotVersion={}, region offset {} size {}.",
-                backupBlockPos,
-                expected,
-                LegacyWireCompat.snapshotVersion(inherited),
-                drive.getRegionOffset(),
-                drive.getRegionSize()
-        );
 
         return done;
     }

@@ -9,6 +9,7 @@ import dev.rew1nd.sableschematicapi.compat.BlueprintRefTags;
 import edn.lakeopossmc.drivebysable.CableBlocks;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
 import edn.lakeopossmc.drivebysable.blocks.NetworkBackupDriveBlockEntity;
+import edn.lakeopossmc.drivebysable.legacy.LegacyTypewriterCompat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -28,6 +29,7 @@ public final class PhotomancyCableBlueprintEvent implements SableBlueprintEvent 
     private static final String SOURCE_REF_KEY = "source_ref";
     private static final String SINK_REF_KEY = "sink_ref";
     private static final String DIRECTION_KEY = "direction";
+    private static final String SUB_LEVEL_ID_KEY = "sub_level_id";
     private static final String CHANNEL_KEY = "channel";
 
     // * Keys on the snapshot we hand to the Drive
@@ -41,6 +43,10 @@ public final class PhotomancyCableBlueprintEvent implements SableBlueprintEvent 
 
     // * Relative to the Drive
     private static final int RELATIVE_SNAPSHOT_VERSION = 2;
+
+    // * Offsets measured through world space
+    private static final int WORLD_SPACE_SNAPSHOT_VERSION = 4;
+    private static final String SNAPSHOT_SAVED_DRIVE_POS = "SavedDrivePos";
     private static final String NEUTRAL_FACING = "north";
 
     private final ResourceLocation id;
@@ -101,6 +107,7 @@ public final class PhotomancyCableBlueprintEvent implements SableBlueprintEvent 
         final BlockPos drivePos = drive.getBlockPos();
         final ListTag converted = new ListTag();
         int unresolved = 0;
+        boolean crossLevel = false;
 
         for (final Tag entry : connections) {
             if (!(entry instanceof final CompoundTag connection)) {
@@ -122,12 +129,18 @@ public final class PhotomancyCableBlueprintEvent implements SableBlueprintEvent 
                 continue;
             }
 
+            if (subLevelOf(connection, SOURCE_REF_KEY) != subLevelOf(connection, SINK_REF_KEY)) {
+                crossLevel = true;
+            }
+
             final CompoundTag stored = new CompoundTag();
             // * The Drive restores from offsets against itself
             stored.putLong(SNAPSHOT_SOURCE, sourcePos.subtract(drivePos).asLong());
             stored.putLong(SNAPSHOT_SINK, sinkPos.subtract(drivePos).asLong());
             stored.putByte(SNAPSHOT_DIRECTION, connection.getByte(DIRECTION_KEY));
-            stored.putString(SNAPSHOT_CHANNEL, connection.getString(CHANNEL_KEY));
+            // * The Typewriter addon named its channels with translation keys
+            stored.putString(SNAPSHOT_CHANNEL,
+                    LegacyTypewriterCompat.translateChannel(connection.getString(CHANNEL_KEY)));
             converted.add(stored);
         }
 
@@ -143,8 +156,14 @@ public final class PhotomancyCableBlueprintEvent implements SableBlueprintEvent 
 
         final CompoundTag snapshot = new CompoundTag();
         snapshot.put(SNAPSHOT_CONNECTIONS, converted);
-        snapshot.putInt(SNAPSHOT_VERSION, RELATIVE_SNAPSHOT_VERSION);
         snapshot.putString(SNAPSHOT_FACING, NEUTRAL_FACING);
+
+        if (crossLevel) {
+            snapshot.putInt(SNAPSHOT_VERSION, WORLD_SPACE_SNAPSHOT_VERSION);
+            snapshot.putLong(SNAPSHOT_SAVED_DRIVE_POS, drivePos.asLong());
+        } else {
+            snapshot.putInt(SNAPSHOT_VERSION, RELATIVE_SNAPSHOT_VERSION);
+        }
 
         drive.storeBoundedSnapshot(snapshot);
         drive.onLegacyPayloadAdopted();
@@ -157,6 +176,16 @@ public final class PhotomancyCableBlueprintEvent implements SableBlueprintEvent 
                 drivePos,
                 unresolved
         );
+    }
+
+    // * Which sublevel a ref names, or -1 when it does not say
+    private static int subLevelOf(final CompoundTag connection, final String key) {
+        if (!connection.contains(key, Tag.TAG_COMPOUND)) {
+            return -1;
+        }
+
+        final CompoundTag ref = connection.getCompound(key);
+        return ref.contains(SUB_LEVEL_ID_KEY) ? ref.getInt(SUB_LEVEL_ID_KEY) : -1;
     }
 
     @Nullable
