@@ -139,6 +139,10 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity implements Partia
             this.regionFitPending = true;
         }
         //#endregion
+
+        // * If setLevel already ran, this is the point the snapshot becomes known
+        queueForBindingIfNeeded();
+        tryBindWorldSpaceSnapshot();
     }
 
     // * Fit the region around what we inherited
@@ -169,6 +173,46 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity implements Partia
                 this.worldPosition,
                 CableNetworkManager.countConnectionsInBackupSnapshot(this.boundedSnapshot)
         );
+    }
+
+    private void queueForBindingIfNeeded() {
+        if (this.level == null || this.level.isClientSide()) {
+            return;
+        }
+
+        if (CableNetworkManager.isPastedCopy(this.boundedSnapshot, this.worldPosition)) {
+            CableNetworkManager.get(this.level).queueForBinding(this.worldPosition);
+        }
+    }
+
+    public void tryBindWorldSpaceSnapshot() {
+        if (this.boundedSnapshot == null || this.level == null || this.level.isClientSide()) {
+            return;
+        }
+
+        // * Only a pasted copy gets pinned
+        if (!CableNetworkManager.isPastedCopy(this.boundedSnapshot, this.worldPosition)) {
+            return;
+        }
+
+        final CompoundTag bound = CableNetworkManager.get(this.level)
+                .bindWorldSpaceSnapshot(this.level, this.worldPosition, this.boundedSnapshot);
+
+        // * Not everything has been placed yet, so try again on the next read
+        if (bound == null) {
+            return;
+        }
+
+        this.boundedSnapshot = bound;
+        CableNetworkManager.get(this.level).stopWaitingToBind(this.worldPosition);
+
+        DriveBySableMod.LOGGER.info(
+                "[drivebywire-migration] Pinned a cross-level snapshot at {} to the sublevels it landed on.",
+                this.worldPosition
+        );
+
+        setChanged();
+        syncToClients();
     }
 
     public void tryFitLegacyRegion() {
@@ -214,6 +258,9 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity implements Partia
     public void setLevel(final Level level) {
         super.setLevel(level);
         registerLegacyPayload();
+
+        queueForBindingIfNeeded();
+        tryBindWorldSpaceSnapshot();
         tryFitLegacyRegion();
     }
 
@@ -351,6 +398,7 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity implements Partia
 
     // * One cable per stored connection
     public int getPendingConnectionCount() {
+        tryBindWorldSpaceSnapshot();
         tryFitLegacyRegion();
 
         if (this.boundedSnapshot == null) {

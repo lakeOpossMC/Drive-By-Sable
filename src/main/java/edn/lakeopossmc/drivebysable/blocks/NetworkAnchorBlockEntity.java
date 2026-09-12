@@ -237,7 +237,8 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity {
                 continue;
             }
 
-            if (!sameLevel) {
+            // * Only a problem while cross level saving is off
+            if (!sameLevel && !BackupDriveCapture.crossLevelSavingAllowed()) {
                 sourcesOnOtherLevel++;
                 continue;
             }
@@ -247,7 +248,8 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity {
                     final BlockPos sinkPos = sink.blockPos();
 
                     if (!BackupDriveCapture.isSameLevel(
-                            anchorSubLevel, BackupDriveCapture.subLevelOf(level, sinkPos))) {
+                            anchorSubLevel, BackupDriveCapture.subLevelOf(level, sinkPos))
+                            && !BackupDriveCapture.crossLevelSavingAllowed()) {
                         if (withinBounds(bounds, sinkPos, anchorSubLevel)) {
                             outputsOnOtherLevel++;
                         }
@@ -262,6 +264,7 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity {
         }
     }
 
+    // * Kept for the out of range counts
     private boolean withinBounds(final AABB bounds, final BlockPos pos, @Nullable final SubLevel anchorSubLevel) {
         final SubLevel posSubLevel = BackupDriveCapture.subLevelOf(level, pos);
         if (BackupDriveCapture.isSameLevel(anchorSubLevel, posSubLevel)) {
