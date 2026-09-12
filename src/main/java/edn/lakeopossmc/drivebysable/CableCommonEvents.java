@@ -45,6 +45,8 @@ public final class CableCommonEvents {
         }
 
         CableNetworkManager.get(level).flushPendingGraphRebuild(level);
+        CableNetworkManager.get(level).tickPendingBinds(level);
+        CableNetworkManager.get(level).tickPendingPublishes(level);
         LinkedControllerCableServerHandler.tick(level);
         TweakedControllerCableServerHandler.tick(level);
     }

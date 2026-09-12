@@ -16,6 +16,7 @@ public class CableConfig {
 
     //#region // --- NETWORK CONSTRAINTS --- //
     public final ModConfigSpec.BooleanValue forbidCrossLevelConnections;
+    public final ModConfigSpec.BooleanValue allowCrossLevelConnectionSaving;
     public final ModConfigSpec.IntValue rangeLimit;
     public final ModConfigSpec.BooleanValue rangeLimitEnforced;
     public final ModConfigSpec.IntValue maxSourcesInWorld;
@@ -71,6 +72,18 @@ public class CableConfig {
                 )
                 .translation("drivebysable.config.forbidCrossLevelConnections")
                 .define("forbidCrossLevelConnections", false);
+
+        allowCrossLevelConnectionSaving = builder
+                .comment(
+                        "Whether a Backup Drive or Network Anchor may save connections whose ends",
+                        "sit on a different level to itself, such as a sublevel beside it.",
+                        "The region still applies: an end is only saved when it falls inside the",
+                        "region, measured where the block appears in the world rather than where",
+                        "it is stored. When false, anything on another level is skipped and",
+                        "reported to the player."
+                )
+                .translation("drivebysable.config.allowCrossLevelConnectionSaving")
+                .define("allowCrossLevelConnectionSaving", false);
 
         rangeLimit = builder
                 .comment(

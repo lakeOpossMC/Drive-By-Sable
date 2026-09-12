@@ -58,6 +58,9 @@ public record BackupDriveLoadPacket(BlockPos drivePos) implements CustomPacketPa
             return;
         }
 
+        // * Last chance to pin it before anything is resolved by position
+        drive.tryBindWorldSpaceSnapshot();
+
         final CompoundTag snapshot = drive.getBoundedSnapshot();
         if (snapshot == null || snapshot.isEmpty()) {
             return;
