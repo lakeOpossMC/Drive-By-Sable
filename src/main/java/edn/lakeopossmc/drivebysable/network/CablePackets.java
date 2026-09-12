@@ -21,6 +21,9 @@ public final class CablePackets {
                 .playToClient(BackupDriveLoadReportPacket.TYPE, BackupDriveLoadReportPacket.STREAM_CODEC, BackupDriveLoadReportPacket::handle)
                 .playToClient(BackupDriveHighlightPacket.TYPE, BackupDriveHighlightPacket.STREAM_CODEC, BackupDriveHighlightPacket::handle)
                 .playToClient(NetworkAnchorSavedPacket.TYPE, NetworkAnchorSavedPacket.STREAM_CODEC, NetworkAnchorSavedPacket::handle)
+                .playToClient(NavigationTargetSyncPacket.TYPE, NavigationTargetSyncPacket.STREAM_CODEC, NavigationTargetSyncPacket::handle)
+                .playToServer(SensorBusSettingsPacket.TYPE, SensorBusSettingsPacket.STREAM_CODEC, SensorBusSettingsPacket::handle)
+                .playToClient(SensorBusSettingsSyncPacket.TYPE, SensorBusSettingsSyncPacket.STREAM_CODEC, SensorBusSettingsSyncPacket::handle)
                 .playToServer(CableTypewriterHubKeyPacket.TYPE, CableTypewriterHubKeyPacket.STREAM_CODEC, CableTypewriterHubKeyPacket::handle)
                 .playToServer(MovementKeybindsPacket.TYPE, MovementKeybindsPacket.STREAM_CODEC, MovementKeybindsPacket::handle)
                 .playToServer(TweakedKeybindsPacket.TYPE, TweakedKeybindsPacket.STREAM_CODEC, TweakedKeybindsPacket::handle);

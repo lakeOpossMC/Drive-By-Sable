@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
+import edn.lakeopossmc.drivebysable.client.CreativeTabRefresh;
 import edn.lakeopossmc.drivebysable.compat.photomancy.PhotomancyCableCompat;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
@@ -52,6 +53,9 @@ public class DriveBySableMod {
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::clientSetup);
         modEventBus.addListener(CableConfigReload::onConfigReloading);
+        if (dist.isClient()) {
+            modEventBus.addListener(CreativeTabRefresh::onConfigChanged);
+        }
 
         NeoForge.EVENT_BUS.addListener(CableCommonEvents::onLevelTick);
         NeoForge.EVENT_BUS.addListener(CableCommonEvents::onNeighborNotify);

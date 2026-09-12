@@ -1,9 +1,12 @@
 package edn.lakeopossmc.drivebysable.compat.computercraft;
 
+import dan200.computercraft.api.peripheral.IPeripheral;
 import dan200.computercraft.api.peripheral.PeripheralCapability;
 import dev.simulated_team.simulated.compat.computercraft.AttachedComputerHandler;
 import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.blocks.CableHubBlockEntity;
+import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlockEntity;
+import edn.lakeopossmc.drivebysable.blocks.MultiChannelCableBusBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlockEntity;
 import edn.lakeopossmc.drivebysable.mixinducks.LinkedTypewriterBlockEntityDuck;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
@@ -29,6 +32,24 @@ final class ComputerCraftBridge {
             }
         }
 
+        final var sensorBusHolder = CableBlockEntities.INTEGRATED_SENSOR_BUS;
+        if (sensorBusHolder != null) {
+            final var sensorBus = sensorBusHolder.get();
+            if (sensorBus != null) {
+                event.registerBlockEntity(peripheralCapability, sensorBus,
+                        (b, d) -> b.getPeripheral() instanceof final IPeripheral p ? p : null);
+            }
+        }
+
+        final var cableBusHolder = CableBlockEntities.MULTI_CHANNEL_CABLE_BUS;
+        if (cableBusHolder != null) {
+            final var cableBus = cableBusHolder.get();
+            if (cableBus != null) {
+                event.registerBlockEntity(peripheralCapability, cableBus,
+                        (b, d) -> b.getPeripheral() instanceof final IPeripheral p ? p : null);
+            }
+        }
+
         final var cableHubHolder = CableBlockEntities.CABLE_HUB;
         if (cableHubHolder != null) {
             final var cableHub = cableHubHolder.get();
@@ -37,6 +58,36 @@ final class ComputerCraftBridge {
                         (b, d) -> new CableHubPeripheral(b));
             }
         }
+    }
+
+    static void queueCableBusInput(
+            final MultiChannelCableBusBlockEntity bus,
+            final int channel,
+            final int signal,
+            final boolean intercepted
+    ) {
+        if (bus.getPeripheral() instanceof final MultiChannelCableBusPeripheral peripheral) {
+            peripheral.queueInputEvent(channel, signal, intercepted);
+        }
+    }
+
+    static Object newCableBusPeripheral(final MultiChannelCableBusBlockEntity owner) {
+        return new MultiChannelCableBusPeripheral(owner);
+    }
+
+    static void queueSensorBusInput(
+            final IntegratedSensorBusBlockEntity sensor,
+            final int channel,
+            final int signal,
+            final boolean intercepted
+    ) {
+        if (sensor.getPeripheral() instanceof final IntegratedSensorBusPeripheral peripheral) {
+            peripheral.queueInputEvent(channel, signal, intercepted);
+        }
+    }
+
+    static Object newSensorBusPeripheral(final IntegratedSensorBusBlockEntity owner) {
+        return new IntegratedSensorBusPeripheral(owner);
     }
 
     // * Built here so the block entity never has to name the type

@@ -4,7 +4,10 @@ import edn.lakeopossmc.drivebysable.items.CableCutterItem;
 import edn.lakeopossmc.drivebysable.items.CableItem;
 import edn.lakeopossmc.drivebysable.items.CableTypewriterHubItem;
 import edn.lakeopossmc.drivebysable.items.NetworkBackupDriveItem;
+import edn.lakeopossmc.drivebysable.items.IntegratedSensorBusItem;
+import edn.lakeopossmc.drivebysable.items.MultiChannelCableBusItem;
 import edn.lakeopossmc.drivebysable.items.NetworkAnchorItem;
+import edn.lakeopossmc.drivebysable.legacy.LegacyTypewriterCompat;
 import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
@@ -32,6 +35,14 @@ public final class CableItems {
             () -> new NetworkBackupDriveItem(CableBlocks.BACKUP_DRIVE.get(), new Item.Properties())
     );
     public static final DeferredItem<BlockItem> CABLE_HUB_BLOCK = ITEMS.registerSimpleBlockItem("cable_hub", CableBlocks.CABLE_HUB);
+    public static final DeferredItem<BlockItem> INTEGRATED_SENSOR_BUS = ITEMS.register(
+            "integrated_sensor_bus",
+            () -> new IntegratedSensorBusItem(CableBlocks.INTEGRATED_SENSOR_BUS.get(), new Item.Properties())
+    );
+    public static final DeferredItem<BlockItem> MULTI_CHANNEL_CABLE_BUS = ITEMS.register(
+            "multi_channel_cable_bus",
+            () -> new MultiChannelCableBusItem(CableBlocks.MULTI_CHANNEL_CABLE_BUS.get(), new Item.Properties())
+    );
     public static final DeferredItem<BlockItem> NETWORK_ANCHOR = ITEMS.register(
             "network_anchor",
             () -> new NetworkAnchorItem(CableBlocks.NETWORK_ANCHOR.get(), new Item.Properties())
@@ -60,6 +71,14 @@ public final class CableItems {
 
     //#region // --- LEGACY ALIASES --- //
     private static void addLegacyAliases() {
+        if (CABLE_TYPEWRITER_HUB != null) {
+            ITEMS.addAlias(
+                    ResourceLocation.fromNamespaceAndPath(
+                            LegacyTypewriterCompat.LEGACY_MOD_ID, LegacyTypewriterCompat.LEGACY_BLOCK),
+                    ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, "cable_typewriter_hub")
+            );
+        }
+
         alias(LegacyWireCompat.LEGACY_WIRE, "cable");
         alias(LegacyWireCompat.LEGACY_WIRE_CUTTER, "cable_cutter");
         alias(LegacyWireCompat.LEGACY_BACKUP_BLOCK, "backup_drive");

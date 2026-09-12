@@ -5,6 +5,10 @@
     {
       "id": "drivebysable:cable_typewriter_hub",
       "required": false
+    },
+    {
+      "id": "drivebysable:multi_channel_cable_bus",
+      "required": false
     }
   ]
 }

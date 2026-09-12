@@ -1,5 +1,7 @@
 package edn.lakeopossmc.drivebysable;
 
+import edn.lakeopossmc.drivebysable.items.IntegratedSensorBusItem;
+import edn.lakeopossmc.drivebysable.items.MultiChannelCableBusItem;
 import edn.lakeopossmc.drivebysable.items.NetworkAnchorItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -25,16 +27,22 @@ public final class CableCreativeTabs {
                     .displayItems((parameters, output) -> {
                         output.accept(CableItems.CABLE.get());
                         output.accept(CableItems.CABLE_CUTTER.get());
-                        output.accept(CableItems.BACKUP_DRIVE.get());
                         output.accept(CableItems.CABLE_HUB_BLOCK.get());
-                        if (NetworkAnchorItem.isExtensionEnabled()) {
-                            output.accept(CableItems.NETWORK_ANCHOR.get());
-                        }
                         if (ModList.get().isLoaded("create_tweaked_controllers")) {
                             output.accept(CableItems.ADVANCED_CABLE_HUB_BLOCK.get());
                         }
                         if (ModList.get().isLoaded("simulated")) {
                             output.accept(CableItems.CABLE_TYPEWRITER_HUB.get());
+                        }
+                        output.accept(CableItems.BACKUP_DRIVE.get());
+                        if (NetworkAnchorItem.isExtensionEnabled()) {
+                            output.accept(CableItems.NETWORK_ANCHOR.get());
+                        }
+                        if (MultiChannelCableBusItem.isExtensionEnabled()) {
+                            output.accept(CableItems.MULTI_CHANNEL_CABLE_BUS.get());
+                        }
+                        if (IntegratedSensorBusItem.isExtensionEnabled()) {
+                            output.accept(CableItems.INTEGRATED_SENSOR_BUS.get());
                         }
                     })
                     .build()

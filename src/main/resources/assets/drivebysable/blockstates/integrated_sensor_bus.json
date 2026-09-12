@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "drivebysable:block/integrated_sensor_bus"
+    },
+    "facing=east": {
+      "model": "drivebysable:block/integrated_sensor_bus",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "drivebysable:block/integrated_sensor_bus",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "drivebysable:block/integrated_sensor_bus",
+      "y": 270
+    }
+  }
+}

@@ -5,6 +5,14 @@
       "id": "drivebysable:advanced_cable_hub",
       "required": false
     },
-    "drivebysable:backup_drive"
+    "drivebysable:backup_drive",
+    {
+      "id": "drivebysable:multi_channel_cable_bus",
+      "required": false
+    },
+    {
+      "id": "drivebysable:integrated_sensor_bus",
+      "required": false
+    }
   ]
 }

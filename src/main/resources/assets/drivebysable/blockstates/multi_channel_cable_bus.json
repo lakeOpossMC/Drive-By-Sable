@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "drivebysable:block/multi_channel_cable_bus"
+    },
+    "facing=east": {
+      "model": "drivebysable:block/multi_channel_cable_bus",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "drivebysable:block/multi_channel_cable_bus",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "drivebysable:block/multi_channel_cable_bus",
+      "y": 270
+    }
+  }
+}

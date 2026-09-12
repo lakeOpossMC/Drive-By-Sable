@@ -33,7 +33,8 @@
     "client.MixinSchematicAndQuillHandler",
     "compat.dashpanels.MixinAbstractPanelRenderer",
     "client.MixinValueSettingsClient",
-    "client.MixinGuiOverlayMessageAccessor"
+    "client.MixinGuiOverlayMessageAccessor",
+    "client.MixinCreativeModeTabsAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

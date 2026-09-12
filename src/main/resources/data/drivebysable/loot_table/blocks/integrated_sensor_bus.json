@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "bonus_rolls": 0.0,
+      "conditions": [
+        { "condition": "minecraft:survives_explosion" }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "drivebysable:integrated_sensor_bus"
+        }
+      ],
+      "rolls": 1.0
+    }
+  ],
+  "random_sequence": "drivebysable:blocks/integrated_sensor_bus"
+}

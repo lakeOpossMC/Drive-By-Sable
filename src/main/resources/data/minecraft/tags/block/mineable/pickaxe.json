@@ -10,6 +10,14 @@
     {
       "id": "drivebysable:cable_typewriter_hub",
       "required": false
+    },
+    {
+      "id": "drivebysable:multi_channel_cable_bus",
+      "required": false
+    },
+    {
+      "id": "drivebysable:integrated_sensor_bus",
+      "required": false
     }
   ]
 }

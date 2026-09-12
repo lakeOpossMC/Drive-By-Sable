@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "drivebysable:integrated_sensor_bus",
+      "required": false
+    }
+  ]
+}

@@ -13,7 +13,9 @@ import edn.lakeopossmc.drivebysable.CableConfig;
 import edn.lakeopossmc.drivebysable.CableItems;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
 import edn.lakeopossmc.drivebysable.client.screen.ChannelQuickSelectScreen;
+import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlockEntity;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
+import edn.lakeopossmc.drivebysable.cable.ChannelGroupedCableSource;
 import edn.lakeopossmc.drivebysable.mixin.client.MixinGuiOverlayMessageAccessor;
 import edn.lakeopossmc.drivebysable.cable.ModuleSinkTarget;
 import edn.lakeopossmc.drivebysable.cable.MultiChannelCableSource;
@@ -113,6 +115,9 @@ public final class ClientCableNetworkHandler {
     private static BlockPos selectedSource;
     // * Null when the whole block is the source
     private static String selectedSourceModule;
+
+    // * Which slice of a grouped source the cable is scrolling through
+    private static String currentChannelGroup;
     private static String currentChannel = CableNetworkManager.WORLD_CHANNEL;
 
     // * An output module with more than one channel waits here
@@ -212,7 +217,15 @@ public final class ClientCableNetworkHandler {
         }
 
         final Level level = player.level();
-        if (armedSinkModule != null) {
+
+        // * Ctrl moves between groups, plain scroll moves within one
+        if (armedSinkPos == null && net.minecraft.client.gui.screens.Screen.hasControlDown()
+                && cycleChannelGroup(level, player, delta > 0)) {
+            event.setCanceled(true);
+            return;
+        }
+
+        if (armedSinkPos != null) {
             changeArmedSinkChannel(level, player, delta > 0);
         } else {
             changeChannel(level.getBlockState(selectedSource).getBlock(), delta > 0);
@@ -341,7 +354,7 @@ public final class ClientCableNetworkHandler {
         if (messageHoldTicks > 0) {
             messageHoldTicks--;
         } else if (selectedSource != null) {
-            player.displayClientMessage(armedSinkModule != null
+            player.displayClientMessage(armedSinkPos != null
                     ? channelMessage(OUTPUT_CHANNEL_MESSAGE, armedSinkChannel)
                     : channelMessage(SOURCE_CHANNEL_MESSAGE, currentChannel), true);
             showingChannelReadout = true;
@@ -351,16 +364,12 @@ public final class ClientCableNetworkHandler {
 
         // * Rebuilt from scratch each tick
         moduleOutlines.clear();
+        sinkOutlined.clear();
 
         if (selectedSource != null) {
             if (!claimedByDrive(selectedSource, selectedSourceModule)) {
                 drawSourceOutline(level, selectedSource, selectedSourceModule, LineColor.SOURCE.SELECTED.getColor());
             }
-        }
-
-        // * The armed output gets the sink highlight straight away
-        if (armedSinkPos != null && armedSinkModule != null) {
-            drawModuleOutline(level, armedSinkPos, armedSinkModule, "cableArmedSink", LineColor.SINK.SELECTED.getColor());
         }
 
         drawOutlines(level, selectedSource, currentNetwork, currentChannel);
@@ -374,6 +383,15 @@ public final class ClientCableNetworkHandler {
             if (hoverModule != null
                     && drivebysable$hoverInvalid(level, hoverPos, hover.getDirection(), player, cutterInHand)) {
                 drawModuleOutline(level, hoverPos, hoverModule, "cableOutOfRange", OUT_OF_RANGE_COLOR);
+            }
+        }
+
+        // * Last, so it wins draw order
+        if (armedSinkPos != null) {
+            if (armedSinkModule == null) {
+                drawOutline(level, armedSinkPos, LineColor.SINK.SELECTED.getColor(), true);
+            } else {
+                drawModuleOutline(level, armedSinkPos, armedSinkModule, "cableArmedSink", LineColor.SINK.SELECTED.getColor(), true);
             }
         }
     }
@@ -541,6 +559,7 @@ public final class ClientCableNetworkHandler {
         currentNetwork = EMPTY_NETWORK;
         selectedSource = null;
         selectedSourceModule = null;
+        currentChannelGroup = null;
         currentChannel = CableNetworkManager.WORLD_CHANNEL;
         syncCooldown = 0;
         clearArmedSink();
@@ -615,6 +634,12 @@ public final class ClientCableNetworkHandler {
                 && endpoint.cable$isSinkSubTarget(level, pos, subTarget);
     }
 
+    // * A block that names output channels without being made of parts
+    private static boolean isMultiChannelSink(final Level level, final BlockPos pos) {
+        return !(level.getBlockState(pos).getBlock() instanceof SubTargetCableEndpoint)
+                && !sinkChannelsFor(level, pos, null).isEmpty();
+    }
+
     private static List<String> sinkChannelsFor(final Level level, final BlockPos pos, final String subTarget) {
         return level.getBlockState(pos).getBlock() instanceof final ModuleSinkTarget target
                 ? target.cable$getSinkChannels(level, pos, subTarget)
@@ -668,14 +693,16 @@ public final class ClientCableNetworkHandler {
         }
 
         // * Second click on an armed output confirms whatever channel is showing
-        if (armedSinkModule != null && armedSinkPos.equals(pos) && armedSinkModule.equals(subTarget)) {
+        if (armedSinkPos != null && armedSinkPos.equals(pos) && Objects.equals(armedSinkModule, subTarget)) {
             final String confirmed = armedSinkChannel;
             clearArmedSink();
             return toggleConnection(player, heldItem, level, pos, face, confirmed, true);
         }
 
-        if (subTarget != null) {
-            if (!isSinkSubTarget(level, pos, subTarget)) {
+        // * Either a module on a panel, or a plain block that names its own output channels
+        // * The Multi-Channel Cable Bus is the second kind
+        if (subTarget != null || isMultiChannelSink(level, pos)) {
+            if (subTarget != null && !isSinkSubTarget(level, pos, subTarget)) {
                 showInvalidOperationMessage(player, "drivebysable.invalid_op.not_an_output");
                 return false;
             }
@@ -730,13 +757,13 @@ public final class ClientCableNetworkHandler {
             return true;
         }
 
-        if (armedSinkModule != null && armedSinkPos.equals(pos) && armedSinkModule.equals(subTarget)) {
+        if (armedSinkPos != null && armedSinkPos.equals(pos) && Objects.equals(armedSinkModule, subTarget)) {
             final String confirmed = armedSinkChannel;
             clearArmedSink();
             return toggleConnection(player, ItemStack.EMPTY, level, pos, face, confirmed, false);
         }
 
-        if (subTarget != null) {
+        if (subTarget != null || isMultiChannelSink(level, pos)) {
             // * Cutter only offers the connected channels
             final List<String> channels = connectedSinkChannels(level, pos, subTarget);
             if (channels.isEmpty()) {
@@ -947,7 +974,7 @@ public final class ClientCableNetworkHandler {
         }
 
         // * An armed output owns scroll until it is confirmed
-        if (armedSinkModule != null) {
+        if (armedSinkPos != null) {
             tip.add(Component.translatable("drivebysable.cable_actions.select_output_channel"));
             tip.add(Component.translatable("drivebysable.cable_actions.confirm_output", Component.keybind("key.use")));
             CableHoverTip.show(tip);
@@ -964,6 +991,13 @@ public final class ClientCableNetworkHandler {
         }
 
         tip.add(Component.translatable("drivebysable.cable_actions.select_channel"));
+
+        // * Only worth mentioning when the block actually has groups to move between
+        if (hasMultipleChannelGroups(level)) {
+            tip.add(Component.translatable(
+                    "drivebysable.cable_actions.select_channel_group",
+                    drivebysable$ctrlScroll(net.minecraft.client.gui.screens.Screen.hasControlDown())));
+        }
 
         // * Say so before the click
         if (CableNetworkManager.wouldExceedSinkLimit(level, selectedSource, currentChannel)
@@ -1000,6 +1034,8 @@ public final class ClientCableNetworkHandler {
             ));
         }
 
+        // * Last of everything, so it sits directly on top of the channel readout
+        addChannelGroupLine(tip, level);
         CableHoverTip.show(tip);
     }
     //#endregion
@@ -1061,7 +1097,7 @@ public final class ClientCableNetworkHandler {
         //#endregion
 
         // * An armed output owns scroll until a second click disconnects it
-        if (armedSinkModule != null) {
+        if (armedSinkPos != null) {
             tip.add(Component.translatable("drivebysable.cable_actions.select_output_channel"));
             tip.add(Component.translatable("drivebysable.cable_cutter_actions.disconnect_output", Component.keybind("key.use")));
             CableHoverTip.show(tip);
@@ -1119,6 +1155,15 @@ public final class ClientCableNetworkHandler {
     }
 
     // * Sneak plus use, built from the real keybinds
+    private static MutableComponent drivebysable$ctrlScroll(final boolean controlHeld) {
+        final MutableComponent modifier = Component.literal("Ctrl + Scroll");
+        if (controlHeld) {
+            modifier.withStyle(ChatFormatting.GREEN);
+        }
+
+        return modifier;
+    }
+
     private static MutableComponent drivebysable$sneakUse(final boolean sneakHeld) {
         final MutableComponent sneak = Component.keybind("key.sneak");
         if (sneakHeld) {
@@ -1159,15 +1204,117 @@ public final class ClientCableNetworkHandler {
     }
 
     // * Scoped to the selected module when the source block has sub targets
+    // * Null unless the selected source hands out groups
+    private static ChannelGroupedCableSource groupedSource(final Level level) {
+        if (level == null || selectedSource == null) {
+            return null;
+        }
+
+        return level.getBlockState(selectedSource).getBlock() instanceof final ChannelGroupedCableSource grouped
+                ? grouped
+                : null;
+    }
+
+    // * Falls back to the first group
+    private static String activeGroup(final Level level) {
+        final ChannelGroupedCableSource grouped = groupedSource(level);
+        if (grouped == null) {
+            return null;
+        }
+
+        final List<String> groups = grouped.cable$getChannelGroups(level, selectedSource);
+        if (groups.isEmpty()) {
+            return null;
+        }
+
+        if (currentChannelGroup == null || !groups.contains(currentChannelGroup)) {
+            currentChannelGroup = groups.getFirst();
+        }
+
+        return currentChannelGroup;
+    }
+
+    private static boolean cycleChannelGroup(final Level level, final Player player, final boolean forward) {
+        final ChannelGroupedCableSource grouped = groupedSource(level);
+        if (grouped == null) {
+            return false;
+        }
+
+        final List<String> groups = grouped.cable$getChannelGroups(level, selectedSource);
+        if (groups.size() <= 1) {
+            return false;
+        }
+
+        final String current = activeGroup(level);
+        final int index = groups.indexOf(current);
+        currentChannelGroup = groups.get(Math.floorMod(index + (forward ? 1 : -1), groups.size()));
+
+        // * Land on the first channel of the group the player just moved to
+        final List<String> channels = grouped.cable$getGroupChannels(level, selectedSource, currentChannelGroup);
+        if (!channels.isEmpty()) {
+            currentChannel = channels.getFirst();
+        }
+
+        announceChannel(player, SOURCE_CHANNEL_MESSAGE, currentChannel);
+        return true;
+    }
+
+    // * The channels the cable may reach right now
+    private static List<String> selectableChannels(final Level level) {
+        final ChannelGroupedCableSource grouped = groupedSource(level);
+        if (grouped != null) {
+            final String group = activeGroup(level);
+            if (group != null) {
+                return grouped.cable$getGroupChannels(level, selectedSource, group);
+            }
+        }
+
+        return level.getBlockState(selectedSource).getBlock() instanceof final MultiChannelCableSource channelSource
+                ? channelSource.cable$getChannels(level, selectedSource, selectedSourceModule)
+                : List.of();
+    }
+
+    private static boolean hasMultipleChannelGroups(final Level level) {
+        final ChannelGroupedCableSource grouped = groupedSource(level);
+        return grouped != null && grouped.cable$getChannelGroups(level, selectedSource).size() > 1;
+    }
+
+    private static void addChannelGroupLine(final List<MutableComponent> tip, final Level level) {
+        final ChannelGroupedCableSource grouped = groupedSource(level);
+        if (grouped == null) {
+            return;
+        }
+
+        final String group = activeGroup(level);
+        if (group == null) {
+            return;
+        }
+
+        tip.add(Component.translatable(
+                        "drivebysable.cable.channel_group.selected",
+                        Component.translatable(grouped.cable$getChannelGroupLangKey(group))
+                                .withStyle(ChatFormatting.GREEN))
+                .withStyle(ChatFormatting.GRAY));
+    }
+
     private static void changeChannel(final Block source, final boolean forward) {
         final Level level = Minecraft.getInstance().level;
         if (level == null || selectedSource == null) {
             return;
         }
 
-        currentChannel = source instanceof final MultiChannelCableSource channelSource
-                ? channelSource.cable$nextChannel(level, selectedSource, selectedSourceModule, currentChannel, forward)
-                : CableNetworkManager.WORLD_CHANNEL;
+        final List<String> group = groupedSource(level) != null ? selectableChannels(level) : List.of();
+        if (!group.isEmpty()) {
+            // * Wraps inside the group rather than running into the next one
+            final int index = group.indexOf(currentChannel);
+            currentChannel = index < 0
+                    ? group.getFirst()
+                    : group.get(Math.floorMod(index + (forward ? 1 : -1), group.size()));
+        } else {
+            currentChannel = source instanceof final MultiChannelCableSource channelSource
+                    ? channelSource.cable$nextChannel(level, selectedSource, selectedSourceModule, currentChannel, forward)
+                    : CableNetworkManager.WORLD_CHANNEL;
+        }
 
         if (currentChannel == null) {
             currentChannel = CableNetworkManager.WORLD_CHANNEL;
@@ -1198,7 +1345,7 @@ public final class ClientCableNetworkHandler {
     }
 
     private static Component channelMessage(final String messageKey, final String channel) {
-        final String langKey = TweakedControllerCableServerHandler.CHANNEL_TO_LANG_KEY.getOrDefault(channel, channel);
+        final String langKey = channelLangKey(channel);
         final int channelColor = messageKey.equals(OUTPUT_CHANNEL_MESSAGE)
                 ? LineColor.SINK.SELECTED.getColor()
                 : LineColor.SOURCE.SELECTED.getColor();
@@ -1212,13 +1359,19 @@ public final class ClientCableNetworkHandler {
     //#region // --- CHANNEL QUICK SELECT --- //
     private static void openChannelQuickSelect(final Player player) {
         final Level level = player.level();
-        final boolean forOutput = armedSinkModule != null && armedSinkPos != null;
+        final boolean forOutput = armedSinkPos != null;
 
         final List<String> ids = forOutput
                 ? sinkChannelsFor(level, armedSinkPos, armedSinkModule)
-                : level.getBlockState(selectedSource).getBlock() instanceof final MultiChannelCableSource channelSource
-                ? channelSource.cable$getChannels(level, selectedSource, selectedSourceModule)
-                : List.of();
+                : selectableChannels(level);
+
+        final ChannelGroupedCableSource grouped = groupedSource(level);
+        if (!forOutput && grouped != null) {
+            final String group = activeGroup(level);
+            if (group != null && !grouped.cable$groupAllowsQuickSelect(level, selectedSource, group)) {
+                return;
+            }
+        }
 
         // * Silently does nothing when there is nothing
         if (ids.size() <= 1) {
@@ -1243,8 +1396,18 @@ public final class ClientCableNetworkHandler {
         }));
     }
 
+    // * Sensor Bus channels carry ids rather than names, so they translate too
+    private static String channelLangKey(final String channel) {
+        final String sensorKey = IntegratedSensorBusBlockEntity.CHANNEL_TO_LANG_KEY.get(channel);
+        if (sensorKey != null) {
+            return sensorKey;
+        }
+
+        return TweakedControllerCableServerHandler.CHANNEL_TO_LANG_KEY.getOrDefault(channel, channel);
+    }
+
     private static String displayNameOf(final String channel) {
-        final String langKey = TweakedControllerCableServerHandler.CHANNEL_TO_LANG_KEY.getOrDefault(channel, channel);
+        final String langKey = channelLangKey(channel);
         return Component.translatable(langKey).getString();
     }
     //#endregion
@@ -1394,7 +1557,7 @@ public final class ClientCableNetworkHandler {
         if (sink.isModule()) {
             final String module = subTargetForChannel(level, end, sink.sinkChannel());
             final String outlineTarget = module == null ? sink.sinkChannel() : module;
-            drawModuleOutline(level, end, outlineTarget, "cableSinkModule:" + channel, faceColor);
+            drawModuleOutline(level, end, outlineTarget, "cableSinkModule:" + channel, faceColor, true);
             lineEnd = anchorOf(level, end, module);
         } else {
             drawOutlineFace(end, sink.facing(), channel, faceColor);
@@ -1431,9 +1594,20 @@ public final class ClientCableNetworkHandler {
             final String slotTag,
             final int color
     ) {
+        drawModuleOutline(level, pos, subTarget, slotTag, color, false);
+    }
+
+    private static void drawModuleOutline(
+            final Level level,
+            final BlockPos pos,
+            final String subTarget,
+            final String slotTag,
+            final int color,
+            final boolean asSink
+    ) {
         final List<CableOutlineBox> boxes = subTargetOutline(level, pos, subTarget);
         if (boxes.isEmpty()) {
-            drawOutline(level, pos, color);
+            drawOutline(level, pos, color, asSink);
             return;
         }
 
@@ -1542,7 +1716,19 @@ public final class ClientCableNetworkHandler {
 
 
     // * Uses approximate bounding box
+    private static final Set<BlockPos> sinkOutlined = new HashSet<>();
+
     private static void drawOutline(final Level level, final BlockPos pos, final int color) {
+        drawOutline(level, pos, color, false);
+    }
+
+    private static void drawOutline(final Level level, final BlockPos pos, final int color, final boolean asSink) {
+        if (asSink) {
+            sinkOutlined.add(pos.immutable());
+        } else if (sinkOutlined.contains(pos)) {
+            return;
+        }
+
         final BlockState state = level.getBlockState(pos);
         final AABB box = state.getShape(level, pos).isEmpty() ? UNIT_CUBE : state.getShape(level, pos).bounds();
         Outliner.getInstance()

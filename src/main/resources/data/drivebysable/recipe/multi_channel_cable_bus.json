@@ -1,0 +1,21 @@
+{
+  "neoforge:conditions": [
+    { "type": "drivebysable:config", "option": "multi_channel_cable_bus", "expected": true }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "A": { "item": "create:electron_tube" },
+    "B": { "item": "drivebysable:cable_io_bus" },
+    "C": { "item": "minecraft:redstone" },
+    "D": { "item": "create:precision_mechanism" },
+    "E": { "item": "create:brass_casing" },
+    "F": { "item": "drivebysable:cable_hub" }
+  },
+  "pattern": [
+    "ADA",
+    "BFB",
+    "CEC"
+  ],
+  "result": { "count": 1, "id": "drivebysable:multi_channel_cable_bus" }
+}

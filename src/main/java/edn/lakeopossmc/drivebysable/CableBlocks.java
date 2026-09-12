@@ -4,7 +4,10 @@ import edn.lakeopossmc.drivebysable.blocks.AdvancedCableHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.CableHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.NetworkAnchorBlock;
+import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlock;
+import edn.lakeopossmc.drivebysable.blocks.MultiChannelCableBusBlock;
 import edn.lakeopossmc.drivebysable.blocks.NetworkBackupDriveBlock;
+import edn.lakeopossmc.drivebysable.legacy.LegacyTypewriterCompat;
 import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.SoundType;
@@ -40,6 +43,26 @@ public final class CableBlocks {
                     .sound(SoundType.NETHERITE_BLOCK)
                     .strength(-1.0F, Float.MAX_VALUE)
                     .noLootTable())
+    );
+
+    // * Flight telemetry plus a hundred channel source, contributed feature
+    public static final DeferredBlock<IntegratedSensorBusBlock> INTEGRATED_SENSOR_BUS = BLOCKS.register(
+            "integrated_sensor_bus",
+            () -> new IntegratedSensorBusBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.TERRACOTTA_BLACK)
+                    .sound(SoundType.METAL)
+                    .strength(3.5F, 6.0F)
+                    .requiresCorrectToolForDrops())
+    );
+
+    // * Hundred channel source driven by a computer, contributed feature
+    public static final DeferredBlock<MultiChannelCableBusBlock> MULTI_CHANNEL_CABLE_BUS = BLOCKS.register(
+            "multi_channel_cable_bus",
+            () -> new MultiChannelCableBusBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.TERRACOTTA_BLACK)
+                    .sound(SoundType.METAL)
+                    .strength(3.5F, 6.0F)
+                    .requiresCorrectToolForDrops())
     );
 
     public static final DeferredBlock<CableHubBlock> CABLE_HUB = BLOCKS.register(
@@ -83,6 +106,15 @@ public final class CableBlocks {
     // * The aeronautics toolgun looks blocks up by hardcoded drivebywire ids
     // * Aliases resolve those to DBS whenever DBW is absent
     private static void addLegacyAliases() {
+        // * The third party Typewriter addon, whose hub this mod reimplemented
+        if (CABLE_TYPEWRITER_HUB != null) {
+            BLOCKS.addAlias(
+                    ResourceLocation.fromNamespaceAndPath(
+                            LegacyTypewriterCompat.LEGACY_MOD_ID, LegacyTypewriterCompat.LEGACY_BLOCK),
+                    ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, "cable_typewriter_hub")
+            );
+        }
+
         BLOCKS.addAlias(
                 ResourceLocation.fromNamespaceAndPath(LEGACY_NAMESPACE, LegacyWireCompat.LEGACY_BACKUP_BLOCK),
                 ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, "backup_drive")

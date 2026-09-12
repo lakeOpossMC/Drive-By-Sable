@@ -25,6 +25,8 @@ public class CableConfig {
 
     //#region // --- EXTENSIONS --- //
     public final ModConfigSpec.BooleanValue networkAnchor;
+    public final ModConfigSpec.BooleanValue multiChannelCableBus;
+    public final ModConfigSpec.BooleanValue integratedSensorBus;
     //#endregion
 
     //#region // --- RECIPES AND TEXTURES --- //
@@ -135,6 +137,29 @@ public class CableConfig {
                 )
                 .translation("drivebysable.config.networkAnchor")
                 .define("networkAnchor", true);
+
+        multiChannelCableBus = builder
+                .comment(
+                        "Whether the Multi-Channel Cable Bus is available.",
+                        "A hundred channel source a ComputerCraft computer can drive directly.",
+                        "Needs ComputerCraft to be useful, though the block still places without it.",
+                        "Existing Buses already placed in a world are unaffected."
+                )
+                .translation("drivebysable.config.multiChannelCableBus")
+                .define("multiChannelCableBus", true);
+
+        integratedSensorBus = builder
+                .comment(
+                        "Whether the Integrated Sensor Bus is available.",
+                        "Reports position, velocity, altitude and gimbal data for the sublevel it",
+                        "rides on, and carries a hundred output channels of its own.",
+                        "Has no effect unless Simulated is installed, which supplies the",
+                        "sensors this block reads and everything its recipe needs.",
+                        "ComputerCraft is optional, and adds raw telemetry reads.",
+                        "Existing Sensor Buses already placed in a world are unaffected."
+                )
+                .translation("drivebysable.config.integratedSensorBus")
+                .define("integratedSensorBus", true);
 
         builder.pop();
         //#endregion

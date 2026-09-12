@@ -18,7 +18,9 @@ public record CableConfigCondition(Option option, boolean expected) implements I
 
     public enum Option implements StringRepresentable {
         CHEAPER_BACKUP_DRIVE("expensive_drive"),
-        CHEAPER_HUBS("andesite_hub");
+        CHEAPER_HUBS("andesite_hub"),
+        MULTI_CHANNEL_CABLE_BUS("multi_channel_cable_bus"),
+        INTEGRATED_SENSOR_BUS("integrated_sensor_bus");
 
         private final String name;
 
@@ -35,6 +37,8 @@ public record CableConfigCondition(Option option, boolean expected) implements I
             return switch (this) {
                 case CHEAPER_BACKUP_DRIVE -> CableConfig.CONFIG.expensiveBackupDrive.get();
                 case CHEAPER_HUBS -> CableConfig.CONFIG.andesiteHub.get();
+                case MULTI_CHANNEL_CABLE_BUS -> CableConfig.CONFIG.multiChannelCableBus.get();
+                case INTEGRATED_SENSOR_BUS -> CableConfig.CONFIG.integratedSensorBus.get();
             };
         }
     }

@@ -3,7 +3,10 @@ package edn.lakeopossmc.drivebysable;
 import edn.lakeopossmc.drivebysable.blocks.CableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.NetworkAnchorBlockEntity;
+import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlockEntity;
+import edn.lakeopossmc.drivebysable.blocks.MultiChannelCableBusBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.NetworkBackupDriveBlockEntity;
+import edn.lakeopossmc.drivebysable.legacy.LegacyTypewriterCompat;
 import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
@@ -43,6 +46,22 @@ public final class CableBlockEntities {
             () -> BlockEntityType.Builder.of(NetworkBackupDriveBlockEntity::new, CableBlocks.BACKUP_DRIVE.get()).build(null)
     );
 
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<IntegratedSensorBusBlockEntity>>
+            INTEGRATED_SENSOR_BUS = BLOCK_ENTITY_TYPES.register(
+            "integrated_sensor_bus",
+            () -> BlockEntityType.Builder.of(
+                    IntegratedSensorBusBlockEntity::new,
+                    CableBlocks.INTEGRATED_SENSOR_BUS.get()).build(null)
+    );
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<MultiChannelCableBusBlockEntity>>
+            MULTI_CHANNEL_CABLE_BUS = BLOCK_ENTITY_TYPES.register(
+            "multi_channel_cable_bus",
+            () -> BlockEntityType.Builder.of(
+                    MultiChannelCableBusBlockEntity::new,
+                    CableBlocks.MULTI_CHANNEL_CABLE_BUS.get()).build(null)
+    );
+
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<NetworkAnchorBlockEntity>> NETWORK_ANCHOR =
             BLOCK_ENTITY_TYPES.register(
                     "network_anchor",
@@ -66,6 +85,14 @@ public final class CableBlockEntities {
 
     //#region // --- LEGACY ALIASES --- //
     private static void addLegacyAliases() {
+        if (CABLE_TYPEWRITER_HUB != null) {
+            BLOCK_ENTITY_TYPES.addAlias(
+                    ResourceLocation.fromNamespaceAndPath(
+                            LegacyTypewriterCompat.LEGACY_MOD_ID, LegacyTypewriterCompat.LEGACY_BLOCK),
+                    ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, "cable_typewriter_hub")
+            );
+        }
+
         BLOCK_ENTITY_TYPES.addAlias(
                 ResourceLocation.fromNamespaceAndPath(LegacyWireCompat.LEGACY_MOD_ID, LegacyWireCompat.LEGACY_BACKUP_BLOCK),
                 ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, "backup_drive")

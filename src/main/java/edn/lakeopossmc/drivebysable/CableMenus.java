@@ -1,6 +1,7 @@
 package edn.lakeopossmc.drivebysable;
 
 import edn.lakeopossmc.drivebysable.menu.BackupDriveMenu;
+import edn.lakeopossmc.drivebysable.menu.IntegratedSensorBusMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.bus.api.IEventBus;
@@ -18,6 +19,12 @@ public final class CableMenus {
             "backup_drive",
             () -> IMenuTypeExtension.create(BackupDriveMenu::new)
     );
+
+    public static final DeferredHolder<MenuType<?>, MenuType<IntegratedSensorBusMenu>> INTEGRATED_SENSOR_BUS =
+            MENUS.register(
+                    "integrated_sensor_bus",
+                    () -> IMenuTypeExtension.create(IntegratedSensorBusMenu::new)
+            );
 
     private CableMenus() {
     }

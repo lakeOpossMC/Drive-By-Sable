@@ -1,0 +1,24 @@
+{
+  "neoforge:conditions": [
+    { "type": "drivebysable:config", "option": "integrated_sensor_bus", "expected": true },
+    { "type": "drivebysable:config", "option": "multi_channel_cable_bus", "expected": true },
+    { "type": "neoforge:mod_loaded", "modid": "simulated" }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "A": { "item": "simulated:gimbal_sensor" },
+    "B": { "item": "simulated:altitude_sensor" },
+    "C": { "item": "simulated:velocity_sensor" },
+    "D": { "item": "simulated:navigation_table" },
+    "E": { "item": "create:transmitter" },
+    "F": { "item": "drivebysable:cable" },
+    "G": { "item": "drivebysable:multi_channel_cable_bus" }
+  },
+  "pattern": [
+    "AEB",
+    "CGC",
+    "FDF"
+  ],
+  "result": { "count": 1, "id": "drivebysable:integrated_sensor_bus" }
+}
