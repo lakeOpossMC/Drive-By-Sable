@@ -83,10 +83,13 @@ public class CableScenes {
     // --- BIND TWEAKED CONTROLLER HELPER --- //
     private static void bindLecternController(final BlockEntity blockEntity, final ItemStack controller) {
         try {
-            final Method setController = blockEntity.getClass().getMethod("setController", ItemStack.class);
+            final Method setController = blockEntity.getClass()
+                    .getDeclaredMethod("setController", ItemStack.class);
+            setController.setAccessible(true);
             setController.invoke(blockEntity, controller);
-        } catch (final NoSuchMethodException | IllegalAccessException | InvocationTargetException exception) {
-            DriveBySableMod.LOGGER.debug("Failed to bind controller to lectern at {}", blockEntity.getBlockPos(), exception);
+        } catch (final Throwable failure) {
+            DriveBySableMod.LOGGER.debug(
+                    "Failed to bind controller to lectern at {}", blockEntity.getBlockPos(), failure);
         }
     }
 

@@ -22,9 +22,9 @@ import java.lang.reflect.Method;
 public record BindLecternCableHubPacket(BlockPos lecternPos, BlockPos hubPos) implements CustomPacketPayload {
     public static final Type<BindLecternCableHubPacket> TYPE = new Type<>(DriveBySableMod.asResource("bind_lectern_controller_hub"));
     public static final StreamCodec<ByteBuf, BindLecternCableHubPacket> STREAM_CODEC = StreamCodec.composite(
-        BlockPos.STREAM_CODEC, BindLecternCableHubPacket::lecternPos,
-        BlockPos.STREAM_CODEC, BindLecternCableHubPacket::hubPos,
-        BindLecternCableHubPacket::new
+            BlockPos.STREAM_CODEC, BindLecternCableHubPacket::lecternPos,
+            BlockPos.STREAM_CODEC, BindLecternCableHubPacket::hubPos,
+            BindLecternCableHubPacket::new
     );
 
     @Override
@@ -55,12 +55,30 @@ public record BindLecternCableHubPacket(BlockPos lecternPos, BlockPos hubPos) im
     // * Reflection since isUsedBy isnt on a shared type
     private static boolean isUsedByPlayer(final BlockEntity blockEntity, final Player player) {
         try {
-            final Method isUsedBy = blockEntity.getClass().getMethod("isUsedBy", Player.class);
+            final Method isUsedBy = findMethod(blockEntity.getClass(), "isUsedBy", Player.class);
+            if (isUsedBy == null) {
+                return false;
+            }
+
+            isUsedBy.setAccessible(true);
             final Object result = isUsedBy.invoke(blockEntity, player);
             return result instanceof final Boolean used && used;
-        } catch (final NoSuchMethodException | IllegalAccessException | InvocationTargetException exception) {
-            DriveBySableMod.LOGGER.debug("Failed to query lectern user state for {}", blockEntity.getType(), exception);
+        } catch (final Throwable failure) {
+            DriveBySableMod.LOGGER.debug("Failed to query lectern user state for {}", blockEntity.getType(), failure);
             return false;
         }
+    }
+
+    // * Walks the hierarchy itself, so only the one signature is ever resolved
+    private static Method findMethod(final Class<?> type, final String name, final Class<?>... parameters) {
+        for (Class<?> current = type; current != null; current = current.getSuperclass()) {
+            try {
+                return current.getDeclaredMethod(name, parameters);
+            } catch (final NoSuchMethodException ignored) {
+                // * Keep looking further up
+            }
+        }
+
+        return null;
     }
 }
