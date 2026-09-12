@@ -2358,6 +2358,44 @@ public final class CableNetworkManager {
 
         // * Moved reload marker here
         graphDirty = true;
+
+        translateLegacyTypewriterChannels();
+    }
+
+    // * Rewrites any surviving drivebywiretypewriter.key.* channel names to their DBS equivalents
+    private void translateLegacyTypewriterChannels() {
+        boolean changed = false;
+
+        for (final Map.Entry<Long, Map<String, Set<CableNetworkSink>>> sourceEntry :
+                new ArrayList<>(sinks.entrySet())) {
+            final long sourceKey = sourceEntry.getKey();
+            final Map<String, Set<CableNetworkSink>> perChannel = sourceEntry.getValue();
+
+            for (final String channel : new ArrayList<>(perChannel.keySet())) {
+                if (!LegacyTypewriterCompat.isLegacyChannel(channel)) {
+                    continue;
+                }
+
+                final String translated = LegacyTypewriterCompat.translateChannel(channel);
+                final Set<CableNetworkSink> sinksOnChannel = perChannel.remove(channel);
+                perChannel.computeIfAbsent(translated, ignored -> new HashSet<>()).addAll(sinksOnChannel);
+
+                for (final CableNetworkSink sink : sinksOnChannel) {
+                    removeSinkReference(sourceKey, channel, sink);
+                    addSinkReference(sourceKey, translated, sink);
+                }
+
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            DriveBySableMod.LOGGER.info(
+                    "[drivebywire-migration] Translated legacy drivebywiretypewriter channel names "
+                            + "to DBS equivalents in the network graph."
+            );
+            dirtyMarker.run();
+        }
     }
 
     public int mergeSavedConnections(final Level level, final CompoundTag tag) {
