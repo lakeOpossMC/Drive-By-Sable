@@ -152,7 +152,7 @@
   "drivebysable.cable.channel.selected": "Selected Channel: %s",
   "drivebysable.cable.output_channel.selected": "Output Channel: %s",
   "drivebysable.cable.channel_group.selected": "Channel Group: %s",
-  "drivebysable.cable.channel_select_cancelled": "Channel select cancelled",
+  "drivebysable.cable.selection_cancelled": "Selection Cleared",
   "drivebysable.controller.button.a": "Button A",
   "drivebysable.controller.button.b": "Button B",
   "drivebysable.controller.button.x": "Button X",

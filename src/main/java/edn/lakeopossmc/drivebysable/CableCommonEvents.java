@@ -1,6 +1,7 @@
 package edn.lakeopossmc.drivebysable;
 
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
+import edn.lakeopossmc.drivebysable.cable.CableSelectionTracker;
 import edn.lakeopossmc.drivebysable.compat.LinkedControllerCableServerHandler;
 import edn.lakeopossmc.drivebysable.compat.TweakedControllerCableServerHandler;
 import net.minecraft.core.BlockPos;
@@ -35,6 +36,12 @@ public final class CableCommonEvents {
         }
 
         CableNetworkManager.get(level).markDirtyIfChunkInvolved(event.getChunk().getPos());
+    }
+
+    // * Otherwise a player who logs out mid-selection stays marked forever
+    @SubscribeEvent
+    public static void onPlayerLoggedOut(final net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent event) {
+        CableSelectionTracker.forget(event.getEntity());
     }
 
     @SubscribeEvent

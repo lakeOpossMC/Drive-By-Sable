@@ -28,6 +28,7 @@ import edn.lakeopossmc.drivebysable.items.CableCutterItem;
 import edn.lakeopossmc.drivebysable.mixinducks.TweakedControllerDuck;
 import edn.lakeopossmc.drivebysable.network.CableAddConnectionPacket;
 import edn.lakeopossmc.drivebysable.network.CableNetworkRequestSyncPacket;
+import edn.lakeopossmc.drivebysable.network.CableSelectionStatePacket;
 import edn.lakeopossmc.drivebysable.network.MovementKeybindsPacket;
 import edn.lakeopossmc.drivebysable.network.TweakedKeybindsPacket;
 import edn.lakeopossmc.drivebysable.network.CableRemoveConnectionPacket;
@@ -118,6 +119,11 @@ public final class ClientCableNetworkHandler {
 
     // * Which slice of a grouped source the cable is scrolling through
     private static String currentChannelGroup;
+
+    private static long lastCancelTick = Long.MIN_VALUE;
+
+    // * Last value sent to the server, so the packet only goes on a change
+    private static boolean selectionReported;
     private static String currentChannel = CableNetworkManager.WORLD_CHANNEL;
 
     // * An output module with more than one channel waits here
@@ -155,10 +161,13 @@ public final class ClientCableNetworkHandler {
         final boolean isCutter = eventItem instanceof CableCutterItem;
         final boolean cutterShiftDown = isCutter && eventPlayer != null && eventPlayer.isShiftKeyDown();
 
+        // * A sneak click mid-selection backs out instead of disconnecting
+        final boolean cutterCancelling = isCutter && canCancelChannelSelect(eventPlayer);
+
         if (eventItem instanceof CableItem || isCutter) {
             event.setUseBlock(TriState.FALSE);
         }
-        if (isCutter && !cutterShiftDown) {
+        if (isCutter && (!cutterShiftDown || cutterCancelling)) {
             event.setUseItem(TriState.FALSE);
         }
         if ((eventItem instanceof LinkedControllerItem && hitBlock.is(CableBlocks.CABLE_HUB) || (eventItem instanceof TweakedControllerDuck && hitBlock.is(CableBlocks.ADVANCED_CABLE_HUB)))) {
@@ -183,8 +192,21 @@ public final class ClientCableNetworkHandler {
         final Direction face = event.getFace() == null ? Direction.UP : event.getFace();
 
         if (heldItem.is(CableItems.CABLE.get())) {
+            if (cancelChannelSelect(player)) {
+                event.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS);
+                event.setCanceled(true);
+                return;
+            }
+
             final boolean acted = handleCableUse(player, heldItem, level, pos, face);
             event.setCancellationResult(acted ? net.minecraft.world.InteractionResult.SUCCESS : net.minecraft.world.InteractionResult.FAIL);
+            event.setCanceled(true);
+            return;
+        }
+
+        // * Checked before the shift branch below
+        if (heldItem.is(CableItems.CABLE_CUTTER.get()) && cancelChannelSelect(player)) {
+            event.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS);
             event.setCanceled(true);
             return;
         }
@@ -194,6 +216,69 @@ public final class ClientCableNetworkHandler {
             event.setCancellationResult(acted ? net.minecraft.world.InteractionResult.SUCCESS : net.minecraft.world.InteractionResult.FAIL);
             event.setCanceled(true);
         }
+    }
+
+    @SubscribeEvent
+    public static void onRightClickItem(final PlayerInteractEvent.RightClickItem event) {
+        if (!event.getSide().isClient()) {
+            return;
+        }
+
+        final Player player = event.getEntity();
+        if (player == null || player.isSpectator() || event.getHand() != InteractionHand.MAIN_HAND) {
+            return;
+        }
+
+        if (!event.getItemStack().is(CableItems.CABLE.get())
+                && !event.getItemStack().is(CableItems.CABLE_CUTTER.get())) {
+            return;
+        }
+
+        if (cancelChannelSelect(player)) {
+            event.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS);
+            event.setCanceled(true);
+        }
+    }
+
+    // * Drops the source as well as any armed output
+    public static boolean canCancelChannelSelect(final Player player) {
+        if (player == null || !player.isShiftKeyDown()) {
+            return false;
+        }
+
+        return selectedSource != null || justCancelled(player);
+    }
+
+    private static boolean justCancelled(final Player player) {
+        return player.level().getGameTime() == lastCancelTick;
+    }
+
+    private static boolean cancelChannelSelect(final Player player) {
+        // * Only the pass that still sees a selection does the work
+        if (!player.isShiftKeyDown() || selectedSource == null) {
+            return false;
+        }
+
+        lastCancelTick = player.level().getGameTime();
+
+        clearSource();
+        CableHoverTip.clear();
+        clearChannelReadout();
+
+        messageHoldTicks = MESSAGE_HOLD_TICKS;
+        player.displayClientMessage(
+                Component.translatable("drivebysable.cable.selection_cancelled")
+                        .withStyle(ChatFormatting.GRAY), true);
+
+        player.level().playSound(
+                player,
+                player.blockPosition(),
+                SoundEvents.ITEM_FRAME_REMOVE_ITEM,
+                SoundSource.BLOCKS,
+                0.75F,
+                1.0F
+        );
+        return true;
     }
     //#endregion
 
@@ -555,6 +640,7 @@ public final class ClientCableNetworkHandler {
     //#endregion
 
     public static void clearSource() {
+        reportSelection(false);
         moduleOutlines.clear();
         currentNetwork = EMPTY_NETWORK;
         selectedSource = null;
@@ -679,6 +765,7 @@ public final class ClientCableNetworkHandler {
             }
 
             selectedSource = pos.immutable();
+            reportSelection(true);
             selectedSourceModule = subTarget;
             clearArmedSink();
             changeChannel(level.getBlockState(pos).getBlock(), true);
@@ -745,6 +832,7 @@ public final class ClientCableNetworkHandler {
             }
 
             selectedSource = pos.immutable();
+            reportSelection(true);
             selectedSourceModule = subTarget;
             clearArmedSink();
             changeChannel(level.getBlockState(pos).getBlock(), true);
@@ -1173,6 +1261,15 @@ public final class ClientCableNetworkHandler {
         return sneak
                 .append(Component.literal(" + ").withStyle(ChatFormatting.RESET))
                 .append(Component.keybind("key.use"));
+    }
+
+    private static void reportSelection(final boolean selecting) {
+        if (selectionReported == selecting) {
+            return;
+        }
+
+        selectionReported = selecting;
+        PacketDistributor.sendToServer(new CableSelectionStatePacket(selecting));
     }
 
     private static void syncManager() {

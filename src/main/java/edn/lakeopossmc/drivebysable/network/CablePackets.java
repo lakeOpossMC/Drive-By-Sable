@@ -23,6 +23,7 @@ public final class CablePackets {
                 .playToClient(NetworkAnchorSavedPacket.TYPE, NetworkAnchorSavedPacket.STREAM_CODEC, NetworkAnchorSavedPacket::handle)
                 .playToClient(NavigationTargetSyncPacket.TYPE, NavigationTargetSyncPacket.STREAM_CODEC, NavigationTargetSyncPacket::handle)
                 .playToServer(SensorBusSettingsPacket.TYPE, SensorBusSettingsPacket.STREAM_CODEC, SensorBusSettingsPacket::handle)
+                .playToServer(CableSelectionStatePacket.TYPE, CableSelectionStatePacket.STREAM_CODEC, CableSelectionStatePacket::handle)
                 .playToClient(SensorBusSettingsSyncPacket.TYPE, SensorBusSettingsSyncPacket.STREAM_CODEC, SensorBusSettingsSyncPacket::handle)
                 .playToServer(CableTypewriterHubKeyPacket.TYPE, CableTypewriterHubKeyPacket.STREAM_CODEC, CableTypewriterHubKeyPacket::handle)
                 .playToServer(MovementKeybindsPacket.TYPE, MovementKeybindsPacket.STREAM_CODEC, MovementKeybindsPacket::handle)

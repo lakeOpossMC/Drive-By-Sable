@@ -2,6 +2,7 @@ package edn.lakeopossmc.drivebysable.items;
 
 import com.simibubi.create.foundation.item.TooltipHelper;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
+import edn.lakeopossmc.drivebysable.cable.CableSelectionTracker;
 import edn.lakeopossmc.drivebysable.cable.SubTargetCableEndpoint;
 import edn.lakeopossmc.drivebysable.cable.CableServerFeedback;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSink;
@@ -64,6 +65,11 @@ public class CableCutterItem extends Item {
         }
 
         if (!player.isShiftKeyDown()) {
+            return InteractionResult.PASS;
+        }
+
+        // * A sneak click while a selection is in progress means back out of it
+        if (CableSelectionTracker.isSelecting(player)) {
             return InteractionResult.PASS;
         }
 
