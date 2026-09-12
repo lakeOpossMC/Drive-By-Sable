@@ -4,13 +4,19 @@ import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.api.SubLevelAssemblyHelper;
 import dev.ryanhcode.sable.api.schematic.SubLevelSchematicSerializationContext;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
+import dev.ryanhcode.sable.companion.math.BoundingBox3d;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import edn.lakeopossmc.drivebysable.CableConfig;
 import edn.lakeopossmc.drivebysable.CableItems;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
 import edn.lakeopossmc.drivebysable.cable.SubTargetCableEndpoint;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode;
+import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlockEntity;
+import edn.lakeopossmc.drivebysable.blocks.MultiChannelCableBusBlockEntity;
+import edn.lakeopossmc.drivebysable.blocks.NetworkBackupDriveBlockEntity;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSink;
+import edn.lakeopossmc.drivebysable.legacy.LegacyTypewriterCompat;
+import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.InputKey;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.ModuleSinkKey;
 import edn.lakeopossmc.drivebysable.util.BlockFace;
@@ -59,6 +65,13 @@ public final class CableNetworkManager {
     private static final String PLACEMENT_RESOLVED_KEY = "PlacementResolved";
     private static final int RELATIVE_SNAPSHOT_VERSION = 2;
     private static final int OWNER_AWARE_SNAPSHOT_VERSION = 3;
+    // * Endpoints held as offsets in the drive's own space, measured through world
+    // * space. Survives a paste without needing any sublevel to be identified
+    private static final int WORLD_SPACE_SNAPSHOT_VERSION = 4;
+    // * Where the drive stood when it captured. A drive reading a world space
+    // * snapshot from somewhere else is a pasted copy, which is the only time
+    // * binding is wanted
+    private static final String SAVED_DRIVE_POS_KEY = "SavedDrivePos";
     private static final WorldAttached<CableNetworkManager> CLIENT_MANAGERS = new WorldAttached<>(level -> new CableNetworkManager(() -> {}));
 
     private final Map<Long, Map<String, Set<CableNetworkSink>>> sinks = new HashMap<>();
@@ -1008,6 +1021,12 @@ public final class CableNetworkManager {
         int internalConnections = 0;
         int skippedConnections = 0;
 
+        // * An offset from the drive only survives a paste while both ends move
+        // * together, which is only true on one level. Once a capture reaches onto
+        // * another level the ends have to be recorded against their own sublevels
+        // * instead, so placement can put them back against the new plots
+        final boolean ownerAware = capturesAnotherLevel(level, bounds, driveSubLevel);
+
         for (final Map.Entry<Long, Map<String, Set<CableNetworkSink>>> sourceEntry : sinks.entrySet()) {
             final BlockPos sourcePos = BlockPos.of(sourceEntry.getKey());
 
@@ -1024,8 +1043,15 @@ public final class CableNetworkManager {
                     }
 
                     final CompoundTag connection = new CompoundTag();
-                    connection.putLong(SOURCE_KEY, sourcePos.subtract(backupPos).asLong());
-                    connection.putLong(SINK_KEY, sink.blockPos().subtract(backupPos).asLong());
+                    if (ownerAware) {
+                        connection.putLong(SOURCE_KEY,
+                                worldSpaceOffset(level, backupPos, driveSubLevel, sourcePos).asLong());
+                        connection.putLong(SINK_KEY,
+                                worldSpaceOffset(level, backupPos, driveSubLevel, sink.blockPos()).asLong());
+                    } else {
+                        connection.putLong(SOURCE_KEY, sourcePos.subtract(backupPos).asLong());
+                        connection.putLong(SINK_KEY, sink.blockPos().subtract(backupPos).asLong());
+                    }
                     connection.putByte(DIRECTION_KEY, (byte) sink.direction());
                     connection.putString(CHANNEL_KEY, channelEntry.getKey());
                     if (sink.isModule()) {
@@ -1047,13 +1073,257 @@ public final class CableNetworkManager {
         if (!connections.isEmpty()) {
             tag.put(CONNECTIONS_KEY, connections);
             tag.putString(FACING_KEY, savedFacing.getName());
-            tag.putInt(SNAPSHOT_VERSION_KEY, RELATIVE_SNAPSHOT_VERSION);
+            tag.putInt(SNAPSHOT_VERSION_KEY,
+                    ownerAware ? WORLD_SPACE_SNAPSHOT_VERSION : RELATIVE_SNAPSHOT_VERSION);
+            if (ownerAware) {
+                tag.putLong(SAVED_DRIVE_POS_KEY, backupPos.asLong());
+            }
         }
         if (skippedConnections > 0) {
             tag.putInt(UNSUPPORTED_CONNECTIONS_KEY, skippedConnections);
         }
 
         return new BackupSnapshot(tag, internalConnections, skippedConnections);
+    }
+
+    // * Does anything this region would capture sit on a level of its own
+    private boolean capturesAnotherLevel(
+            final Level level,
+            final AABB bounds,
+            final SubLevel driveSubLevel
+    ) {
+        if (!BackupDriveCapture.crossLevelSavingAllowed()) {
+            return false;
+        }
+
+        for (final Map.Entry<Long, Map<String, Set<CableNetworkSink>>> sourceEntry : sinks.entrySet()) {
+            final BlockPos sourcePos = BlockPos.of(sourceEntry.getKey());
+            if (!BackupDriveCapture.isSourceCapturable(level, bounds, driveSubLevel, sourcePos)) {
+                continue;
+            }
+
+            if (!BackupDriveCapture.isSameLevel(driveSubLevel, BackupDriveCapture.subLevelOf(level, sourcePos))) {
+                return true;
+            }
+
+            for (final Map.Entry<String, Set<CableNetworkSink>> channelEntry : sourceEntry.getValue().entrySet()) {
+                for (final CableNetworkSink sink : channelEntry.getValue()) {
+                    if (BackupDriveCapture.isSinkCapturable(level, bounds, driveSubLevel, sink.blockPos())
+                            && !BackupDriveCapture.isSameLevel(
+                            driveSubLevel, BackupDriveCapture.subLevelOf(level, sink.blockPos()))) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // * Where the endpoint sits relative to the drive, as the player sees it
+    // * Sublevel identity is deliberately not recorded
+    private BlockPos worldSpaceOffset(
+            final Level level,
+            final BlockPos drivePos,
+            final SubLevel driveSubLevel,
+            final BlockPos endpointPos
+    ) {
+        final Vec3 driveSpace = toDriveSpace(level, driveSubLevel, endpointPos);
+        return BlockPos.containing(driveSpace).subtract(drivePos);
+    }
+
+    private Vec3 toDriveSpace(final Level level, final SubLevel driveSubLevel, final BlockPos pos) {
+        final SubLevel posSubLevel = BackupDriveCapture.subLevelOf(level, pos);
+        if (BackupDriveCapture.isSameLevel(driveSubLevel, posSubLevel)) {
+            return Vec3.atLowerCornerOf(pos);
+        }
+
+        final Vec3 world = posSubLevel == null
+                ? Vec3.atCenterOf(pos)
+                : posSubLevel.logicalPose().transformPosition(Vec3.atCenterOf(pos));
+
+        return driveSubLevel == null
+                ? world
+                : driveSubLevel.logicalPose().transformPositionInverse(world);
+    }
+
+    // * Drives that arrived holding a world space snapshot and have not been pinned yet
+    private final Set<BlockPos> awaitingBind = new LinkedHashSet<>();
+
+    // * Cable Buses that have loaded but not yet pushed their channels out
+    private final Set<BlockPos> awaitingPublish = new LinkedHashSet<>();
+
+    public void queueForPublish(final BlockPos busPos) {
+        this.awaitingPublish.add(busPos.immutable());
+    }
+
+    public void tickPendingPublishes(final Level level) {
+        if (this.awaitingPublish.isEmpty()) {
+            return;
+        }
+
+        for (final BlockPos busPos : List.copyOf(this.awaitingPublish)) {
+            if (!level.isLoaded(busPos)) {
+                continue;
+            }
+
+            this.awaitingPublish.remove(busPos);
+
+            final var blockEntity = level.getBlockEntity(busPos);
+            if (blockEntity instanceof final MultiChannelCableBusBlockEntity bus) {
+                bus.publishAllNow();
+            } else if (blockEntity instanceof final IntegratedSensorBusBlockEntity sensor) {
+                sensor.publishAllNow();
+            }
+        }
+    }
+
+    public void queueForBinding(final BlockPos drivePos) {
+        this.awaitingBind.add(drivePos.immutable());
+    }
+
+    public void stopWaitingToBind(final BlockPos drivePos) {
+        this.awaitingBind.remove(drivePos.immutable());
+    }
+
+    // * Retried every tick until each one takes
+    public void tickPendingBinds(final Level level) {
+        if (this.awaitingBind.isEmpty()) {
+            return;
+        }
+
+        for (final BlockPos drivePos : List.copyOf(this.awaitingBind)) {
+            if (!level.isLoaded(drivePos)) {
+                continue;
+            }
+
+            if (level.getBlockEntity(drivePos) instanceof final NetworkBackupDriveBlockEntity drive) {
+                drive.tryBindWorldSpaceSnapshot();
+            } else {
+                this.awaitingBind.remove(drivePos);
+            }
+        }
+    }
+
+    // * Pins a world space snapshot to the sublevels it actually landed on
+    // * Returns null while any endpoint is still missing
+    @Nullable
+    public CompoundTag bindWorldSpaceSnapshot(
+            final Level level,
+            final BlockPos drivePos,
+            final CompoundTag snapshot
+    ) {
+        if (!isWorldSpaceSnapshot(snapshot) || !snapshot.contains(CONNECTIONS_KEY, Tag.TAG_LIST)) {
+            return null;
+        }
+
+        final SubLevel driveSubLevel = BackupDriveCapture.subLevelOf(level, drivePos);
+        final ListTag bound = new ListTag();
+
+        for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
+            if (!(entry instanceof final CompoundTag connection) || !isReadable(connection)) {
+                continue;
+            }
+
+            final BlockPos sourcePos = resolveWorldSpaceEndpoint(level, drivePos, driveSubLevel,
+                    BlockPos.of(connection.getLong(SOURCE_KEY)));
+            final BlockPos sinkPos = resolveWorldSpaceEndpoint(level, drivePos, driveSubLevel,
+                    BlockPos.of(connection.getLong(SINK_KEY)));
+
+            // * Something has not been placed yet, so binding now would pin the wrong thing
+            // * Better to wait and try again
+            if (level.getBlockState(sourcePos).isAir() || level.getBlockState(sinkPos).isAir()) {
+                return null;
+            }
+
+            final CompoundTag boundConnection = new CompoundTag();
+            writeOwnedEndpoint(level, boundConnection, SOURCE_KEY, SOURCE_OWNER_KEY, sourcePos);
+            writeOwnedEndpoint(level, boundConnection, SINK_KEY, SINK_OWNER_KEY, sinkPos);
+            boundConnection.putByte(DIRECTION_KEY, connection.getByte(DIRECTION_KEY));
+            boundConnection.putString(CHANNEL_KEY, connection.getString(CHANNEL_KEY));
+
+            final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
+            if (!sinkChannel.isEmpty()) {
+                boundConnection.putString(SINK_CHANNEL_KEY, sinkChannel);
+            }
+
+            bound.add(boundConnection);
+        }
+
+        if (bound.isEmpty()) {
+            return null;
+        }
+
+        final CompoundTag result = new CompoundTag();
+        result.put(CONNECTIONS_KEY, bound);
+        result.putInt(SNAPSHOT_VERSION_KEY, OWNER_AWARE_SNAPSHOT_VERSION);
+        result.putBoolean(PLACEMENT_RESOLVED_KEY, true);
+        if (driveSubLevel != null) {
+            result.putUUID(OWNER_SUB_LEVEL_KEY, driveSubLevel.getUniqueId());
+        }
+        if (snapshot.contains(UNSUPPORTED_CONNECTIONS_KEY)) {
+            result.putInt(UNSUPPORTED_CONNECTIONS_KEY, snapshot.getInt(UNSUPPORTED_CONNECTIONS_KEY));
+        }
+
+        return result;
+    }
+
+    // * Against its own sublevel's plot, or absolute when loose in the world
+    // * Matches what resolveOwnerAwareEndpoint reads back
+    private void writeOwnedEndpoint(
+            final Level level,
+            final CompoundTag connection,
+            final String positionKey,
+            final String ownerKey,
+            final BlockPos endpointPos
+    ) {
+        final SubLevel endpointSubLevel = BackupDriveCapture.subLevelOf(level, endpointPos);
+        if (endpointSubLevel == null) {
+            connection.putLong(positionKey, endpointPos.asLong());
+            return;
+        }
+
+        connection.putUUID(ownerKey, endpointSubLevel.getUniqueId());
+        connection.putLong(positionKey,
+                endpointPos.subtract(endpointSubLevel.getPlot().getCenterBlock()).asLong());
+    }
+
+    // * Turns a drive space offset back into the block that now sits there
+    // * Whatever sublevel occupies that spot at load time is the right one
+    private BlockPos resolveWorldSpaceEndpoint(
+            final Level level,
+            final BlockPos drivePos,
+            final SubLevel driveSubLevel,
+            final BlockPos storedOffset
+    ) {
+        final BlockPos inDriveSpace = drivePos.offset(storedOffset);
+
+        // * Same level as the drive is the common case and needs no searching
+        if (!level.getBlockState(inDriveSpace).isAir()) {
+            return inDriveSpace;
+        }
+
+        final Vec3 centre = Vec3.atCenterOf(inDriveSpace);
+        final Vec3 world = driveSubLevel == null
+                ? centre
+                : driveSubLevel.logicalPose().transformPosition(centre);
+
+        for (final SubLevel candidate : Sable.HELPER.getAllIntersecting(level, new BoundingBox3d(
+                world.x - 0.5, world.y - 0.5, world.z - 0.5,
+                world.x + 0.5, world.y + 0.5, world.z + 0.5))) {
+
+            if (BackupDriveCapture.isSameLevel(driveSubLevel, candidate)) {
+                continue;
+            }
+
+            final BlockPos local = BlockPos.containing(candidate.logicalPose().transformPositionInverse(world));
+            if (!level.getBlockState(local).isAir()) {
+                return local;
+            }
+        }
+
+        // * Nothing there, hand back the drive space guess so the caller reports it missing
+        return inDriveSpace;
     }
 
     private static int countConnections(final Map<String, Set<CableNetworkSink>> perChannel) {
@@ -1090,6 +1360,7 @@ public final class CableNetworkManager {
 
         final Rotation rotation = placementRotation(snapshot, currentFacing);
         final boolean ownerAware = isOwnerAware(snapshot);
+        final boolean worldSpace = isWorldSpaceSnapshot(snapshot);
         final ListTag remaining = new ListTag();
 
         for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
@@ -1105,7 +1376,7 @@ public final class CableNetworkManager {
 
             final String channel = connection.getString(CHANNEL_KEY);
             final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
-            final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware);
+            final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware, worldSpace);
 
             // * Cannot judge it yet, so hold on to it
             if (resolved.deferred()) {
@@ -1185,6 +1456,7 @@ public final class CableNetworkManager {
 
         final Rotation rotation = placementRotation(snapshot, currentFacing);
         final boolean ownerAware = isOwnerAware(snapshot);
+        final boolean worldSpace = isWorldSpaceSnapshot(snapshot);
 
         for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
             if (!(entry instanceof final CompoundTag connection) || !isReadable(connection)) {
@@ -1193,7 +1465,7 @@ public final class CableNetworkManager {
 
             final String channel = connection.getString(CHANNEL_KEY);
             final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
-            final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware);
+            final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware, worldSpace);
 
             // * Still waiting on a sublevel
             if (resolved.deferred()) {
@@ -1240,6 +1512,7 @@ public final class CableNetworkManager {
 
         final Rotation rotation = placementRotation(snapshot, currentFacing);
         final boolean ownerAware = isOwnerAware(snapshot);
+        final boolean worldSpace = isWorldSpaceSnapshot(snapshot);
 
         for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
             if (!(entry instanceof final CompoundTag connection) || !isReadable(connection)) {
@@ -1248,7 +1521,7 @@ public final class CableNetworkManager {
 
             final String channel = connection.getString(CHANNEL_KEY);
             final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
-            final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware);
+            final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware, worldSpace);
             if (resolved.deferred()) {
                 continue;
             }
@@ -1301,6 +1574,7 @@ public final class CableNetworkManager {
 
         final Rotation rotation = placementRotation(snapshot, currentFacing);
         final boolean ownerAware = isOwnerAware(snapshot);
+        final boolean worldSpace = isWorldSpaceSnapshot(snapshot);
         int pending = 0;
 
         for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
@@ -1310,7 +1584,7 @@ public final class CableNetworkManager {
 
             final String channel = connection.getString(CHANNEL_KEY);
             final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
-            final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware);
+            final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware, worldSpace);
 
             // * Not chargeable until we know where it lands
             if (resolved.deferred()) {
@@ -1342,16 +1616,44 @@ public final class CableNetworkManager {
         return snapshot.getInt(SNAPSHOT_VERSION_KEY) >= OWNER_AWARE_SNAPSHOT_VERSION;
     }
 
+    public static boolean isWorldSpaceSnapshot(final CompoundTag snapshot) {
+        return snapshot != null && snapshot.getInt(SNAPSHOT_VERSION_KEY) == WORLD_SPACE_SNAPSHOT_VERSION;
+    }
+
+    // * True only for a drive that did not capture this itself
+    public static boolean isPastedCopy(final CompoundTag snapshot, final BlockPos drivePos) {
+        if (!isWorldSpaceSnapshot(snapshot) || !snapshot.contains(SAVED_DRIVE_POS_KEY, Tag.TAG_LONG)) {
+            return false;
+        }
+
+        return !BlockPos.of(snapshot.getLong(SAVED_DRIVE_POS_KEY)).equals(drivePos);
+    }
+
     private ResolvedPair resolveEndpoints(
             final Level level,
             final CompoundTag connection,
             final BlockPos backupPos,
             final Rotation rotation,
-            final boolean ownerAware
+            final boolean ownerAware,
+            final boolean worldSpace
     ) {
+        if (worldSpace
+                && connection.contains(SOURCE_KEY, Tag.TAG_LONG)
+                && connection.contains(SINK_KEY, Tag.TAG_LONG)) {
+            final SubLevel driveSubLevel = BackupDriveCapture.subLevelOf(level, backupPos);
+            return new ResolvedPair(
+                    resolveWorldSpaceEndpoint(level, backupPos, driveSubLevel,
+                            BlockPos.of(connection.getLong(SOURCE_KEY))),
+                    resolveWorldSpaceEndpoint(level, backupPos, driveSubLevel,
+                            BlockPos.of(connection.getLong(SINK_KEY))),
+                    Direction.from3DDataValue(connection.getByte(DIRECTION_KEY)),
+                    false
+            );
+        }
+
         if (ownerAware) {
-            final ResolvedEndpoint source = resolveOwnerAwareEndpoint(level, connection, SOURCE_KEY, SOURCE_OWNER_KEY);
-            final ResolvedEndpoint sink = resolveOwnerAwareEndpoint(level, connection, SINK_KEY, SINK_OWNER_KEY);
+            final ResolvedEndpoint source = resolveOwnerAwareEndpoint(level, connection, SOURCE_KEY, SOURCE_OWNER_KEY, backupPos);
+            final ResolvedEndpoint sink = resolveOwnerAwareEndpoint(level, connection, SINK_KEY, SINK_OWNER_KEY, backupPos);
             if (source.isDeferred() || sink.isDeferred()) {
                 return ResolvedPair.waiting();
             }
@@ -1417,6 +1719,7 @@ public final class CableNetworkManager {
 
         final Rotation rotation = placementRotation(snapshot, currentFacing);
         final boolean ownerAware = isOwnerAware(snapshot);
+        final boolean worldSpace = isWorldSpaceSnapshot(snapshot);
 
         int minX = 0;
         int minY = 0;
@@ -1431,7 +1734,7 @@ public final class CableNetworkManager {
                 continue;
             }
 
-            final ResolvedPair resolved = resolveEndpoints(level, connection, drivePos, rotation, ownerAware);
+            final ResolvedPair resolved = resolveEndpoints(level, connection, drivePos, rotation, ownerAware, worldSpace);
 
             if (resolved.deferred()) {
                 return null;
@@ -1520,9 +1823,28 @@ public final class CableNetworkManager {
             final Direction currentFacing,
             final CompoundTag snapshot
     ) {
+        if (isWorldSpaceSnapshot(snapshot)) {
+            // * A pasted copy that never got pinned is still position based
+            // * Resolving anyway lands the outputs on whatever happens to be there
+            // * Usually the source's own sublevel
+            // * Refuse and let the player try again once it has been pinned
+            if (isPastedCopy(snapshot, backupPos)) {
+                DriveBySableMod.LOGGER.warn(
+                        "[schematic-debug] Drive {} was asked to load a pasted snapshot that has not been "
+                                + "pinned to its sublevels yet. Nothing was restored.",
+                        backupPos
+                );
+
+                return new RestoreResult(0, 0, countConnectionsInBackupSnapshot(snapshot), 0,
+                        countConnectionsInBackupSnapshot(snapshot), false);
+            }
+
+            return restoreWorldSpaceBackupSnapshot(level, backupPos, snapshot);
+        }
+
         final int snapshotVersion = snapshot.getInt(SNAPSHOT_VERSION_KEY);
         if (snapshotVersion >= OWNER_AWARE_SNAPSHOT_VERSION) {
-            return restoreOwnerAwareBackupSnapshot(level, snapshot);
+            return restoreOwnerAwareBackupSnapshot(level, backupPos, snapshot);
         }
 
         return restoreRelativeBackupSnapshot(level, backupPos, currentFacing, snapshot);
@@ -1549,7 +1871,11 @@ public final class CableNetworkManager {
                     final BlockPos sinkPos = BlockPos.of(sink.position());
                     final boolean sinkInside = isSameSubLevel(backupSubLevel, Sable.HELPER.getContaining(level, sinkPos));
 
-                    if (sourceInside && sinkInside) {
+                    final boolean reachesOff = sourceInside != sinkInside;
+                    final boolean keep = (sourceInside && sinkInside)
+                            || (reachesOff && BackupDriveCapture.crossLevelSavingAllowed());
+
+                    if (keep) {
                         final CompoundTag connection = new CompoundTag();
                         connection.putLong(SOURCE_KEY, sourcePos.subtract(backupPos).asLong());
                         connection.putLong(SINK_KEY, sinkPos.subtract(backupPos).asLong());
@@ -1560,7 +1886,7 @@ public final class CableNetworkManager {
                         }
                         connections.add(connection);
                         internalConnections++;
-                    } else if (sourceInside || sinkInside) {
+                    } else if (reachesOff) {
                         skippedConnections++;
                     }
                 }
@@ -1676,6 +2002,51 @@ public final class CableNetworkManager {
         return true;
     }
 
+    // * Puts each endpoint back wherever that spot is now, whichever level owns it
+    private RestoreResult restoreWorldSpaceBackupSnapshot(
+            final Level level,
+            final BlockPos backupPos,
+            final CompoundTag snapshot
+    ) {
+        final SubLevel driveSubLevel = BackupDriveCapture.subLevelOf(level, backupPos);
+        int restoredConnections = 0;
+        int existingConnections = 0;
+        int expectedConnections = 0;
+        int skippedConnections = 0;
+
+        if (snapshot.contains(CONNECTIONS_KEY, Tag.TAG_LIST)) {
+            for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
+                if (!(entry instanceof final CompoundTag connection) || !isReadable(connection)) {
+                    continue;
+                }
+
+                expectedConnections++;
+
+                final BlockPos sourcePos = resolveWorldSpaceEndpoint(level, backupPos, driveSubLevel,
+                        BlockPos.of(connection.getLong(SOURCE_KEY)));
+                final BlockPos sinkPos = resolveWorldSpaceEndpoint(level, backupPos, driveSubLevel,
+                        BlockPos.of(connection.getLong(SINK_KEY)));
+                final String channel = connection.getString(CHANNEL_KEY);
+                final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
+                final Direction sinkDirection = Direction.from3DDataValue(connection.getByte(DIRECTION_KEY));
+
+                if (containsConnection(sourcePos, sinkPos, sinkDirection, channel, sinkChannel)) {
+                    existingConnections++;
+                    continue;
+                }
+
+                if (addConnection(level, sourcePos, sinkPos, sinkDirection, channel, sinkChannel).isSuccess()) {
+                    restoredConnections++;
+                } else {
+                    skippedConnections++;
+                }
+            }
+        }
+
+        return new RestoreResult(restoredConnections, existingConnections, 0,
+                skippedConnections, expectedConnections, true);
+    }
+
     // * Reapplies offsets from the relative snapshot at the current backup pos
     private RestoreResult restoreRelativeBackupSnapshot(
             final Level level,
@@ -1720,11 +2091,14 @@ public final class CableNetworkManager {
                         ? rotateDirection(Direction.from3DDataValue(connection.getByte(DIRECTION_KEY)), rotation)
                         : Direction.from3DDataValue(connection.getByte(DIRECTION_KEY));
 
-                // * Same level as the drive
+                // * A relative snapshot predates cross level saving
+                // * It can be converted now, as long as the config permits it
                 if (!BackupDriveCapture.isSameLevel(backupSubLevel, Sable.HELPER.getContaining(level, sourcePos))
                         || !BackupDriveCapture.isSameLevel(backupSubLevel, Sable.HELPER.getContaining(level, sinkPos))) {
-                    deferredConnections++;
-                    continue;
+                    if (CableConfig.CONFIG.forbidCrossLevelConnections.get()) {
+                        deferredConnections++;
+                        continue;
+                    }
                 }
 
                 if (containsConnection(sourcePos, sinkPos, sinkDirection, channel, sinkChannel)) {
@@ -1749,7 +2123,11 @@ public final class CableNetworkManager {
     }
 
     // * Waits for both endpoints sublevels to exist before wiring back up
-    private RestoreResult restoreOwnerAwareBackupSnapshot(final Level level, final CompoundTag snapshot) {
+    private RestoreResult restoreOwnerAwareBackupSnapshot(
+            final Level level,
+            final BlockPos backupPos,
+            final CompoundTag snapshot
+    ) {
         int restoredConnections = 0;
         int deferredConnections = 0;
         int existingConnections = 0;
@@ -1770,8 +2148,8 @@ public final class CableNetworkManager {
                 }
 
                 expectedConnections++;
-                final ResolvedEndpoint source = resolveOwnerAwareEndpoint(level, connection, SOURCE_KEY, SOURCE_OWNER_KEY);
-                final ResolvedEndpoint sink = resolveOwnerAwareEndpoint(level, connection, SINK_KEY, SINK_OWNER_KEY);
+                final ResolvedEndpoint source = resolveOwnerAwareEndpoint(level, connection, SOURCE_KEY, SOURCE_OWNER_KEY, backupPos);
+                final ResolvedEndpoint sink = resolveOwnerAwareEndpoint(level, connection, SINK_KEY, SINK_OWNER_KEY, backupPos);
                 if (source.isDeferred() || sink.isDeferred()) {
                     deferredConnections++;
                     continue;
@@ -1811,6 +2189,16 @@ public final class CableNetworkManager {
             final String positionKey,
             final String ownerKey
     ) {
+        return resolveOwnerAwareEndpoint(level, connection, positionKey, ownerKey, BlockPos.ZERO);
+    }
+
+    private ResolvedEndpoint resolveOwnerAwareEndpoint(
+            final Level level,
+            final CompoundTag connection,
+            final String positionKey,
+            final String ownerKey,
+            final BlockPos drivePos
+    ) {
         if (connection.hasUUID(ownerKey)) {
             final UUID ownerId = connection.getUUID(ownerKey);
             final SubLevel ownerSubLevel = SubLevelContainer.getContainer(level).getSubLevel(ownerId);
@@ -1824,6 +2212,15 @@ public final class CableNetworkManager {
             }
 
             return ResolvedEndpoint.resolved(ownerSubLevel.getPlot().getCenterBlock().offset(BlockPos.of(connection.getLong(positionKey))));
+        }
+
+        // * A legacy endpoint this mod moved into the Drive's space
+        final String relativeKey = SOURCE_KEY.equals(positionKey)
+                ? LegacyWireCompat.SOURCE_DRIVE_RELATIVE_KEY
+                : LegacyWireCompat.SINK_DRIVE_RELATIVE_KEY;
+
+        if (connection.getBoolean(relativeKey)) {
+            return ResolvedEndpoint.resolved(drivePos.offset(BlockPos.of(connection.getLong(positionKey))));
         }
 
         return ResolvedEndpoint.resolved(BlockPos.of(connection.getLong(positionKey)));
@@ -1963,10 +2360,13 @@ public final class CableNetworkManager {
         graphDirty = true;
     }
 
-    public int mergeSavedConnections(final CompoundTag tag) {
+    public int mergeSavedConnections(final Level level, final CompoundTag tag) {
         if (tag == null || !tag.contains(CONNECTIONS_KEY, Tag.TAG_LIST)) {
             return 0;
         }
+
+        // * This writes into the graph without going through addConnection
+        final boolean forbidCrossLevel = CableConfig.CONFIG.forbidCrossLevelConnections.get();
 
         int merged = 0;
         final ListTag connections = tag.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND);
@@ -1985,10 +2385,17 @@ public final class CableNetworkManager {
             final long sourceKey = connection.getLong(SOURCE_KEY);
             final long sinkKey = connection.getLong(SINK_KEY);
             final int direction = connection.getByte(DIRECTION_KEY);
-            final String channel = connection.getString(CHANNEL_KEY);
+            // * The Typewriter addon stored its channels as translation keys
+            final String channel = LegacyTypewriterCompat.translateChannel(connection.getString(CHANNEL_KEY));
             // * Absent on anything DBW wrote
             final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
             final CableNetworkSink sink = new CableNetworkSink(sinkKey, direction, sinkChannel);
+
+            if (forbidCrossLevel && level != null && !isSameSubLevelContext(
+                    Sable.HELPER.getContaining(level, BlockPos.of(sourceKey)),
+                    Sable.HELPER.getContaining(level, BlockPos.of(sinkKey)))) {
+                continue;
+            }
 
             // * A duplicate is a no op
             if (!getOrCreateSinksOnChannel(BlockPos.of(sourceKey), channel).add(sink)) {
