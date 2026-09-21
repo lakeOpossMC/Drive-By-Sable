@@ -4,6 +4,7 @@ import dan200.computercraft.api.peripheral.IPeripheral;
 import dan200.computercraft.api.peripheral.PeripheralCapability;
 import dev.simulated_team.simulated.compat.computercraft.AttachedComputerHandler;
 import edn.lakeopossmc.drivebysable.CableBlockEntities;
+import edn.lakeopossmc.drivebysable.blocks.AdvancedCableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.CableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.MultiChannelCableBusBlockEntity;
@@ -58,6 +59,15 @@ final class ComputerCraftBridge {
                         (b, d) -> new CableHubPeripheral(b));
             }
         }
+
+        final var advancedCableHubHolder = CableBlockEntities.ADVANCED_CABLE_HUB;
+        if (advancedCableHubHolder != null) {
+            final var advancedCableHub = advancedCableHubHolder.get();
+            if (advancedCableHub != null) {
+                event.registerBlockEntity(peripheralCapability, advancedCableHub,
+                        (b, d) -> b.getPeripheral() instanceof final IPeripheral p ? p : null);
+            }
+        }
     }
 
     static void queueCableBusInput(
@@ -93,6 +103,10 @@ final class ComputerCraftBridge {
     // * Built here so the block entity never has to name the type
     static Object newComputerHandler() {
         return new AttachedComputerHandler();
+    }
+
+    static Object newAdvancedCableHubPeripheral(final AdvancedCableHubBlockEntity owner) {
+        return new AdvancedCableHubPeripheral(owner);
     }
 
     static void queueTypewriterKey(

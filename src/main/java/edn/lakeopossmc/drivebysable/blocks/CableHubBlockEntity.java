@@ -5,7 +5,6 @@ import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 
 import edn.lakeopossmc.drivebysable.CableBlockEntities;
-import edn.lakeopossmc.drivebysable.CableBlocks;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import edn.lakeopossmc.drivebysable.cable.CableServerFeedback;
 import edn.lakeopossmc.drivebysable.cable.MultiChannelCableSource;
@@ -21,13 +20,14 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-// --- SHARED BE FOR CABLE HUB AND ADVANCED HUB --- //
+// --- SHARED BEHAVIOUR FOR CABLE HUBS --- //
 // * Implements clipboard copy paste for connections
 public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCloneable {
     public static final String CLIPBOARD_KEY = "drivebysable_hub_connections";
@@ -40,7 +40,7 @@ public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCl
 
     // * Typed as Object on purpose, the real type drags in Computer Craft
     private final Object computerHandler;
-    public String computerEventPrefix = "";
+    private String computerEventPrefix = "";
 
     public CableHubBlockEntity(final BlockPos pos, final BlockState state) {
         super(CableBlockEntities.CABLE_HUB.get(), pos, state);
@@ -48,11 +48,15 @@ public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCl
         this.computerHandler = ComputerCraftCompat.newComputerHandler();
     }
 
-    // * Cable hub speaks linked controller, advanced hub speaks tweaked controller
-    private Vocabulary getVocabulary() {
-        return CableBlocks.ADVANCED_CABLE_HUB != null && this.getBlockState().is(CableBlocks.ADVANCED_CABLE_HUB.get())
-                ? Vocabulary.TWEAKED_CONTROLLER
-                : Vocabulary.LINKED_CONTROLLER;
+    public CableHubBlockEntity(final BlockEntityType<?> type, final BlockPos pos, final BlockState state) {
+        super(type, pos, state);
+
+        this.computerHandler = ComputerCraftCompat.newComputerHandler();
+    }
+
+    // * Cable hub speaks linked controller; the advanced hub overrides this
+    protected Vocabulary getVocabulary() {
+        return Vocabulary.LINKED_CONTROLLER;
     }
 
     @Override

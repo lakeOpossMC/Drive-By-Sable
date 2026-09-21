@@ -24,6 +24,7 @@ import java.util.List;
 @Mixin(TweakedLinkedControllerAxisPacket.class)
 public abstract class MixinTweakedControllerAxisPacket {
     @Shadow private int axis;
+    @Shadow private float[] fullAxis;
 
     // * Push to lectern hub
     @Inject(method = "handleLectern", at = @At("RETURN"), remap = false)
@@ -32,23 +33,37 @@ public abstract class MixinTweakedControllerAxisPacket {
         final TweakedLecternControllerBlockEntity lectern,
         final CallbackInfo ci
     ) {
-        final List<Byte> axisValues = decodeAxis(axis);
-        TweakedControllerCableServerHandler.receiveAxis(player.level(), lectern.getBlockPos(), axisValues);
+        final List<Byte> axisStates = decodeAxis(axis);
+        drivebysable$receiveAxis(player.level(), lectern.getBlockPos(), axisStates);
         if (lectern instanceof final LecternCableHubDuck lecternHub && lecternHub.drivebysable$getHubPos() != null) {
-            TweakedControllerCableServerHandler.receiveAxis(player.level(), lecternHub.drivebysable$getHubPos(), axisValues);
+            drivebysable$receiveAxis(player.level(), lecternHub.drivebysable$getHubPos(), axisStates);
         }
     }
 
     // * Push to hub bound on held item
     @Inject(method = "handleItem", at = @At("RETURN"), remap = false)
     private void drivebysable$handleItem(final ServerPlayer player, final ItemStack heldItem, final CallbackInfo ci) {
-        HubItem.ifHubPresent(heldItem, pos -> TweakedControllerCableServerHandler.receiveAxis(player.level(), pos, decodeAxis(axis)));
+        HubItem.ifHubPresent(heldItem, pos -> drivebysable$receiveAxis(player.level(), pos, decodeAxis(axis)));
+    }
+
+    private void drivebysable$receiveAxis(
+            final net.minecraft.world.level.Level level,
+            final net.minecraft.core.BlockPos pos,
+            final List<Byte> axisStates
+    ) {
+        final boolean useFullPrecision = ((MixinTweakedControllerPacketBaseAccessor) this)
+                .drivebysable$getUseFullPrecision();
+        if (useFullPrecision) {
+            TweakedControllerCableServerHandler.receiveFullAxis(level, pos, axisStates, this.fullAxis);
+        } else {
+            TweakedControllerCableServerHandler.receiveAxis(level, pos, axisStates, this.axis);
+        }
     }
 
     // * Unpack packed axis bits into per channel values
     private static List<Byte> decodeAxis(final int axis) {
         final ControllerRedstoneOutput output = new ControllerRedstoneOutput();
-        final List<Byte> axisValues = new ArrayList<>(TweakedControllerCableServerHandler.AXIS_TO_CHANNEL.length);
+        final List<Byte> axisStates = new ArrayList<>(TweakedControllerCableServerHandler.AXIS_TO_CHANNEL.length);
         output.DecodeAxis(axis);
 
         for (byte index = 0; index < TweakedControllerCableServerHandler.AXIS_TO_CHANNEL.length; index++) {
@@ -62,9 +77,9 @@ public abstract class MixinTweakedControllerAxisPacket {
                 value = output.axis[index - 4];
             }
 
-            axisValues.add(value);
+            axisStates.add(value);
         }
 
-        return axisValues;
+        return axisStates;
     }
 }

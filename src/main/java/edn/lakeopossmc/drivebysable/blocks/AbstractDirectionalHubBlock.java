@@ -3,7 +3,6 @@ package edn.lakeopossmc.drivebysable.blocks;
 import com.mojang.serialization.MapCodec;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.foundation.block.IBE;
-import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import edn.lakeopossmc.drivebysable.cable.MultiChannelCableSource;
 import net.minecraft.core.BlockPos;
@@ -31,7 +30,7 @@ import java.util.List;
 // * Shared shape logic is handled here
 // * Shared channel logic is handled here
 // * Subclasses will pass channel list and item to check for when right-clicked
-public abstract class AbstractDirectionalHubBlock extends FaceAttachedHorizontalDirectionalBlock implements MultiChannelCableSource, IWrenchable, IBE<CableHubBlockEntity> {
+public abstract class AbstractDirectionalHubBlock<T extends CableHubBlockEntity> extends FaceAttachedHorizontalDirectionalBlock implements MultiChannelCableSource, IWrenchable, IBE<T> {
     //#region // --- SHAPE DEFS FOR ROTATION --- //
     // * Shape North (vertical)
     protected static final VoxelShape NORTH_AABB = Shapes.or(
@@ -186,14 +185,10 @@ public abstract class AbstractDirectionalHubBlock extends FaceAttachedHorizontal
     //#region // --- BLOCK ENTITY LOGIC --- //
     // * Find what code the entity uses
     @Override
-    public Class<CableHubBlockEntity> getBlockEntityClass() {
-        return CableHubBlockEntity.class;
-    }
+    public abstract Class<T> getBlockEntityClass();
     // * Find entity entry in register
     @Override
-    public BlockEntityType<? extends CableHubBlockEntity> getBlockEntityType() {
-        return CableBlockEntities.CABLE_HUB.get();
-    }
+    public abstract BlockEntityType<? extends T> getBlockEntityType();
     //#endregion
 
     // * Define channel list

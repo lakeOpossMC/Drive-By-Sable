@@ -16,22 +16,22 @@ public class LinkedTypewriterHubPeripheral extends LinkedTypewriterPeripheral {
     }
 
     @LuaFunction
-    public String getEventPrefix() {
+    public final String getEventPrefix() {
         return ((LinkedTypewriterBlockEntityDuck) this.blockEntity).drivebysable$getComputerEventPrefix();
     }
 
     @LuaFunction
-    public void setEventPrefix(final String eventPrefix) {
+    public final void setEventPrefix(final String eventPrefix) {
         ((LinkedTypewriterBlockEntityDuck) this.blockEntity).drivebysable$setComputerEventPrefix(eventPrefix);
     }
 
     @LuaFunction
-    public boolean isInPromiscuousMode() {
+    public final boolean isInPromiscuousMode() {
         return ((CableTypewriterHubBlockEntity) this.blockEntity).isInPromiscuousMode();
     }
 
     @LuaFunction
-    public void setPromiscuousMode(final boolean promiscuousMode) {
+    public final void setPromiscuousMode(final boolean promiscuousMode) {
         ((CableTypewriterHubBlockEntity) this.blockEntity).setPromiscuousMode(promiscuousMode);
     }
 }

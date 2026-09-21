@@ -1,6 +1,7 @@
 package edn.lakeopossmc.drivebysable.blocks;
 
 import edn.lakeopossmc.drivebysable.CableSounds;
+import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.compat.TweakedControllerCableServerHandler;
 import edn.lakeopossmc.drivebysable.mixinducks.TweakedControllerDuck;
 import edn.lakeopossmc.drivebysable.util.HubItem;
@@ -13,6 +14,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 
@@ -23,7 +25,7 @@ import java.util.stream.Stream;
 // --- DIRECTIONAL ADVANCED CONTROLLER HUB --- //
 // * Define channel list based on tweaked controller
 // * Link to tweaked controller on use
-public class AdvancedCableHubBlock extends AbstractDirectionalHubBlock {
+public class AdvancedCableHubBlock extends AbstractDirectionalHubBlock<AdvancedCableHubBlockEntity> {
     //#region // --- DEF CHANNELS AND APPEND TO LIST --- //
     private static final List<String> CHANNELS = Stream.concat(
             Arrays.stream(TweakedControllerCableServerHandler.AXIS_TO_CHANNEL),
@@ -40,6 +42,16 @@ public class AdvancedCableHubBlock extends AbstractDirectionalHubBlock {
     @Override
     protected List<String> channels() {
         return CHANNELS;
+    }
+
+    @Override
+    public Class<AdvancedCableHubBlockEntity> getBlockEntityClass() {
+        return AdvancedCableHubBlockEntity.class;
+    }
+
+    @Override
+    public BlockEntityType<? extends AdvancedCableHubBlockEntity> getBlockEntityType() {
+        return CableBlockEntities.ADVANCED_CABLE_HUB.get();
     }
 
     //#region // --- CHECK FOR TWEAKED CONTROLLER USE --- //

@@ -17,6 +17,7 @@
     "compat.tweaked.MixinLecternTweakedBlock",
     "compat.tweaked.MixinTweakedLecternCableBlockEntity",
     "compat.tweaked.MixinTweakedController",
+    "compat.tweaked.MixinTweakedControllerPacketBaseAccessor",
     "compat.tweaked.MixinTweakedControllerAxisPacket",
     "compat.tweaked.MixinTweakedControllerButtonPacket",
     "compat.tweaked.MixinTweakedControllerStopLecternPacket",
@@ -31,6 +32,7 @@
   "client": [
     "client.MixinLinkedControllerClientHandlerAccessor",
     "client.MixinTweakedLinkedControllerClientHandlerAccessor",
+    "client.MixinTweakedLinkedControllerClientHandler",
     "client.MixinSchematicAndQuillHandler",
     "compat.dashpanels.MixinAbstractPanelRenderer",
     "client.MixinValueSettingsClient",

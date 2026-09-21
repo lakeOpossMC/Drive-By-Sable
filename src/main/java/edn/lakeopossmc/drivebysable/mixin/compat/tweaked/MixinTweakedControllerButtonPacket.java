@@ -34,9 +34,9 @@ public abstract class MixinTweakedControllerButtonPacket {
         final ControllerRedstoneOutput output = new ControllerRedstoneOutput();
         output.DecodeButtons(buttonStates);
         final List<Boolean> buttons = List.of(output.buttons);
-        TweakedControllerCableServerHandler.receiveButton(player.level(), lectern.getBlockPos(), buttons);
+        TweakedControllerCableServerHandler.receiveButtons(player.level(), lectern.getBlockPos(), buttons);
         if (lectern instanceof final LecternCableHubDuck lecternHub && lecternHub.drivebysable$getHubPos() != null) {
-            TweakedControllerCableServerHandler.receiveButton(player.level(), lecternHub.drivebysable$getHubPos(), buttons);
+            TweakedControllerCableServerHandler.receiveButtons(player.level(), lecternHub.drivebysable$getHubPos(), buttons);
         }
     }
 
@@ -46,7 +46,7 @@ public abstract class MixinTweakedControllerButtonPacket {
         HubItem.ifHubPresent(heldItem, pos -> {
             final ControllerRedstoneOutput output = new ControllerRedstoneOutput();
             output.DecodeButtons(buttonStates);
-            TweakedControllerCableServerHandler.receiveButton(player.level(), pos, List.of(output.buttons));
+            TweakedControllerCableServerHandler.receiveButtons(player.level(), pos, List.of(output.buttons));
         });
     }
 }

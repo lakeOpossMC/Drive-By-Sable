@@ -2,19 +2,15 @@ package edn.lakeopossmc.drivebysable.compat;
 
 import com.mojang.datafixers.util.Pair;
 
-import edn.lakeopossmc.drivebysable.blocks.CableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.compat.computercraft.ComputerCraftCompat;
 import net.createmod.catnip.data.WorldAttached;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -75,7 +71,7 @@ public final class LinkedControllerCableServerHandler {
         }
     }
 
-    public static List<Integer> getPressed(final Level level, final BlockPos pos) {
-        return new ArrayList<>(PRESSED_MAP.get(level).getOrDefault(pos, Set.of()));
+    public static Set<Integer> getPressed(final Level level, final BlockPos pos) {
+        return PRESSED_MAP.get(level).getOrDefault(pos, Set.of());
     }
 }

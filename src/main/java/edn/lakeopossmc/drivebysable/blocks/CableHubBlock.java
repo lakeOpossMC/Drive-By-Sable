@@ -1,6 +1,7 @@
 package edn.lakeopossmc.drivebysable.blocks;
 
 import com.simibubi.create.AllItems;
+import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.CableSounds;
 import edn.lakeopossmc.drivebysable.compat.LinkedControllerCableServerHandler;
 import edn.lakeopossmc.drivebysable.util.HubItem;
@@ -13,6 +14,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 
@@ -22,7 +24,7 @@ import java.util.List;
 // --- DIRECTIONAL CABLE HUB --- //
 // * Define channel list based on linked controller
 // * Link to linked controller on use
-public class CableHubBlock extends AbstractDirectionalHubBlock {
+public class CableHubBlock extends AbstractDirectionalHubBlock<CableHubBlockEntity> {
     //#region // --- DEF CHANNELS AND APPEND TO LIST --- //
     private static final List<String> CHANNELS = Arrays.stream(LinkedControllerCableServerHandler.KEY_TO_CHANNEL).toList();
     //#endregion
@@ -36,6 +38,16 @@ public class CableHubBlock extends AbstractDirectionalHubBlock {
     @Override
     protected List<String> channels() {
         return CHANNELS;
+    }
+
+    @Override
+    public Class<CableHubBlockEntity> getBlockEntityClass() {
+        return CableHubBlockEntity.class;
+    }
+
+    @Override
+    public BlockEntityType<? extends CableHubBlockEntity> getBlockEntityType() {
+        return CableBlockEntities.CABLE_HUB.get();
     }
 
     //#region // --- CHECK FOR LINKED CONTROLLER USE --- //

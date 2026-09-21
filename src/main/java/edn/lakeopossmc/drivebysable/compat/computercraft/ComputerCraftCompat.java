@@ -1,6 +1,7 @@
 package edn.lakeopossmc.drivebysable.compat.computercraft;
 
 import com.simibubi.create.compat.Mods;
+import edn.lakeopossmc.drivebysable.blocks.AdvancedCableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.CableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlockEntity;
@@ -71,6 +72,12 @@ public final class ComputerCraftCompat {
     @Nullable
     public static Object newComputerHandler() {
         return isLoaded() ? ComputerCraftBridge.newComputerHandler() : null;
+    }
+
+    // * Null when Computer Craft is absent
+    @Nullable
+    public static Object newAdvancedCableHubPeripheral(final AdvancedCableHubBlockEntity owner) {
+        return isLoaded() ? ComputerCraftBridge.newAdvancedCableHubPeripheral(owner) : null;
     }
 
     public static void queueTypewriterKey(

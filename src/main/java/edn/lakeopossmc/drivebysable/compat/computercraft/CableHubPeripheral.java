@@ -2,6 +2,7 @@ package edn.lakeopossmc.drivebysable.compat.computercraft;
 
 import dev.simulated_team.simulated.compat.computercraft.AttachedComputerHandler;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.jspecify.annotations.Nullable;
@@ -46,17 +47,22 @@ public class CableHubPeripheral implements IPeripheral {
     }
 
     @LuaFunction
-    public List<Integer> getPressedButtons() {
-        return LinkedControllerCableServerHandler.getPressed(blockEntity.getLevel(), blockEntity.getBlockPos());
+    public final boolean getButton(final int button) {
+        return LinkedControllerCableServerHandler.getPressed(blockEntity.getLevel(), blockEntity.getBlockPos()).contains(button);
     }
 
     @LuaFunction
-    public String getEventPrefix() {
+    public final List<Integer> getPressedButtons() {
+        return new ArrayList<>(LinkedControllerCableServerHandler.getPressed(blockEntity.getLevel(), blockEntity.getBlockPos()));
+    }
+
+    @LuaFunction
+    public final String getEventPrefix() {
         return this.blockEntity.getComputerEventPrefix();
     }
 
     @LuaFunction
-    public void setEventPrefix(String eventPrefix) {
+    public final void setEventPrefix(String eventPrefix) {
         this.blockEntity.setComputerEventPrefix(eventPrefix);
     }
 }
