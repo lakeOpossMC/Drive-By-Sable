@@ -1829,6 +1829,197 @@ public final class CableNetworkManager {
         );
     }
 
+    //#region // --- HOLES A LOAD COULD NOT FILL --- //
+    private static final int MISSING_BLOCK_LIMIT = 256;
+
+    // * Where a load wanted a block and found empty space instead
+    public List<BlockPos> missingBlocksInSnapshot(
+            final Level level,
+            final BlockPos backupPos,
+            final Direction currentFacing,
+            final CompoundTag snapshot
+    ) {
+        if (snapshot == null || !snapshot.contains(CONNECTIONS_KEY, Tag.TAG_LIST)) {
+            return List.of();
+        }
+
+        final Rotation rotation = placementRotation(snapshot, currentFacing);
+        final boolean ownerAware = isOwnerAware(snapshot);
+        final boolean worldSpace = isWorldSpaceSnapshot(snapshot);
+
+        final Set<BlockPos> missing = new LinkedHashSet<>();
+        final SubLevel holderSubLevel = worldSpace ? BackupDriveCapture.subLevelOf(level, backupPos) : null;
+        int unplaceable = 0;
+
+        for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
+            if (!(entry instanceof final CompoundTag connection) || !isReadable(connection)) {
+                continue;
+            }
+
+            final BlockPos source = reportableEndpoint(
+                    level, connection, backupPos, rotation, ownerAware, worldSpace, holderSubLevel, true);
+            final BlockPos sink = reportableEndpoint(
+                    level, connection, backupPos, rotation, ownerAware, worldSpace, holderSubLevel, false);
+
+            // * Both ends known, so this one can be ruled out if it already made it
+            if (source != null && sink != null) {
+                final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
+                final Direction sinkDirection = ownerAware || worldSpace
+                        ? Direction.from3DDataValue(connection.getByte(DIRECTION_KEY))
+                        : resolveSinkDirection(connection, sinkChannel, rotation);
+
+                if (containsConnection(
+                        source, sink, sinkDirection, connection.getString(CHANNEL_KEY), sinkChannel)) {
+                    continue;
+                }
+            }
+
+            if (source == null || sink == null) {
+                unplaceable++;
+            }
+
+            addIfEmpty(level, source, missing);
+            addIfEmpty(level, sink, missing);
+
+            if (missing.size() >= MISSING_BLOCK_LIMIT) {
+                break;
+            }
+        }
+
+        if (!missing.isEmpty() || unplaceable > 0) {
+            DriveBySableMod.LOGGER.info(
+                    "[load-gaps] {} empty spot(s) to call out from {}, {} endpoint(s) with nowhere to point at.",
+                    missing.size(),
+                    backupPos,
+                    unplaceable
+            );
+        }
+
+        return List.copyOf(missing);
+    }
+
+    @Nullable
+    private BlockPos reportableEndpoint(
+            final Level level,
+            final CompoundTag connection,
+            final BlockPos backupPos,
+            final Rotation rotation,
+            final boolean ownerAware,
+            final boolean worldSpace,
+            @Nullable final SubLevel holderSubLevel,
+            final boolean source
+    ) {
+        if (worldSpace
+                && connection.contains(SOURCE_KEY, Tag.TAG_LONG)
+                && connection.contains(SINK_KEY, Tag.TAG_LONG)) {
+            final String positionKey = source ? SOURCE_KEY : SINK_KEY;
+            final String levelKey = source ? SOURCE_LEVEL_KEY : SINK_LEVEL_KEY;
+
+            final BlockPos found = resolveWorldSpaceEndpoint(
+                    level, backupPos, holderSubLevel, connection, positionKey, levelKey);
+
+            // * Found means a block that fits the part is sitting there
+            return found != null
+                    ? found
+                    : intendedWorldSpaceEndpoint(level, backupPos, holderSubLevel, connection, positionKey, levelKey);
+        }
+
+        if (ownerAware) {
+            final ResolvedEndpoint resolved = resolveOwnerAwareEndpoint(
+                    level,
+                    connection,
+                    source ? SOURCE_KEY : SINK_KEY,
+                    source ? SOURCE_OWNER_KEY : SINK_OWNER_KEY,
+                    backupPos
+            );
+
+            return resolved.isDeferred() ? null : resolved.position();
+        }
+
+        return source
+                ? resolveSource(connection, backupPos, rotation)
+                : resolveSink(connection, backupPos, rotation);
+    }
+
+    // * Where a world-space endpoint was meant to land
+    @Nullable
+    private BlockPos intendedWorldSpaceEndpoint(
+            final Level level,
+            final BlockPos backupPos,
+            @Nullable final SubLevel holderSubLevel,
+            final CompoundTag connection,
+            final String positionKey,
+            final String levelKey
+    ) {
+        final BlockPos inHolderSpace = backupPos.offset(BlockPos.of(connection.getLong(positionKey)));
+        final int kind = connection.contains(levelKey, Tag.TAG_BYTE) ? connection.getByte(levelKey) : -1;
+
+        if (kind == ENDPOINT_ON_DRIVE_LEVEL || kind < 0) {
+            return inHolderSpace;
+        }
+
+        if (kind == ENDPOINT_IN_WORLD && holderSubLevel == null) {
+            return inHolderSpace;
+        }
+
+        final Vec3 world = savedWorldPoint(backupPos, holderSubLevel, connection, positionKey, inHolderSpace);
+
+        if (kind == ENDPOINT_IN_WORLD) {
+            return BlockPos.containing(world);
+        }
+
+        // * Inside some other sublevel
+        final double reach = CROSS_LEVEL_SEARCH_RADIUS + 1.0;
+        for (final SubLevel candidate : Sable.HELPER.getAllIntersecting(level, new BoundingBox3d(
+                world.x - reach, world.y - reach, world.z - reach,
+                world.x + reach, world.y + reach, world.z + reach))) {
+
+            if (BackupDriveCapture.isSameLevel(holderSubLevel, candidate)) {
+                continue;
+            }
+
+            final BlockPos local = BlockPos.containing(candidate.logicalPose().transformPositionInverse(world));
+
+            if (BackupDriveCapture.isSameLevel(candidate, BackupDriveCapture.subLevelOf(level, local))) {
+                return local;
+            }
+        }
+
+        return null;
+    }
+
+    private static Vec3 savedWorldPoint(
+            final BlockPos backupPos,
+            @Nullable final SubLevel holderSubLevel,
+            final CompoundTag connection,
+            final String positionKey,
+            final BlockPos inHolderSpace
+    ) {
+        final String exactKey = SOURCE_KEY.equals(positionKey) ? SOURCE_EXACT_KEY : SINK_EXACT_KEY;
+        final Vec3 holderPoint = connection.contains(exactKey, Tag.TAG_COMPOUND)
+                ? Vec3.atLowerCornerOf(backupPos).add(
+                connection.getCompound(exactKey).getDouble("X"),
+                connection.getCompound(exactKey).getDouble("Y"),
+                connection.getCompound(exactKey).getDouble("Z"))
+                : Vec3.atCenterOf(inHolderSpace);
+
+        return holderSubLevel == null
+                ? holderPoint
+                : holderSubLevel.logicalPose().transformPosition(holderPoint);
+    }
+
+    // * Only genuinely empty space counts
+    private static void addIfEmpty(
+            final Level level,
+            @Nullable final BlockPos pos,
+            final Set<BlockPos> missing
+    ) {
+        if (pos != null && level.getBlockState(pos).isAir()) {
+            missing.add(pos.immutable());
+        }
+    }
+    //#endregion
+
     public Map<BlockPos, Set<String>> connectedSourceModules(
             final Level level,
             final BlockPos backupPos,

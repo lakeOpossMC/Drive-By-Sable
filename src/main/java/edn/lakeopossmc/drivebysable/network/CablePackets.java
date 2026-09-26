@@ -20,6 +20,7 @@ public final class CablePackets {
                 .playToServer(BackupDriveLoadPacket.TYPE, BackupDriveLoadPacket.STREAM_CODEC, BackupDriveLoadPacket::handle)
                 .playToClient(BackupDriveLoadReportPacket.TYPE, BackupDriveLoadReportPacket.STREAM_CODEC, BackupDriveLoadReportPacket::handle)
                 .playToClient(BackupDriveHighlightPacket.TYPE, BackupDriveHighlightPacket.STREAM_CODEC, BackupDriveHighlightPacket::handle)
+                .playToClient(BackupDriveMissingBlockPacket.TYPE, BackupDriveMissingBlockPacket.STREAM_CODEC, BackupDriveMissingBlockPacket::handle)
                 .playToClient(SourceHighlightPacket.TYPE, SourceHighlightPacket.STREAM_CODEC, SourceHighlightPacket::handle)
                 .playToClient(NetworkAnchorSavedPacket.TYPE, NetworkAnchorSavedPacket.STREAM_CODEC, NetworkAnchorSavedPacket::handle)
                 .playToClient(NavigationTargetSyncPacket.TYPE, NavigationTargetSyncPacket.STREAM_CODEC, NavigationTargetSyncPacket::handle)

@@ -42,6 +42,14 @@ public record BackupDriveLoadPacket(BlockPos drivePos) implements CustomPacketPa
     }
 
 
+    private static int moduleCount(final Map<BlockPos, Set<String>> connected) {
+        int count = 0;
+        for (final Set<String> modules : connected.values()) {
+            count += modules.size();
+        }
+        return count;
+    }
+
     public static void handle(final BackupDriveLoadPacket payload, final IPayloadContext context) {
         if (!(context.player() instanceof final ServerPlayer player)) {
             return;
@@ -86,10 +94,6 @@ public record BackupDriveLoadPacket(BlockPos drivePos) implements CustomPacketPa
         final CableNetworkManager.RestoreResult result = CableNetworkManager.get(level)
                 .restoreBackupSnapshot(level, menu.getDrivePos(), drive.getSavedFacing(), snapshot);
 
-        final int landed = result.restoredConnections() + result.existingConnections();
-        final boolean everythingLanded = landed >= result.expectedConnections();
-
-
         // * Summarised before anything is cleared
         final CableNetworkManager.SnapshotSummary summary = CableNetworkManager.get(level)
                 .summariseSnapshot(level, menu.getDrivePos(), drive.getSavedFacing(), snapshot);
@@ -118,12 +122,31 @@ public record BackupDriveLoadPacket(BlockPos drivePos) implements CustomPacketPa
             ));
         }
 
+        // * Called out in the world as well as counted in the report
+        final List<BlockPos> missingBlocks = CableNetworkManager.get(level)
+                .missingBlocksInSnapshot(level, menu.getDrivePos(), drive.getSavedFacing(), snapshot);
+
+        if (!missingBlocks.isEmpty()) {
+            PacketDistributor.sendToPlayer(player, new BackupDriveMissingBlockPacket(missingBlocks));
+        }
+
+        final CompoundTag remaining = CableNetworkManager.get(level)
+                .pruneRestoredConnections(level, menu.getDrivePos(), drive.getSavedFacing(), snapshot);
+
+        final int kept = CableNetworkManager.countConnectionsInBackupSnapshot(remaining);
+        if (kept <= 0) {
+            drive.clearStoredSnapshot();
+        } else {
+            drive.storeBoundedSnapshot(remaining);
+        }
+
         PacketDistributor.sendToPlayer(player, new BackupDriveLoadReportPacket(
-                summary.loadedSources(),
-                summary.missingSources(),
-                summary.loadedSinks(),
-                summary.missingSinks(),
-                result.restoredConnections()
+                new BackupDriveLoadReportPacket.Tally(
+                        highlightPositions.size(), summary.missingSources(), moduleCount(connectedBefore)),
+                new BackupDriveLoadReportPacket.Tally(
+                        result.restoredConnections(), summary.missingSinks(), result.existingConnections()),
+                result.restoredConnections(),
+                kept
         ));
 
         if (result.restoredConnections() <= 0) {
@@ -151,14 +174,5 @@ public record BackupDriveLoadPacket(BlockPos drivePos) implements CustomPacketPa
         if (!free) {
             menu.consumeCables(Math.min(cost, result.restoredConnections()));
         }
-
-        if (everythingLanded) {
-            drive.clearStoredSnapshot();
-            return;
-        }
-
-        drive.storeBoundedSnapshot(CableNetworkManager.get(level)
-                .pruneRestoredConnections(level, menu.getDrivePos(), drive.getSavedFacing(), snapshot));
-
     }
 }

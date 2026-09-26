@@ -16,26 +16,36 @@ import java.util.List;
 
 // --- HOW A LOAD TURNED OUT --- //
 public record BackupDriveLoadReportPacket(
-        int loadedSources,
-        int missingSources,
-        int loadedSinks,
-        int missingSinks,
+        Tally sources,
+        Tally outputs,
         // * How many connections this load actually made
-        int restoredConnections
+        int restoredConnections,
+        // * How many are still held in the save for another try
+        int keptConnections
 ) implements CustomPacketPayload {
 
     private static final int DISPLAY_TICKS = 120;
+
+    public record Tally(int loaded, int missing, int present) {
+
+        public static final StreamCodec<ByteBuf, Tally> STREAM_CODEC =
+                StreamCodec.composite(
+                        ByteBufCodecs.VAR_INT, Tally::loaded,
+                        ByteBufCodecs.VAR_INT, Tally::missing,
+                        ByteBufCodecs.VAR_INT, Tally::present,
+                        Tally::new
+                );
+    }
 
     public static final Type<BackupDriveLoadReportPacket> TYPE =
             new Type<>(DriveBySableMod.asResource("backup_drive_load_report"));
 
     public static final StreamCodec<ByteBuf, BackupDriveLoadReportPacket> STREAM_CODEC =
             StreamCodec.composite(
-                    ByteBufCodecs.VAR_INT, BackupDriveLoadReportPacket::loadedSources,
-                    ByteBufCodecs.VAR_INT, BackupDriveLoadReportPacket::missingSources,
-                    ByteBufCodecs.VAR_INT, BackupDriveLoadReportPacket::loadedSinks,
-                    ByteBufCodecs.VAR_INT, BackupDriveLoadReportPacket::missingSinks,
+                    Tally.STREAM_CODEC, BackupDriveLoadReportPacket::sources,
+                    Tally.STREAM_CODEC, BackupDriveLoadReportPacket::outputs,
                     ByteBufCodecs.VAR_INT, BackupDriveLoadReportPacket::restoredConnections,
+                    ByteBufCodecs.VAR_INT, BackupDriveLoadReportPacket::keptConnections,
                     BackupDriveLoadReportPacket::new
             );
 
@@ -48,43 +58,52 @@ public record BackupDriveLoadReportPacket(
     private static final int OUTPUT_COLOR = 0xDDC166;
 
     public static void handle(final BackupDriveLoadReportPacket payload, final IPayloadContext context) {
-        final boolean complete = payload.missingSources() == 0 && payload.missingSinks() == 0;
+        final Tally sources = payload.sources();
+        final Tally outputs = payload.outputs();
+
+        final boolean anythingMissing = sources.missing() > 0 || outputs.missing() > 0;
+        final boolean nothingLoaded = payload.restoredConnections() == 0;
+
         final List<MutableComponent> lines = new ArrayList<>();
 
-        if (complete && payload.restoredConnections() == 0) {
+        if (nothingLoaded) {
             lines.add(Component.translatable("drivebysable.backup_drive.load_report.unchanged")
                     .withStyle(ChatFormatting.RED));
-            lines.add(present("drivebysable.backup_drive.load_report.sources_present",
-                    payload.loadedSources(), SOURCE_COLOR));
-            lines.add(present("drivebysable.backup_drive.load_report.outputs_present",
-                    payload.loadedSinks(), OUTPUT_COLOR));
-            lines.add(Component.translatable("drivebysable.backup_drive.load_report.kept")
-                    .withStyle(ChatFormatting.GRAY));
-
-            context.enqueueWork(() -> CableHoverTip.pin(lines, DISPLAY_TICKS));
-            return;
-        }
-
-        final boolean nothingRestored = payload.restoredConnections() == 0;
-
-        if (complete) {
-            lines.add(Component.translatable("drivebysable.backup_drive.load_report.complete")
-                    .withStyle(ChatFormatting.GREEN));
-        } else if (nothingRestored) {
-            lines.add(Component.translatable("drivebysable.backup_drive.load_report.unchanged")
-                    .withStyle(ChatFormatting.RED));
-        } else {
+        } else if (anythingMissing) {
             lines.add(Component.translatable("drivebysable.backup_drive.load_report.partial")
                     .withStyle(ChatFormatting.GOLD));
+        } else {
+            lines.add(Component.translatable("drivebysable.backup_drive.load_report.complete")
+                    .withStyle(ChatFormatting.GREEN));
         }
 
-        lines.add(line("drivebysable.backup_drive.load_report.sources",
-                payload.loadedSources(), payload.missingSources(), SOURCE_COLOR));
-        lines.add(line("drivebysable.backup_drive.load_report.outputs",
-                payload.loadedSinks(), payload.missingSinks(), OUTPUT_COLOR));
+        // * Each line only earns its place when this load had something to say with it
+        if (sources.loaded() > 0 || sources.missing() > 0) {
+            lines.add(line("drivebysable.backup_drive.load_report.sources",
+                    sources.loaded(), sources.missing(), SOURCE_COLOR));
+        }
+        if (sources.present() > 0) {
+            lines.add(present("drivebysable.backup_drive.load_report.sources_present",
+                    sources.present(), SOURCE_COLOR));
+        }
 
-        if (!complete) {
+        if (outputs.loaded() > 0 || outputs.missing() > 0) {
+            lines.add(line("drivebysable.backup_drive.load_report.outputs",
+                    outputs.loaded(), outputs.missing(), OUTPUT_COLOR));
+        }
+        if (outputs.present() > 0) {
+            lines.add(present("drivebysable.backup_drive.load_report.outputs_present",
+                    outputs.present(), OUTPUT_COLOR));
+        }
+
+        if (anythingMissing) {
             lines.add(Component.translatable("drivebysable.backup_drive.load_report.retry")
+                    .withStyle(ChatFormatting.GRAY));
+        }
+
+        // * Whatever could not go in is still waiting for another try
+        if (payload.keptConnections() > 0) {
+            lines.add(Component.translatable("drivebysable.backup_drive.load_report.kept")
                     .withStyle(ChatFormatting.GRAY));
         }
 

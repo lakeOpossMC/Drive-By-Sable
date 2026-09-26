@@ -16,6 +16,7 @@ import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import edn.lakeopossmc.drivebysable.cable.WorldSpaceSnapshotHolder;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSink;
 import edn.lakeopossmc.drivebysable.network.BackupDriveHighlightPacket;
+import edn.lakeopossmc.drivebysable.network.BackupDriveMissingBlockPacket;
 import edn.lakeopossmc.drivebysable.network.NetworkAnchorSavedPacket;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -427,6 +428,10 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity implements WorldS
 
         reportLoad(summary);
 
+        // * Read while the snapshot is still here to read
+        showMissingBlocks(CableNetworkManager.get(level)
+                .missingBlocksInSnapshot(level, worldPosition, Direction.NORTH, snapshot));
+
         playAnchorSound(result.restoredConnections() > 0
                 ? SoundEvents.BEACON_ACTIVATE
                 : SoundEvents.BEACON_DEACTIVATE, BEACON_VOLUME);
@@ -450,6 +455,21 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity implements WorldS
                 summary.missingSources(),
                 summary.missingSinks()
         );
+
+        for (final ServerPlayer player : serverLevel.players()) {
+            if (player.blockPosition().closerThan(worldPosition, HIGHLIGHT_RANGE)) {
+                PacketDistributor.sendToPlayer(player, packet);
+            }
+        }
+    }
+
+    // * The empty spots a load could not fill
+    private void showMissingBlocks(final List<BlockPos> positions) {
+        if (positions.isEmpty() || !(level instanceof final ServerLevel serverLevel)) {
+            return;
+        }
+
+        final BackupDriveMissingBlockPacket packet = new BackupDriveMissingBlockPacket(positions);
 
         for (final ServerPlayer player : serverLevel.players()) {
             if (player.blockPosition().closerThan(worldPosition, HIGHLIGHT_RANGE)) {
