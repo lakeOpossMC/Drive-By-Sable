@@ -27,7 +27,8 @@
     "compat.dashpanels.MixinAbstractPanelBlock",
     "compat.dashpanels.MixinAbstractPanelBlockEntity",
     "compat.toolgun.MixinToolgunApiBridge",
-    "compat.toolgun.MixinToolgunBlueprintSanitizer"
+    "compat.toolgun.MixinToolgunBlueprintSanitizer",
+    "compat.toolgun.MixinPortableStructureContainer"
   ],
   "client": [
     "client.MixinLinkedControllerClientHandlerAccessor",

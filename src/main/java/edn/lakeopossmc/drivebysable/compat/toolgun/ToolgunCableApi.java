@@ -9,9 +9,13 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
 
 // --- REFLECTION SURFACE FOR THE AERONAUTICS TOOLGUN --- //
 public final class ToolgunCableApi {
+
+    private static final String LIVE_CAPTURE_KEY = "DriveBySableLiveCapture";
+
     private final CableNetworkManager real;
 
     private ToolgunCableApi(final CableNetworkManager real) {
@@ -29,6 +33,11 @@ public final class ToolgunCableApi {
             final BlockPos backupPos,
             final Direction savedFacing
     ) {
+        final CableNetworkManager.BackupSnapshot moved = captureForMove(level, backupPos, savedFacing);
+        if (moved != null) {
+            return moved;
+        }
+
         if (!(level.getBlockEntity(backupPos) instanceof final NetworkBackupDriveBlockEntity drive)) {
             return new CableNetworkManager.BackupSnapshot(new CompoundTag(), 0, 0);
         }
@@ -45,6 +54,34 @@ public final class ToolgunCableApi {
         );
     }
 
+    @Nullable
+    private CableNetworkManager.BackupSnapshot captureForMove(
+            final Level level,
+            final BlockPos backupPos,
+            final Direction savedFacing
+    ) {
+        if (!ToolgunStructureMove.inProgress(level)) {
+            return null;
+        }
+
+        final CableNetworkManager.BackupSnapshot live =
+                this.real.createBackupSnapshot(level, backupPos, savedFacing);
+
+        if (live.internalConnections() <= 0
+                || !CableNetworkManager.isSubLevelOwnedBackupSnapshot(live.data())) {
+            return null;
+        }
+
+        final CompoundTag marked = live.data().copy();
+        marked.putBoolean(LIVE_CAPTURE_KEY, true);
+
+        return new CableNetworkManager.BackupSnapshot(
+                marked,
+                live.internalConnections(),
+                live.skippedConnections()
+        );
+    }
+
     // * New system in order for toolgun to use GUI for save/load on cable connections
     public CableNetworkManager.RestoreResult restoreBackupSnapshot(
             final Level level,
@@ -56,6 +93,10 @@ public final class ToolgunCableApi {
 
         if (snapshot == null || snapshot.isEmpty() || expected <= 0) {
             return new CableNetworkManager.RestoreResult(0, 0, 0, 0, 0, false);
+        }
+
+        if (snapshot.getBoolean(LIVE_CAPTURE_KEY)) {
+            return restoreDirectly(level, backupBlockPos, facing, snapshot, expected);
         }
 
         if (!(level.getBlockEntity(backupBlockPos) instanceof final NetworkBackupDriveBlockEntity drive)) {
@@ -94,6 +135,36 @@ public final class ToolgunCableApi {
         drive.onLegacyPayloadAdopted();
 
         return done;
+    }
+
+    private CableNetworkManager.RestoreResult restoreDirectly(
+            final Level level,
+            final BlockPos anchorPos,
+            final Direction facing,
+            final CompoundTag snapshot,
+            final int expected
+    ) {
+        final CableNetworkManager.RestoreResult result =
+                this.real.restoreBackupSnapshot(level, anchorPos, facing, snapshot.copy());
+
+        final int settled = result.restoredConnections() + result.existingConnections();
+        final int deferred = Math.max(result.deferredConnections(), expected - settled);
+
+        if (deferred > 0) {
+            DriveBySableMod.LOGGER.debug(
+                    "[toolgun] Restored {} of {} connection(s) at {}, {} still waiting on blocks.",
+                    settled, expected, anchorPos, deferred
+            );
+        }
+
+        return new CableNetworkManager.RestoreResult(
+                result.restoredConnections(),
+                result.existingConnections(),
+                deferred,
+                result.skippedConnections(),
+                expected,
+                true
+        );
     }
 
     public static CompoundTag transformBackupSnapshotForPlacement(
