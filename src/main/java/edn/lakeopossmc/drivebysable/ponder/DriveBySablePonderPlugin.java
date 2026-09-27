@@ -3,6 +3,9 @@ package edn.lakeopossmc.drivebysable.ponder;
 import com.simibubi.create.foundation.ponder.CreatePonderPlugin;
 import edn.lakeopossmc.drivebysable.CableItems;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
+import edn.lakeopossmc.drivebysable.items.IntegratedSensorBusItem;
+import edn.lakeopossmc.drivebysable.items.MultiChannelCableBusItem;
+import edn.lakeopossmc.drivebysable.items.NetworkAnchorItem;
 import net.createmod.ponder.api.registration.PonderSceneRegistrationHelper;
 import net.createmod.ponder.api.registration.PonderTagRegistrationHelper;
 import net.minecraft.resources.ResourceLocation;
@@ -46,7 +49,36 @@ public class DriveBySablePonderPlugin extends CreatePonderPlugin {
             tag.add(CableItems.CABLE_TYPEWRITER_HUB.getId());
         }
 
+        // * Toggled entries follow their extension config, PonderTagRefresh reloads Ponder
+        appliedExtensionMask = currentExtensionMask();
+        if (MultiChannelCableBusItem.isExtensionEnabled()) {
+            tag.add(CableItems.MULTI_CHANNEL_CABLE_BUS.getId());
+        }
+        if (IntegratedSensorBusItem.isExtensionEnabled()) {
+            tag.add(CableItems.INTEGRATED_SENSOR_BUS.getId());
+        }
+
         tag.add(CableItems.BACKUP_DRIVE.getId());
+
+        if (NetworkAnchorItem.isExtensionEnabled()) {
+            tag.add(CableItems.NETWORK_ANCHOR.getId());
+        }
+    }
+    //#endregion
+
+    //#region // --- EXTENSION TOGGLE TRACKING --- //
+    // * Which toggles the current tag contents were built from, -1 until the first registration
+    private static int appliedExtensionMask = -1;
+
+    public static int currentExtensionMask() {
+        return (MultiChannelCableBusItem.isExtensionEnabled() ? 1 : 0)
+                | (IntegratedSensorBusItem.isExtensionEnabled() ? 2 : 0)
+                | (NetworkAnchorItem.isExtensionEnabled() ? 4 : 0);
+    }
+
+    // * True when a toggle changed since the tag was last built
+    public static boolean isTagStale() {
+        return appliedExtensionMask != -1 && appliedExtensionMask != currentExtensionMask();
     }
     //#endregion
 }
