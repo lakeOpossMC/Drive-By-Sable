@@ -259,6 +259,13 @@
   "drivebysable.get_creative.group.macro": "Linked Macro Controller",
   "drivebysable.get_creative.group.keypad": "Linked Keypad",
   "drivebysable.get_creative.group.remote": "Linked Remote",
+  "drivebysable.get_creative.control_seat.pitch_up": "Pitch Up",
+  "drivebysable.get_creative.control_seat.pitch_down": "Pitch Down",
+  "drivebysable.get_creative.control_seat.yaw_left": "Yaw Left",
+  "drivebysable.get_creative.control_seat.yaw_right": "Yaw Right",
+
+  "drivebysable.simulated.steering_wheel.steer_left": "Steer Left",
+  "drivebysable.simulated.steering_wheel.steer_right": "Steer Right",
 
   "drivebysable.sensor_bus.group.main": "Main",
   "drivebysable.sensor_bus.group.speed": "Speed",

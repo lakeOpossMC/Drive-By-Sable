@@ -23,6 +23,8 @@ import edn.lakeopossmc.drivebysable.cable.MultiChannelCableSource;
 import edn.lakeopossmc.drivebysable.cable.SubTargetCableEndpoint;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSink;
 import edn.lakeopossmc.drivebysable.compat.GetCreativeCableServerHandler;
+import edn.lakeopossmc.drivebysable.compat.GetCreativeControlSeatChannels;
+import edn.lakeopossmc.drivebysable.compat.SimulatedSteeringWheelChannels;
 import edn.lakeopossmc.drivebysable.compat.TweakedControllerCableServerHandler;
 import edn.lakeopossmc.drivebysable.compat.keytranslator.TweakedKeybindResolver;
 import edn.lakeopossmc.drivebysable.items.CableItem;
@@ -1699,6 +1701,16 @@ public final class ClientCableNetworkHandler {
         final String getCreativeKey = GetCreativeCableServerHandler.CHANNEL_TO_LANG_KEY.get(channel);
         if (getCreativeKey != null) {
             return getCreativeKey;
+        }
+
+        final String controlSeatKey = GetCreativeControlSeatChannels.CHANNEL_TO_LANG_KEY.get(channel);
+        if (controlSeatKey != null) {
+            return controlSeatKey;
+        }
+
+        final String steeringWheelKey = SimulatedSteeringWheelChannels.CHANNEL_TO_LANG_KEY.get(channel);
+        if (steeringWheelKey != null) {
+            return steeringWheelKey;
         }
 
         return TweakedControllerCableServerHandler.CHANNEL_TO_LANG_KEY.getOrDefault(channel, channel);
