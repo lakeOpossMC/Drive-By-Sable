@@ -185,6 +185,10 @@ dependencies {
     compileOnly(files("libs/create_tweaked_controllers-1.21.1-1.2.7.jar"))
     localRuntime(files("libs/create_tweaked_controllers-1.21.1-1.2.7.jar"))
 
+    // Get Creative
+    compileOnly(files("libs/get_creative-1.21.1-2.7.jar"))
+    localRuntime(files("libs/get_creative-1.21.1-2.7.jar"))
+
     compileOnly(files("libs/tracks_plus-1.0.5.jar"))
     localRuntime(files("libs/tracks_plus-1.0.5.jar"))
 

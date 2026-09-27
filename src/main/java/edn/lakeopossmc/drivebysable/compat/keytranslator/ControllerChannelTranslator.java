@@ -16,8 +16,46 @@ public final class ControllerChannelTranslator {
     public enum Vocabulary {
         LINKED_CONTROLLER,
         TWEAKED_CONTROLLER,
-        TYPEWRITER
+        TYPEWRITER,
+        GET_CREATIVE
     }
+
+    // * Get Creative's movement buttons are the vanilla movement binds
+    private static final Map<String, String> GET_CREATIVE_TO_LINKED = Map.of(
+            "macroUp", "keyUp",
+            "macroDown", "keyDown",
+            "macroLeft", "keyLeft",
+            "macroRight", "keyRight",
+            "macroJump", "keyJump",
+            "macroShift", "keyShift",
+            "keypadJump", "keyJump",
+            "keypadShift", "keyShift"
+    );
+
+    // * Macro controller wins, it is the only device with the full movement set
+    private static final Map<String, String> LINKED_TO_GET_CREATIVE = Map.of(
+            "keyUp", "macroUp",
+            "keyDown", "macroDown",
+            "keyLeft", "macroLeft",
+            "keyRight", "macroRight",
+            "keyJump", "macroJump",
+            "keyShift", "macroShift"
+    );
+
+    // * Keypad digits sit on the hotbar binds, assumed to be left on their defaults
+    private static final Map<String, String> KEYPAD_TO_TYPEWRITER = Map.of(
+            "keypad1", "key1",
+            "keypad2", "key2",
+            "keypad3", "key3",
+            "keypad4", "key4",
+            "keypad5", "key5",
+            "keypad6", "key6",
+            "keypad7", "key7",
+            "keypad8", "key8",
+            "keypad9", "key9"
+    );
+
+    private static final Map<String, String> TYPEWRITER_TO_KEYPAD = invert(KEYPAD_TO_TYPEWRITER);
 
     // * Fallback when no player id is available
     private static final Map<String, String> LINKED_TO_TYPEWRITER = Map.of(
@@ -74,6 +112,10 @@ public final class ControllerChannelTranslator {
     public static String translate(final String channel, final Vocabulary from, final Vocabulary to, final UUID playerId) {
         if (from == to) {
             return channel;
+        }
+
+        if (from == Vocabulary.GET_CREATIVE || to == Vocabulary.GET_CREATIVE) {
+            return translateGetCreative(channel, from, to, playerId);
         }
 
         if (from == Vocabulary.LINKED_CONTROLLER && to == Vocabulary.TYPEWRITER) {
@@ -137,6 +179,31 @@ public final class ControllerChannelTranslator {
         }
 
         return channel;
+    }
+
+    // * Hops through linked controller, with keypad digits going straight to the typewriter
+    private static String translateGetCreative(final String channel, final Vocabulary from, final Vocabulary to, final UUID playerId) {
+        if (from == Vocabulary.GET_CREATIVE) {
+            if (to == Vocabulary.TYPEWRITER && KEYPAD_TO_TYPEWRITER.containsKey(channel)) {
+                return KEYPAD_TO_TYPEWRITER.get(channel);
+            }
+            final String linked = GET_CREATIVE_TO_LINKED.get(channel);
+            return linked == null ? "" : translate(linked, Vocabulary.LINKED_CONTROLLER, to, playerId);
+        }
+
+        if (from == Vocabulary.TYPEWRITER && TYPEWRITER_TO_KEYPAD.containsKey(channel)) {
+            return TYPEWRITER_TO_KEYPAD.get(channel);
+        }
+        final String linked = translate(channel, from, Vocabulary.LINKED_CONTROLLER, playerId);
+        return LINKED_TO_GET_CREATIVE.getOrDefault(linked, "");
+    }
+
+    private static Map<String, String> invert(final Map<String, String> map) {
+        final Map<String, String> inverted = new HashMap<>();
+        for (final Map.Entry<String, String> entry : map.entrySet()) {
+            inverted.put(entry.getValue(), entry.getKey());
+        }
+        return Map.copyOf(inverted);
     }
 
     // * Which real key the player has bound for channel

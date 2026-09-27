@@ -20,6 +20,15 @@ public class DriveBySablePonderScenes {
                 .addStoryBoard("cable_hub2", CableScenes::cableHubLecternIntro,
                         DriveBySablePonderPlugin.DRIVE_BY_SABLE_TAG);
 
+        if (CableItems.INTERMEDIATE_CABLE_HUB_BLOCK != null) {
+            registry.forComponents(CableItems.INTERMEDIATE_CABLE_HUB_BLOCK.getId())
+                    .addStoryBoard("intermediate_cable_hub", CableScenes::intermediateCableHubIntro,
+                            DriveBySablePonderPlugin.DRIVE_BY_SABLE_TAG);
+            registry.forComponents(CableItems.INTERMEDIATE_CABLE_HUB_BLOCK.getId())
+                    .addStoryBoard("intermediate_cable_hub_lectern", CableScenes::intermediateCableHubLecternIntro,
+                            DriveBySablePonderPlugin.DRIVE_BY_SABLE_TAG);
+        }
+
         if (CableItems.ADVANCED_CABLE_HUB_BLOCK != null) {
             registry.forComponents(CableItems.ADVANCED_CABLE_HUB_BLOCK.getId())
                     .addStoryBoard("advanced_cable_hub1", CableScenes::cableAdvancedHubIntro,

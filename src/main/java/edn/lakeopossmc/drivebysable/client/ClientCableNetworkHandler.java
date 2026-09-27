@@ -22,6 +22,7 @@ import edn.lakeopossmc.drivebysable.cable.ModuleSinkTarget;
 import edn.lakeopossmc.drivebysable.cable.MultiChannelCableSource;
 import edn.lakeopossmc.drivebysable.cable.SubTargetCableEndpoint;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSink;
+import edn.lakeopossmc.drivebysable.compat.GetCreativeCableServerHandler;
 import edn.lakeopossmc.drivebysable.compat.TweakedControllerCableServerHandler;
 import edn.lakeopossmc.drivebysable.compat.keytranslator.TweakedKeybindResolver;
 import edn.lakeopossmc.drivebysable.items.CableItem;
@@ -180,6 +181,12 @@ public final class ClientCableNetworkHandler {
             event.setUseItem(TriState.FALSE);
         }
         if ((eventItem instanceof LinkedControllerItem && hitBlock.is(CableBlocks.CABLE_HUB) || (eventItem instanceof TweakedControllerDuck && hitBlock.is(CableBlocks.ADVANCED_CABLE_HUB)))) {
+            event.setUseItem(TriState.FALSE);
+        }
+        // * Same for Get Creative devices on the intermediate hub
+        if (CableBlocks.INTERMEDIATE_CABLE_HUB != null
+                && hitBlock.is(CableBlocks.INTERMEDIATE_CABLE_HUB)
+                && GetCreativeCableServerHandler.isSupportedDevice(event.getItemStack())) {
             event.setUseItem(TriState.FALSE);
         }
         if (event.getSide().isServer()) {
@@ -568,7 +575,8 @@ public final class ClientCableNetworkHandler {
                 return true;
             }
 
-            return CableNetworkManager.wouldExceedSourceLimit(level, pos);
+            // * Matches the red no_open_channels tip line
+            return CableNetworkManager.wouldExceedSourceLimit(level, pos) || hasNoOpenChannels(level, pos);
         }
 
         if (CableNetworkManager.checkRange(level, selectedSource, pos).blocked()) {
@@ -888,6 +896,12 @@ public final class ClientCableNetworkHandler {
                 return false;
             }
 
+            // * Grouped source with every group still closed
+            if (hasNoOpenChannels(level, pos)) {
+                showInvalidOperationMessage(player, "drivebysable.invalid_op.no_open_channels");
+                return false;
+            }
+
             selectedSource = pos.immutable();
             reportSelection(true);
             selectedSourceModule = subTarget;
@@ -1199,6 +1213,10 @@ public final class ClientCableNetworkHandler {
                 // * Say the cap is reached
                 tip.add(Component.translatable("drivebysable.cable_actions.source_limit_reached")
                         .withStyle(net.minecraft.ChatFormatting.RED));
+            } else if (hasNoOpenChannels(level, entryPos)) {
+                // * Matches the no_open_channels refusal
+                tip.add(Component.translatable("drivebysable.cable_actions.no_open_channels")
+                        .withStyle(net.minecraft.ChatFormatting.RED));
             } else {
                 tip.add(Component.translatable("drivebysable.cable_actions.enter_setup", Component.keybind("key.use")));
             }
@@ -1466,6 +1484,12 @@ public final class ClientCableNetworkHandler {
                 : null;
     }
 
+    // * A grouped source offering no groups yet has nothing to connect
+    private static boolean hasNoOpenChannels(final Level level, final BlockPos pos) {
+        return level.getBlockState(pos).getBlock() instanceof final ChannelGroupedCableSource grouped
+                && grouped.cable$getChannelGroups(level, pos).isEmpty();
+    }
+
     // * Falls back to the first group
     private static String activeGroup(final Level level) {
         final ChannelGroupedCableSource grouped = groupedSource(level);
@@ -1670,6 +1694,11 @@ public final class ClientCableNetworkHandler {
         final String sensorKey = IntegratedSensorBusBlockEntity.CHANNEL_TO_LANG_KEY.get(channel);
         if (sensorKey != null) {
             return sensorKey;
+        }
+
+        final String getCreativeKey = GetCreativeCableServerHandler.CHANNEL_TO_LANG_KEY.get(channel);
+        if (getCreativeKey != null) {
+            return getCreativeKey;
         }
 
         return TweakedControllerCableServerHandler.CHANNEL_TO_LANG_KEY.getOrDefault(channel, channel);

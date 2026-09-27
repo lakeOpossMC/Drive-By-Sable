@@ -28,6 +28,9 @@ public final class CableCreativeTabs {
                         output.accept(CableItems.CABLE.get());
                         output.accept(CableItems.CABLE_CUTTER.get());
                         output.accept(CableItems.CABLE_HUB_BLOCK.get());
+                        if (CableItems.INTERMEDIATE_CABLE_HUB_BLOCK != null) {
+                            output.accept(CableItems.INTERMEDIATE_CABLE_HUB_BLOCK.get());
+                        }
                         if (ModList.get().isLoaded("create_tweaked_controllers")) {
                             output.accept(CableItems.ADVANCED_CABLE_HUB_BLOCK.get());
                         }

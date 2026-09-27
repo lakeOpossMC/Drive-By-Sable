@@ -115,4 +115,27 @@ public final class ComputerCraftCompat {
 
         ComputerCraftBridge.queueKeyPress(cableHub, button, pressed, wasPressed);
     }
+
+    // * Same as above but keyed by channel name, used by hubs whose button indices mean different things per device
+    public static void handleChannelHubPress(
+            final Level level,
+            final BlockPos blockPos,
+            final String channel,
+            final boolean pressed,
+            final boolean wasPressed
+    ) {
+        if (!isLoaded()) {
+            return;
+        }
+
+        if (!(level.getBlockEntity(blockPos) instanceof final CableHubBlockEntity cableHub)) {
+            return;
+        }
+
+        if (cableHub.getComputerHandler() == null) {
+            return;
+        }
+
+        ComputerCraftBridge.queueChannelPress(cableHub, channel, pressed, wasPressed);
+    }
 }

@@ -3,6 +3,7 @@ package edn.lakeopossmc.drivebysable;
 import edn.lakeopossmc.drivebysable.blocks.CableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.AdvancedCableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlockEntity;
+import edn.lakeopossmc.drivebysable.blocks.IntermediateCableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.NetworkAnchorBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.MultiChannelCableBusBlockEntity;
@@ -46,6 +47,17 @@ public final class CableBlockEntities {
                                 validBlocks.toArray(new Block[0])
                         ).build(null);
                     });
+
+    // * Null when get creative isnt loaded
+    @Nullable
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<IntermediateCableHubBlockEntity>> INTERMEDIATE_CABLE_HUB =
+            CableBlocks.INTERMEDIATE_CABLE_HUB != null
+                    ? BLOCK_ENTITY_TYPES.register(
+                    "intermediate_cable_hub",
+                    () -> BlockEntityType.Builder.of(
+                            IntermediateCableHubBlockEntity::new,
+                            CableBlocks.INTERMEDIATE_CABLE_HUB.get()).build(null))
+                    : null;
 
     // * Null when tweaked controllers isnt loaded
     @Nullable

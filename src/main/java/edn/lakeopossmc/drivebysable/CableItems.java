@@ -48,6 +48,15 @@ public final class CableItems {
             () -> new NetworkAnchorItem(CableBlocks.NETWORK_ANCHOR.get(), new Item.Properties())
     );
 
+    // * Null when get creative isnt loaded
+    @Nullable
+    public static final DeferredItem<BlockItem> INTERMEDIATE_CABLE_HUB_BLOCK =
+            CableBlocks.INTERMEDIATE_CABLE_HUB != null
+                    ? ITEMS.registerSimpleBlockItem(
+                    "intermediate_cable_hub",
+                    CableBlocks.INTERMEDIATE_CABLE_HUB)
+                    : null;
+
     // * Null when tweaked controllers isnt loaded
     @Nullable
     public static final DeferredItem<BlockItem> ADVANCED_CABLE_HUB_BLOCK =

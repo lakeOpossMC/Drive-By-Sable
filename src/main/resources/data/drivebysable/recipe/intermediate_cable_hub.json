@@ -1,0 +1,19 @@
+{
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "get_creative" }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "key": {
+    "A": { "item": "minecraft:redstone" },
+    "B": { "tag": "c:plates/brass" },
+    "C": { "item": "drivebysable:cable_hub" },
+    "D": { "item": "drivebysable:cable" }
+  },
+  "pattern": [
+    "   ",
+    "ADA",
+    "BCB"
+  ],
+  "result": { "count": 1, "id": "drivebysable:intermediate_cable_hub" }
+}

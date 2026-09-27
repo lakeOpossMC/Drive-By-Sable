@@ -2,6 +2,7 @@ package edn.lakeopossmc.drivebysable;
 
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import edn.lakeopossmc.drivebysable.cable.CableSelectionTracker;
+import edn.lakeopossmc.drivebysable.compat.GetCreativeCableServerHandler;
 import edn.lakeopossmc.drivebysable.compat.LinkedControllerCableServerHandler;
 import edn.lakeopossmc.drivebysable.compat.TweakedControllerCableServerHandler;
 import net.minecraft.core.BlockPos;
@@ -59,6 +60,7 @@ public final class CableCommonEvents {
         CableNetworkManager.get(level).tickPendingPublishes(level);
         LinkedControllerCableServerHandler.tick(level);
         TweakedControllerCableServerHandler.tick(level);
+        GetCreativeCableServerHandler.tick(level);
     }
 
     private static final Direction[] DIRECTIONS = Direction.values();

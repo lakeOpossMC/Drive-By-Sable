@@ -3,6 +3,10 @@
   "values": [
     "drivebysable:cable_hub",
     {
+      "id": "drivebysable:intermediate_cable_hub",
+      "required": false
+    },
+    {
       "id": "drivebysable:cable_typewriter_hub",
       "required": false
     },

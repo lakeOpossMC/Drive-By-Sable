@@ -715,6 +715,402 @@ public class CableScenes {
     }
     //#endregion
 
+    //#region // --- INTERMEDIATE CABLE HUB SCENE HELPERS --- //
+    // * Solid colored box, same trick as the gray face helper
+    private static PonderInstruction coloredBoxInstruction(final Object slot, final AABB box, final int color, final int ticks) {
+        return new ChaseAABBInstruction(PonderPalette.WHITE, slot, box, ticks) {
+            @Override
+            public void tick(final net.createmod.ponder.foundation.PonderScene scene) {
+                super.tick(scene);
+                scene.getOutliner()
+                        .chaseAABB(slot, box)
+                        .colored(color);
+            }
+        };
+    }
+
+    // * Matches the 16x8x16 + 14x2x14 hitbox of a floor mounted intermediate hub
+    private static AABB intermediateHubBox(final BlockPos hubPos) {
+        return new AABB(hubPos.getX(), hubPos.getY(), hubPos.getZ(),
+                hubPos.getX() + 1, hubPos.getY() + 0.625, hubPos.getZ() + 1);
+    }
+
+    private static ItemStack getCreativeItem(final String path) {
+        return new ItemStack(BuiltInRegistries.ITEM.get(
+                ResourceLocation.fromNamespaceAndPath("get_creative", path)));
+    }
+    //#endregion
+
+    //#region // --- INTERMEDIATE CABLE HUB INTRO SCENE --- //
+    public static void intermediateCableHubIntro(final SceneBuilder builder, final SceneBuildingUtil util) {
+        final CreateSceneBuilder scene = new CreateSceneBuilder(builder);
+        final var world = scene.world();
+        final var overlay = scene.overlay();
+        final var effects = scene.effects();
+        final var select = util.select();
+        final var vector = util.vector();
+
+        final BlockPos hubPos       = new BlockPos(2, 2, 1);
+        final BlockPos noteBlockPos = new BlockPos(1, 2, 3);
+        final BlockPos lampPos      = new BlockPos(3, 3, 3);
+
+        final String HUB_SLOT  = "int_hub";
+        final String NOTE_SLOT = "int_note";
+        final String LAMP_SLOT = "int_lamp";
+
+        final String LINE_NOTE = "int_line_note";
+        final String LINE_LAMP = "int_line_lamp";
+
+        final Vec3 hubCenter      = new Vec3(2.5, 2.3, 1.5);
+        final Vec3 noteFaceCenter = new Vec3(1.5, 2.5, 3.0);
+        final Vec3 lampFaceCenter = new Vec3(3.5, 3.5, 3.0);
+
+        final int RED       = Color.RED.getRGB();
+        final int GREEN     = 0x55FF55;
+        final int DARK_GRAY = ChatFormatting.DARK_GRAY.getColor();
+
+        final ItemStack macroController = getCreativeItem("linked_macro_controller");
+        final ItemStack keypad          = getCreativeItem("linked_keypad");
+        final ItemStack remote          = getCreativeItem("linked_remote");
+
+        scene.title("intermediate_cable_hub_intro", "Using an Intermediate Cable Hub");
+        scene.configureBasePlate(0, 0, 5);
+        scene.showBasePlate();
+        scene.idle(10);
+
+        // REVEAL INTERMEDIATE HUB
+        world.showSection(select.fromTo(2, 1, 1, 2, 2, 1), Direction.UP);
+        scene.idle(20);
+
+        // POINT TO HUB AND LABEL
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_1")))
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+
+        // GET CREATIVE CONTROLLERS MENTIONED
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_2")))
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+
+        // CHANNELS START CLOSED
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_3")))
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_4")))
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+
+        // CABLE IS REFUSED WHILE NO CHANNELS ARE OPEN
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_5")))
+                .colored(PonderPalette.RED)
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+        overlay.showControls(vector.centerOf(hubPos), Pointing.DOWN, 30)
+                .withItem(new ItemStack(CableItems.CABLE.get()));
+        scene.idle(8);
+        scene.addInstruction(coloredBoxInstruction(HUB_SLOT, intermediateHubBox(hubPos), RED, 40));
+        scene.idle(52);
+
+        // BIND A CONTROLLER TO OPEN ITS CHANNELS
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_6")))
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+        // * One at a time: macro controller, keypad, remote
+        for (final ItemStack controller : new ItemStack[] {macroController, keypad, remote}) {
+            overlay.showControls(vector.centerOf(hubPos), Pointing.DOWN, 40)
+                    .withItem(controller);
+            scene.idle(8);
+            scene.addInstruction(coloredBoxInstruction(HUB_SLOT, intermediateHubBox(hubPos), GREEN, 40));
+            scene.idle(52);
+        }
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_7")))
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+
+        // EACH CONTROLLER TYPE HAS ITS OWN GROUP
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_8")))
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_9")))
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+
+        // SHOW NOTE BLOCK TOWER
+        world.showSection(select.fromTo(1, 1, 3, 1, 2, 3), Direction.DOWN);
+        // SHOW LAMP TOWER
+        world.showSection(select.fromTo(3, 1, 3, 3, 3, 3), Direction.DOWN);
+        scene.idle(20);
+
+        // USE CABLE ON HUB
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_10")))
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+        overlay.showControls(vector.centerOf(hubPos), Pointing.DOWN, 25)
+                .withItem(new ItemStack(CableItems.CABLE.get()));
+        scene.idle(8);
+        // * Held until the exit click below
+        scene.addInstruction(new ChaseAABBInstruction(PonderPalette.INPUT, HUB_SLOT, intermediateHubBox(hubPos), 536));
+        scene.idle(7);
+
+        // USE CABLE ON NOTE BLOCK
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_11")))
+                .placeNearTarget()
+                .pointAt(vector.centerOf(noteBlockPos));
+        scene.idle(100);
+        overlay.showControls(vector.blockSurface(noteBlockPos, Direction.NORTH), Pointing.RIGHT, 25)
+                .withItem(new ItemStack(CableItems.CABLE.get()));
+        scene.idle(8);
+        scene.addInstruction(new ChaseAABBInstruction(PonderPalette.OUTPUT, NOTE_SLOT,
+                faceBox(noteBlockPos, Direction.NORTH), 145));
+        scene.addInstruction(coloredLineInstruction(LINE_NOTE, hubCenter, noteFaceCenter, RED, 145));
+        scene.idle(45);
+
+        // SCROLL TO SELECT NEW CHANNEL
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_12")))
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+        scene.addInstruction(grayFaceInstruction(NOTE_SLOT, faceBox(noteBlockPos, Direction.NORTH), 276));
+        scene.addInstruction(coloredLineInstruction(LINE_NOTE, hubCenter, noteFaceCenter, DARK_GRAY, 276));
+        scene.idle(20);
+        // USE CABLE ON LAMP
+        overlay.showControls(vector.blockSurface(lampPos, Direction.NORTH), Pointing.RIGHT, 25)
+                .withItem(new ItemStack(CableItems.CABLE.get()));
+        scene.idle(8);
+        scene.addInstruction(new ChaseAABBInstruction(PonderPalette.OUTPUT, LAMP_SLOT,
+                faceBox(lampPos, Direction.NORTH), 248));
+        scene.addInstruction(coloredLineInstruction(LINE_LAMP, hubCenter, lampFaceCenter, RED, 248));
+        scene.idle(40);
+
+        // CTRL SCROLL FOR GROUPS
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_13")))
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+
+        // EXIT SETUP MODE
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_14")))
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+        overlay.showControls(vector.centerOf(hubPos), Pointing.DOWN, 25)
+                .withItem(new ItemStack(CableItems.CABLE.get()));
+        scene.idle(50);
+
+        // USE THE BOUND CONTROLLER
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_intro.text_15")))
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+        // SHOW [W] CHANNEL
+        overlay.showControls(vector.centerOf(hubPos), Pointing.DOWN, 20)
+                .showing(CablePonderTextures.KEY_W);
+        scene.idle(10);
+        world.modifyBlock(noteBlockPos, s -> s.setValue(NoteBlock.POWERED, true), false);
+        effects.indicateRedstone(noteBlockPos);
+        effects.emitParticles(
+                vector.topOf(noteBlockPos).add(0, 0.5, 0),
+                effects.simpleParticleEmitter(ParticleTypes.NOTE, Vec3.ZERO),
+                1.0f, 1);
+        scene.idle(25);
+        world.modifyBlock(noteBlockPos, s -> s.setValue(NoteBlock.POWERED, false), false);
+        scene.idle(15);
+        // SHOW [S] CHANNEL
+        overlay.showControls(vector.centerOf(hubPos), Pointing.DOWN, 20)
+                .showing(CablePonderTextures.KEY_S);
+        scene.idle(10);
+        world.modifyBlock(lampPos, s -> s.setValue(RedstoneLampBlock.LIT, true), false);
+        effects.indicateRedstone(lampPos);
+        scene.idle(25);
+        world.modifyBlock(lampPos, s -> s.setValue(RedstoneLampBlock.LIT, false), false);
+        scene.idle(10);
+
+        // END SCENE
+        scene.markAsFinished();
+    }
+    //#endregion
+    //#region // --- INTERMEDIATE CABLE HUB LECTERN SCENE --- //
+    public static void intermediateCableHubLecternIntro(final SceneBuilder builder, final SceneBuildingUtil util) {
+        final CreateSceneBuilder scene = new CreateSceneBuilder(builder);
+        final var world = scene.world();
+        final var overlay = scene.overlay();
+        final var effects = scene.effects();
+        final var select = util.select();
+        final var vector = util.vector();
+
+        final BlockPos hubPos     = new BlockPos(1, 2, 1);
+        final BlockPos lamp1Pos   = new BlockPos(1, 3, 3);
+        final BlockPos lamp2Pos   = new BlockPos(3, 3, 3);
+        final BlockPos lecternPos = new BlockPos(3, 1, 1);
+
+        final String HUB_SLOT   = "ilc_hub";
+        final String LAMP1_SLOT = "ilc_lamp1";
+        final String LAMP2_SLOT = "ilc_lamp2";
+
+        final String LINE_LAMP1_SLOT = "ilc_line_lamp1";
+        final String LINE_LAMP2_SLOT = "ilc_line_lamp2";
+
+        final Vec3 hubCenter       = new Vec3(hubPos.getX() + 0.5, hubPos.getY() + 0.3, hubPos.getZ() + 0.5);
+        final Vec3 lamp1FaceCenter = new Vec3(lamp1Pos.getX() + 0.5, lamp1Pos.getY() + 1.0, lamp1Pos.getZ() + 0.5);
+        final Vec3 lamp2FaceCenter = new Vec3(lamp2Pos.getX() + 0.5, lamp2Pos.getY() + 1.0, lamp2Pos.getZ() + 0.5);
+
+        final int RED       = Color.RED.getRGB();
+        final int GREEN     = 0x55FF55;
+        final int DARK_GRAY = ChatFormatting.DARK_GRAY.getColor();
+
+        final ItemStack macroController = getCreativeItem("linked_macro_controller");
+
+        scene.title("intermediate_cable_hub_lectern", "Using Get Creative Lectern Controllers with an Intermediate Cable Hub");
+        scene.configureBasePlate(0, 0, 5);
+        scene.showBasePlate();
+        scene.idle(10);
+
+        // REVEAL ALL
+        world.showSection(select.fromTo(0, 1, 0, 4, 3, 4), Direction.DOWN);
+        scene.idle(20);
+
+        // INTRO TEXT
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_lectern.text_1")))
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+
+        // BIND FIRST, CHANNELS ARE CLOSED UNTIL THEN
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_lectern.text_2")))
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+        overlay.showControls(vector.centerOf(hubPos), Pointing.DOWN, 40)
+                .withItem(macroController);
+        scene.idle(8);
+        scene.addInstruction(coloredBoxInstruction(HUB_SLOT, intermediateHubBox(hubPos), GREEN, 40));
+        scene.idle(52);
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_lectern.text_3")))
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+
+        // SET UP A NETWORK
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_lectern.text_4")))
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(vector.centerOf(hubPos));
+        scene.idle(100);
+
+        // ENTER SETUP MODE
+        overlay.showControls(vector.centerOf(hubPos), Pointing.DOWN, 25)
+                .withItem(new ItemStack(CableItems.CABLE.get()));
+        scene.idle(8);
+        scene.addInstruction(new ChaseAABBInstruction(PonderPalette.INPUT, HUB_SLOT, intermediateHubBox(hubPos), 124));
+        scene.idle(7);
+
+        // USE CABLE ON LAMP 1
+        overlay.showControls(vector.blockSurface(lamp1Pos, Direction.UP), Pointing.DOWN, 25)
+                .withItem(new ItemStack(CableItems.CABLE.get()));
+        scene.idle(8);
+        scene.addInstruction(new ChaseAABBInstruction(PonderPalette.OUTPUT, LAMP1_SLOT, faceBox(lamp1Pos, Direction.UP), 60));
+        scene.addInstruction(coloredLineInstruction(LINE_LAMP1_SLOT, hubCenter, lamp1FaceCenter, RED, 60));
+        scene.idle(35);
+
+        // SCROLL TO NEW CHANNEL
+        scene.addInstruction(grayFaceInstruction(LAMP1_SLOT, faceBox(lamp1Pos, Direction.UP), 74));
+        scene.addInstruction(coloredLineInstruction(LINE_LAMP1_SLOT, hubCenter, lamp1FaceCenter, DARK_GRAY, 74));
+        scene.idle(25);
+
+        // USE CABLE ON LAMP 2
+        overlay.showControls(vector.blockSurface(lamp2Pos, Direction.UP), Pointing.DOWN, 25)
+                .withItem(new ItemStack(CableItems.CABLE.get()));
+        scene.idle(8);
+        scene.addInstruction(new ChaseAABBInstruction(PonderPalette.OUTPUT, LAMP2_SLOT, faceBox(lamp2Pos, Direction.UP), 41));
+        scene.addInstruction(coloredLineInstruction(LINE_LAMP2_SLOT, hubCenter, lamp2FaceCenter, RED, 41));
+        scene.idle(35);
+
+        // EXIT SETUP MODE
+        overlay.showControls(vector.centerOf(hubPos), Pointing.DOWN, 25)
+                .withItem(new ItemStack(CableItems.CABLE.get()));
+        scene.idle(50);
+
+        // PLACE CONTROLLER
+        overlay.showText(90)
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.intermediate_cable_hub_lectern.text_5")))
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(vector.centerOf(lecternPos));
+        scene.idle(100);
+        overlay.showControls(vector.blockSurface(lecternPos, Direction.UP), Pointing.DOWN, 40)
+                .withItem(macroController);
+        scene.idle(10);
+        world.setBlock(lecternPos,
+                BuiltInRegistries.BLOCK.get(
+                                ResourceLocation.fromNamespaceAndPath("get_creative", "lectern_device"))
+                        .defaultBlockState()
+                        .setValue(LecternBlock.FACING, Direction.NORTH)
+                        .setValue(LecternBlock.POWERED, false),
+                true);
+        world.modifyBlockEntity(lecternPos, BlockEntity.class, be -> bindLecternController(be, macroController));
+        scene.idle(40);
+
+        // SHOW [W] CHANNEL
+        overlay.showControls(vector.blockSurface(lecternPos, Direction.UP), Pointing.DOWN, 20)
+                .showing(CablePonderTextures.KEY_W);
+        scene.idle(10);
+        world.modifyBlock(lamp1Pos, s -> s.setValue(RedstoneLampBlock.LIT, true), false);
+        effects.indicateRedstone(lamp1Pos);
+        scene.idle(25);
+        world.modifyBlock(lamp1Pos, s -> s.setValue(RedstoneLampBlock.LIT, false), false);
+        scene.idle(15);
+
+        // SHOW [S] CHANNEL
+        overlay.showControls(vector.blockSurface(lecternPos, Direction.UP), Pointing.DOWN, 20)
+                .showing(CablePonderTextures.KEY_S);
+        scene.idle(10);
+        world.modifyBlock(lamp2Pos, s -> s.setValue(RedstoneLampBlock.LIT, true), false);
+        effects.indicateRedstone(lamp2Pos);
+        scene.idle(25);
+        world.modifyBlock(lamp2Pos, s -> s.setValue(RedstoneLampBlock.LIT, false), false);
+        scene.idle(10);
+
+        // END SCENE
+        scene.markAsFinished();
+    }
+    //#endregion
+
     //#region // --- CABLE TYPEWRITER HUB INTRO SCENE --- //
     public static void cableTypewriterHubIntro(final SceneBuilder builder, final SceneBuildingUtil util) {
         final CreateSceneBuilder scene = new CreateSceneBuilder(builder);

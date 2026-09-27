@@ -3,6 +3,7 @@ package edn.lakeopossmc.drivebysable;
 import edn.lakeopossmc.drivebysable.blocks.AdvancedCableHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.CableHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlock;
+import edn.lakeopossmc.drivebysable.blocks.IntermediateCableHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.NetworkAnchorBlock;
 import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlock;
 import edn.lakeopossmc.drivebysable.blocks.MultiChannelCableBusBlock;
@@ -76,6 +77,19 @@ public final class CableBlocks {
                     .strength(3.0F, 6.0F)
                     .requiresCorrectToolForDrops())
     );
+
+    // * Null when get creative isnt loaded
+    @Nullable
+    public static final DeferredBlock<IntermediateCableHubBlock> INTERMEDIATE_CABLE_HUB =
+            ModList.get().isLoaded("get_creative")
+                    ? BLOCKS.register(
+                    "intermediate_cable_hub",
+                    () -> new IntermediateCableHubBlock(BlockBehaviour.Properties.of()
+                            .mapColor(MapColor.TERRACOTTA_YELLOW)
+                            .sound(SoundType.METAL)
+                            .strength(3.0F, 6.0F)
+                            .requiresCorrectToolForDrops()))
+                    : null;
 
     // * Null when tweaked controllers isnt loaded
     @Nullable

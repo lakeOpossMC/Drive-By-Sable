@@ -36,6 +36,9 @@ public class DriveBySablePonderPlugin extends CreatePonderPlugin {
                 .add(CableItems.CABLE_CUTTER.getId())
                 .add(CableItems.CABLE_HUB_BLOCK.getId());
 
+        if (CableItems.INTERMEDIATE_CABLE_HUB_BLOCK != null) {
+            tag.add(CableItems.INTERMEDIATE_CABLE_HUB_BLOCK.getId());
+        }
         if (CableItems.ADVANCED_CABLE_HUB_BLOCK != null) {
             tag.add(CableItems.ADVANCED_CABLE_HUB_BLOCK.getId());
         }

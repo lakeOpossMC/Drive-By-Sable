@@ -106,6 +106,13 @@ requiredMods = ["computercraft"]
     side="BOTH"
 
 [[dependencies."drivebysable"]]
+    modId="get_creative"
+    type="optional"
+    versionRange="[0,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies."drivebysable"]]
     modId="offroad"
     type="optional"
     versionRange="[0,)"

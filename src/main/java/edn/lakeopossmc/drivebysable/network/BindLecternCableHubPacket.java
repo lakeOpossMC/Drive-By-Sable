@@ -3,6 +3,8 @@ package edn.lakeopossmc.drivebysable.network;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import edn.lakeopossmc.drivebysable.CableSounds;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
+import edn.lakeopossmc.drivebysable.blocks.IntermediateCableHubBlockEntity;
+import edn.lakeopossmc.drivebysable.compat.GetCreativeCableServerHandler;
 import edn.lakeopossmc.drivebysable.mixinducks.LecternCableHubDuck;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.BlockPos;
@@ -44,6 +46,11 @@ public record BindLecternCableHubPacket(BlockPos lecternPos, BlockPos hubPos) im
         }
 
         lecternHub.drivebysable$setHubPos(payload.hubPos());
+
+        // * Binding through a lectern opens the device's channel group, same as using the device on the hub
+        if (player.level().getBlockEntity(payload.hubPos()) instanceof final IntermediateCableHubBlockEntity hub) {
+            hub.openGroup(GetCreativeCableServerHandler.groupFor(lecternHub.drivebysable$getLecternDevice()));
+        }
         blockEntity.setChanged();
         if (blockEntity instanceof final SmartBlockEntity smartBlockEntity) {
             smartBlockEntity.sendData();

@@ -60,6 +60,15 @@ final class ComputerCraftBridge {
             }
         }
 
+        final var intermediateCableHubHolder = CableBlockEntities.INTERMEDIATE_CABLE_HUB;
+        if (intermediateCableHubHolder != null) {
+            final var intermediateCableHub = intermediateCableHubHolder.get();
+            if (intermediateCableHub != null) {
+                event.registerBlockEntity(peripheralCapability, intermediateCableHub,
+                        (b, d) -> new IntermediateCableHubPeripheral(b));
+            }
+        }
+
         final var advancedCableHubHolder = CableBlockEntities.ADVANCED_CABLE_HUB;
         if (advancedCableHubHolder != null) {
             final var advancedCableHub = advancedCableHubHolder.get();
@@ -145,6 +154,23 @@ final class ComputerCraftBridge {
             handler.queueEvent(cableHub.getComputerEventName("button"), button, wasPressed);
         } else {
             handler.queueEvent(cableHub.getComputerEventName("button_up"), button);
+        }
+    }
+
+    static void queueChannelPress(
+            final CableHubBlockEntity cableHub,
+            final String channel,
+            final boolean pressed,
+            final boolean wasPressed
+    ) {
+        if (!(cableHub.getComputerHandler() instanceof final AttachedComputerHandler handler)) {
+            return;
+        }
+
+        if (pressed) {
+            handler.queueEvent(cableHub.getComputerEventName("button"), channel, wasPressed);
+        } else {
+            handler.queueEvent(cableHub.getComputerEventName("button_up"), channel);
         }
     }
 }
