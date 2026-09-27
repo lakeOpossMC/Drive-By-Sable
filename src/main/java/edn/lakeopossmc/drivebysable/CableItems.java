@@ -12,6 +12,7 @@ import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.registries.DeferredItem;
@@ -45,7 +46,7 @@ public final class CableItems {
     );
     public static final DeferredItem<BlockItem> NETWORK_ANCHOR = ITEMS.register(
             "network_anchor",
-            () -> new NetworkAnchorItem(CableBlocks.NETWORK_ANCHOR.get(), new Item.Properties())
+            () -> new NetworkAnchorItem(CableBlocks.NETWORK_ANCHOR.get(), new Item.Properties().rarity(Rarity.EPIC))
     );
 
     // * Null when get creative isnt loaded
