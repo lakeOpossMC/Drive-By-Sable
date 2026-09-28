@@ -3,6 +3,7 @@ package edn.lakeopossmc.drivebysable.ponder;
 import com.simibubi.create.foundation.ponder.CreatePonderPlugin;
 import edn.lakeopossmc.drivebysable.CableItems;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
+import edn.lakeopossmc.drivebysable.items.HandheldTypewriterControllerItem;
 import edn.lakeopossmc.drivebysable.items.IntegratedSensorBusItem;
 import edn.lakeopossmc.drivebysable.items.MultiChannelCableBusItem;
 import edn.lakeopossmc.drivebysable.items.NetworkAnchorItem;
@@ -51,6 +52,9 @@ public class DriveBySablePonderPlugin extends CreatePonderPlugin {
 
         // * Toggled entries follow their extension config, PonderTagRefresh reloads Ponder
         appliedExtensionMask = currentExtensionMask();
+        if (CableItems.HANDHELD_TYPEWRITER_CONTROLLER != null && HandheldTypewriterControllerItem.isExtensionEnabled()) {
+            tag.add(CableItems.HANDHELD_TYPEWRITER_CONTROLLER.getId());
+        }
         if (MultiChannelCableBusItem.isExtensionEnabled()) {
             tag.add(CableItems.MULTI_CHANNEL_CABLE_BUS.getId());
         }
@@ -73,7 +77,8 @@ public class DriveBySablePonderPlugin extends CreatePonderPlugin {
     public static int currentExtensionMask() {
         return (MultiChannelCableBusItem.isExtensionEnabled() ? 1 : 0)
                 | (IntegratedSensorBusItem.isExtensionEnabled() ? 2 : 0)
-                | (NetworkAnchorItem.isExtensionEnabled() ? 4 : 0);
+                | (NetworkAnchorItem.isExtensionEnabled() ? 4 : 0)
+                | (HandheldTypewriterControllerItem.isExtensionEnabled() ? 8 : 0);
     }
 
     // * True when a toggle changed since the tag was last built
