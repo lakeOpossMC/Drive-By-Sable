@@ -3,6 +3,7 @@ package edn.lakeopossmc.drivebysable;
 import edn.lakeopossmc.drivebysable.blocks.CableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.AdvancedCableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlockEntity;
+import edn.lakeopossmc.drivebysable.blocks.HandheldTypewriterLecternBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.IntermediateCableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.NetworkAnchorBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlockEntity;
@@ -106,6 +107,18 @@ public final class CableBlockEntities {
             () -> BlockEntityType.Builder.of(
                     CableTypewriterHubBlockEntity::new,
                     CableBlocks.CABLE_TYPEWRITER_HUB.get()
+            ).build(null))
+            : null;
+
+    // * Null when simulated isnt loaded
+    @Nullable
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<HandheldTypewriterLecternBlockEntity>>
+            HANDHELD_TYPEWRITER_LECTERN = ModList.get().isLoaded("simulated")
+            ? BLOCK_ENTITY_TYPES.register(
+            "handheld_typewriter_lectern",
+            () -> BlockEntityType.Builder.of(
+                    HandheldTypewriterLecternBlockEntity::new,
+                    CableBlocks.HANDHELD_TYPEWRITER_LECTERN.get()
             ).build(null))
             : null;
 

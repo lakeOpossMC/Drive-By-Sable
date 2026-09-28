@@ -48,7 +48,9 @@
     "client.MixinValueSettingsClient",
     "client.MixinGuiOverlayMessageAccessor",
     "client.MixinCreativeModeTabsAccessor",
-    "client.MixinComponentRenderUtils"
+    "client.MixinComponentRenderUtils",
+    "client.MixinLinkedTypewriterScreen",
+    "client.MixinKeyboardHandler"
   ],
   "injectors": {
     "defaultRequire": 1

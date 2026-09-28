@@ -3,6 +3,7 @@ package edn.lakeopossmc.drivebysable;
 import edn.lakeopossmc.drivebysable.blocks.AdvancedCableHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.CableHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlock;
+import edn.lakeopossmc.drivebysable.blocks.HandheldTypewriterLecternBlock;
 import edn.lakeopossmc.drivebysable.blocks.IntermediateCableHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.NetworkAnchorBlock;
 import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlock;
@@ -12,6 +13,7 @@ import edn.lakeopossmc.drivebysable.legacy.LegacyRuthlessCompat;
 import edn.lakeopossmc.drivebysable.legacy.LegacyTypewriterCompat;
 import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
@@ -115,6 +117,15 @@ public final class CableBlocks {
                             .sound(SoundType.METAL)
                             .strength(2.5F, 4.0F)
                             .requiresCorrectToolForDrops()))
+                    : null;
+
+    // * Null when simulated isnt loaded
+    @Nullable
+    public static final DeferredBlock<HandheldTypewriterLecternBlock> HANDHELD_TYPEWRITER_LECTERN =
+            ModList.get().isLoaded("simulated")
+                    ? BLOCKS.register(
+                    "handheld_typewriter_lectern",
+                    () -> new HandheldTypewriterLecternBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.LECTERN)))
                     : null;
 
     private CableBlocks() {

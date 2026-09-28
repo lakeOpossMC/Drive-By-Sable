@@ -6,6 +6,7 @@ import edn.lakeopossmc.drivebysable.client.screen.BackupDriveScreen;
 import edn.lakeopossmc.drivebysable.client.screen.IntegratedSensorBusScreen;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 
@@ -20,5 +21,10 @@ public final class CableScreens {
     public static void onRegisterScreens(final RegisterMenuScreensEvent event) {
         event.register(CableMenus.BACKUP_DRIVE.get(), BackupDriveScreen::new);
         event.register(CableMenus.INTEGRATED_SENSOR_BUS.get(), IntegratedSensorBusScreen::new);
+
+        // * Kept in its own class so Simulated's screen is only loaded when Simulated is
+        if (ModList.get().isLoaded("simulated")) {
+            HandheldTypewriterScreens.register(event);
+        }
     }
 }

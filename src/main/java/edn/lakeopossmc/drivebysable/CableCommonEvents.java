@@ -3,6 +3,7 @@ package edn.lakeopossmc.drivebysable;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import edn.lakeopossmc.drivebysable.cable.CableSelectionTracker;
 import edn.lakeopossmc.drivebysable.compat.GetCreativeCableServerHandler;
+import edn.lakeopossmc.drivebysable.compat.HandheldTypewriterServerHandler;
 import edn.lakeopossmc.drivebysable.compat.LinkedControllerCableServerHandler;
 import edn.lakeopossmc.drivebysable.compat.TweakedControllerCableServerHandler;
 import net.minecraft.core.BlockPos;
@@ -12,6 +13,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import edn.lakeopossmc.drivebysable.cable.SubTargetCableEndpoint;
@@ -25,6 +27,8 @@ import java.util.Map;
 
 // --- SHARED SERVER SIDE EVENT HOOKS --- //
 public final class CableCommonEvents {
+    private static final boolean SIMULATED_LOADED = ModList.get().isLoaded("simulated");
+
     private CableCommonEvents() {
     }
 
@@ -61,6 +65,9 @@ public final class CableCommonEvents {
         LinkedControllerCableServerHandler.tick(level);
         TweakedControllerCableServerHandler.tick(level);
         GetCreativeCableServerHandler.tick(level);
+        if (SIMULATED_LOADED) {
+            HandheldTypewriterServerHandler.tick(level);
+        }
     }
 
     private static final Direction[] DIRECTIONS = Direction.values();

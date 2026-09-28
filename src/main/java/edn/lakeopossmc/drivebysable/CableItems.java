@@ -3,6 +3,7 @@ package edn.lakeopossmc.drivebysable;
 import edn.lakeopossmc.drivebysable.items.CableCutterItem;
 import edn.lakeopossmc.drivebysable.items.CableItem;
 import edn.lakeopossmc.drivebysable.items.CableTypewriterHubItem;
+import edn.lakeopossmc.drivebysable.items.HandheldTypewriterControllerItem;
 import edn.lakeopossmc.drivebysable.items.NetworkBackupDriveItem;
 import edn.lakeopossmc.drivebysable.items.IntegratedSensorBusItem;
 import edn.lakeopossmc.drivebysable.items.MultiChannelCableBusItem;
@@ -74,6 +75,22 @@ public final class CableItems {
                     ? ITEMS.register(
                     "cable_typewriter_hub",
                     () -> new CableTypewriterHubItem(CableBlocks.CABLE_TYPEWRITER_HUB.get(), new Item.Properties()))
+                    : null;
+
+    // * Null when simulated isnt loaded
+    @Nullable
+    public static final DeferredItem<HandheldTypewriterControllerItem> HANDHELD_TYPEWRITER_CONTROLLER =
+            ModList.get().isLoaded("simulated")
+                    ? ITEMS.register(
+                    "handheld_typewriter_controller",
+                    () -> new HandheldTypewriterControllerItem(new Item.Properties().stacksTo(1)))
+                    : null;
+
+    // * Null when simulated isnt loaded
+    @Nullable
+    public static final DeferredItem<Item> INCOMPLETE_HANDHELD_TYPEWRITER_CONTROLLER =
+            ModList.get().isLoaded("simulated")
+                    ? ITEMS.registerSimpleItem("incomplete_handheld_typewriter_controller")
                     : null;
 
     private CableItems() {

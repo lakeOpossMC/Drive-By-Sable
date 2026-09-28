@@ -1,5 +1,6 @@
 package edn.lakeopossmc.drivebysable;
 
+import edn.lakeopossmc.drivebysable.items.HandheldTypewriterControllerItem;
 import edn.lakeopossmc.drivebysable.items.IntegratedSensorBusItem;
 import edn.lakeopossmc.drivebysable.items.MultiChannelCableBusItem;
 import edn.lakeopossmc.drivebysable.items.NetworkAnchorItem;
@@ -36,6 +37,9 @@ public final class CableCreativeTabs {
                         }
                         if (ModList.get().isLoaded("simulated")) {
                             output.accept(CableItems.CABLE_TYPEWRITER_HUB.get());
+                            if (HandheldTypewriterControllerItem.isExtensionEnabled()) {
+                                output.accept(CableItems.HANDHELD_TYPEWRITER_CONTROLLER.get());
+                            }
                         }
                         output.accept(CableItems.BACKUP_DRIVE.get());
                         if (NetworkAnchorItem.isExtensionEnabled()) {

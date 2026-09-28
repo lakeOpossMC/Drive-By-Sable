@@ -1,5 +1,6 @@
 package edn.lakeopossmc.drivebysable.network;
 
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 
 // --- REGISTERS ALL NETWORK PACKETS --- //
@@ -8,7 +9,8 @@ public final class CablePackets {
     }
 
     public static void register(final RegisterPayloadHandlersEvent event) {
-        event.registrar("1")
+        final var registrar = event.registrar("1");
+        registrar
                 .playToClient(CableNetworkFullSyncPacket.TYPE, CableNetworkFullSyncPacket.STREAM_CODEC, CableNetworkFullSyncPacket::handle)
                 .playToServer(BindLecternCableHubPacket.TYPE, BindLecternCableHubPacket.STREAM_CODEC, BindLecternCableHubPacket::handle)
                 .playToServer(CableAddConnectionPacket.TYPE, CableAddConnectionPacket.STREAM_CODEC, CableAddConnectionPacket::handle)
@@ -31,5 +33,10 @@ public final class CablePackets {
                 .playToServer(CableTypewriterHubKeyPacket.TYPE, CableTypewriterHubKeyPacket.STREAM_CODEC, CableTypewriterHubKeyPacket::handle)
                 .playToServer(MovementKeybindsPacket.TYPE, MovementKeybindsPacket.STREAM_CODEC, MovementKeybindsPacket::handle)
                 .playToServer(TweakedKeybindsPacket.TYPE, TweakedKeybindsPacket.STREAM_CODEC, TweakedKeybindsPacket::handle);
+
+        // * These name Simulated types
+        if (ModList.get().isLoaded("simulated")) {
+            HandheldTypewriterPackets.register(registrar);
+        }
     }
 }

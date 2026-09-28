@@ -1,0 +1,34 @@
+{
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "simulated" },
+    { "type": "drivebysable:config", "option": "handheld_typewriter_controller", "expected": true }
+  ],
+  "type": "create:sequenced_assembly",
+  "ingredient": { "item": "create:clipboard" },
+  "results": [
+    { "id": "drivebysable:handheld_typewriter_controller" }
+  ],
+  "sequence": [
+    {
+      "type": "create:filling",
+      "ingredients": [
+        { "item": "drivebysable:incomplete_handheld_typewriter_controller" },
+        { "type": "neoforge:tag", "amount": 250, "tag": "c:honey" }
+      ],
+      "results": [
+        { "id": "drivebysable:incomplete_handheld_typewriter_controller" }
+      ]
+    },
+    {
+      "type": "create:deploying",
+      "ingredients": [
+        { "item": "drivebysable:incomplete_handheld_typewriter_controller" },
+        { "item": "simulated:linked_typewriter" }
+      ],
+      "results": [
+        { "id": "drivebysable:incomplete_handheld_typewriter_controller" }
+      ]
+    }
+  ],
+  "transitional_item": { "id": "drivebysable:incomplete_handheld_typewriter_controller" }
+}

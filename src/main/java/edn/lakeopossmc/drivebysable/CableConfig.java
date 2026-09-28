@@ -28,6 +28,7 @@ public class CableConfig {
     public final ModConfigSpec.BooleanValue networkAnchor;
     public final ModConfigSpec.BooleanValue multiChannelCableBus;
     public final ModConfigSpec.BooleanValue integratedSensorBus;
+    public final ModConfigSpec.BooleanValue handheldTypewriterController;
     //#endregion
 
     //#region // --- COMMANDS --- //
@@ -177,6 +178,17 @@ public class CableConfig {
                 )
                 .translation("drivebysable.config.integratedSensorBus")
                 .define("integratedSensorBus", true);
+
+        handheldTypewriterController = builder
+                .comment(
+                        "Whether the Handheld Typewriter Controller is available.",
+                        "A portable Linked Typewriter that can drive redstone links, a Typewriter",
+                        "Cable Hub's channels, or sit on a lectern.",
+                        "Has no effect unless Simulated is installed.",
+                        "Controllers already placed on lecterns are unaffected."
+                )
+                .translation("drivebysable.config.handheldTypewriterController")
+                .define("handheldTypewriterController", true);
 
         builder.pop();
         //#endregion
