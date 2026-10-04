@@ -44,8 +44,13 @@ public class AdvancedCableHubBlockEntity extends CableHubBlockEntity {
     }
 
     @Override
+    protected boolean hasBulb() {
+        return true;
+    }
+
+    @Override
     protected void write(final CompoundTag tag, final HolderLookup.Provider registries,
-            final boolean clientPacket) {
+                         final boolean clientPacket) {
         super.write(tag, registries, clientPacket);
         if (clientPacket) {
             tag.putBoolean(USE_FULL_PRECISION_KEY, this.useFullPrecision);
@@ -54,7 +59,7 @@ public class AdvancedCableHubBlockEntity extends CableHubBlockEntity {
 
     @Override
     protected void read(final CompoundTag tag, final HolderLookup.Provider registries,
-            final boolean clientPacket) {
+                        final boolean clientPacket) {
         super.read(tag, registries, clientPacket);
         if (clientPacket) {
             this.useFullPrecision = tag.getBoolean(USE_FULL_PRECISION_KEY);

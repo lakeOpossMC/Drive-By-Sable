@@ -19,6 +19,8 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.AttachFace;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -64,6 +66,10 @@ public abstract class AbstractDirectionalHubBlock<T extends CableHubBlockEntity>
     );
     //#endregion
 
+    // * Lit texture: true while the hub is sending a signal on any of its channels
+    // * Kept up to date by CableHubBlockEntity
+    public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
+
     //#region // --- ATTACH PROPERTIES TO THIS CLASS --- //
     protected AbstractDirectionalHubBlock(final Properties properties) {
         // * Default vanilla properties
@@ -71,14 +77,15 @@ public abstract class AbstractDirectionalHubBlock<T extends CableHubBlockEntity>
         // * Add Facing and Face
         this.registerDefaultState(this.stateDefinition.any()
                 .setValue(FACING, Direction.NORTH)
-                .setValue(FACE, AttachFace.FLOOR));
+                .setValue(FACE, AttachFace.FLOOR)
+                .setValue(POWERED, false));
     }
     //#endregion
     //#region // --- ADD PROPS TO BLOCKSTATE DEF --- //
     // * Create blockstate def that includes appropriate props
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, FACE);
+        builder.add(FACING, FACE, POWERED);
     }
     //#endregion
     //#region // --- MAPCODEC --- //

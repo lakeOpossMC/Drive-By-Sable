@@ -1,18 +1,33 @@
 {
   "variants": {
-    "facing=north": {
+    "facing=north,powered=false": {
       "model": "drivebysable:block/integrated_sensor_bus/base"
     },
-    "facing=east": {
+    "facing=east,powered=false": {
       "model": "drivebysable:block/integrated_sensor_bus/base",
       "y": 90
     },
-    "facing=south": {
+    "facing=south,powered=false": {
       "model": "drivebysable:block/integrated_sensor_bus/base",
       "y": 180
     },
-    "facing=west": {
+    "facing=west,powered=false": {
       "model": "drivebysable:block/integrated_sensor_bus/base",
+      "y": 270
+    },
+    "facing=north,powered=true": {
+      "model": "drivebysable:block/integrated_sensor_bus/base_powered"
+    },
+    "facing=east,powered=true": {
+      "model": "drivebysable:block/integrated_sensor_bus/base_powered",
+      "y": 90
+    },
+    "facing=south,powered=true": {
+      "model": "drivebysable:block/integrated_sensor_bus/base_powered",
+      "y": 180
+    },
+    "facing=west,powered=true": {
+      "model": "drivebysable:block/integrated_sensor_bus/base_powered",
       "y": 270
     }
   }

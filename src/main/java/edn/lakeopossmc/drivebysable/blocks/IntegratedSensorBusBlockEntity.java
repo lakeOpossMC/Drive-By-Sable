@@ -1306,6 +1306,32 @@ public final class IntegratedSensorBusBlockEntity extends BlockEntity
         speedSampleCount = Math.min(speedSampleCount + 1, AVERAGE_SPEED_SAMPLES);
     }
 
+    //#region // --- LIT TEXTURE --- //
+    // * Server only. Lit while any channel carries a signal: something the bus is sending
+    public void tickChannelLight() {
+        if (level == null || level.isClientSide || isRemoved()) {
+            return;
+        }
+
+        final boolean active = CableNetworkManager.get(level).isSendingOnChannels(worldPosition) || hasAnyInput();
+        final BlockState state = getBlockState();
+        if (state.hasProperty(IntegratedSensorBusBlock.POWERED)
+                && state.getValue(IntegratedSensorBusBlock.POWERED) != active) {
+            level.setBlock(worldPosition, state.setValue(IntegratedSensorBusBlock.POWERED, active),
+                    net.minecraft.world.level.block.Block.UPDATE_CLIENTS);
+        }
+    }
+
+    private synchronized boolean hasAnyInput() {
+        for (final byte input : inputs) {
+            if (input != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+    //#endregion
+
     public void tickTelemetry() {
         if (level == null || level.isClientSide || flightReadsBlocked || isRemoved()) {
             return;

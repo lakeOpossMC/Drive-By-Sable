@@ -42,6 +42,10 @@ public final class IntegratedSensorBusBlock extends BaseEntityBlock
     public static final MapCodec<IntegratedSensorBusBlock> CODEC = simpleCodec(IntegratedSensorBusBlock::new);
     public static final int CHANNEL_COUNT = MultiChannelCableBusBlock.CHANNEL_COUNT;
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
+    // * Lit texture: true while any channel carries a signal, sent or received
+    // * Kept up to date by the block entity
+    public static final net.minecraft.world.level.block.state.properties.BooleanProperty POWERED =
+            BlockStateProperties.POWERED;
 
     private static final List<String> CHANNELS = IntStream.rangeClosed(1, CHANNEL_COUNT)
             .mapToObj(Integer::toString)
@@ -49,12 +53,12 @@ public final class IntegratedSensorBusBlock extends BaseEntityBlock
 
     public IntegratedSensorBusBlock(BlockBehaviour.Properties properties) {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(POWERED, false));
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<net.minecraft.world.level.block.Block, BlockState> builder) {
-        builder.add(FACING);
+        builder.add(FACING, POWERED);
     }
 
     @Override
@@ -105,6 +109,7 @@ public final class IntegratedSensorBusBlock extends BaseEntityBlock
         return (tickLevel, pos, tickState, blockEntity) -> {
             if (blockEntity instanceof IntegratedSensorBusBlockEntity sensor) {
                 sensor.tickTelemetry();
+                sensor.tickChannelLight();
             }
         };
     }

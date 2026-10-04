@@ -42,6 +42,11 @@ public class IntermediateCableHubBlockEntity extends CableHubBlockEntity {
         return Vocabulary.GET_CREATIVE;
     }
 
+    @Override
+    protected boolean hasBulb() {
+        return true;
+    }
+
     //#region // --- OPEN CHANNEL GROUPS --- //
     // * True if this bind opened a group that was closed
     public boolean openGroup(final String group) {

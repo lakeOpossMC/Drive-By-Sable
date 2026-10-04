@@ -12,6 +12,9 @@ import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSin
 import edn.lakeopossmc.drivebysable.compat.computercraft.ComputerCraftCompat;
 import edn.lakeopossmc.drivebysable.compat.keytranslator.ControllerChannelTranslator;
 import edn.lakeopossmc.drivebysable.compat.keytranslator.ControllerChannelTranslator.Vocabulary;
+import net.createmod.catnip.animation.LerpedFloat;
+import net.createmod.catnip.animation.LerpedFloat.Chaser;
+import net.createmod.catnip.nbt.NBTHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -20,6 +23,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -42,6 +46,21 @@ public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCl
     private final Object computerHandler;
     private String computerEventPrefix = "";
 
+    // --- CHANNEL LIGHT AND BULB --- //
+    private static final String PULSE_KEY = "Pulse";
+    // * Least ticks between two blinks
+    private static final int PULSE_INTERVAL = 5;
+
+    private final LerpedFloat glow = LerpedFloat.linear().startWithValue(0);
+    private boolean sendPulse;
+    private boolean pulseWaiting;
+    private int pulseCooldown;
+    private int lastSignalHash;
+
+    {
+        glow.chase(0, 0.5F, Chaser.EXP);
+    }
+
     public CableHubBlockEntity(final BlockPos pos, final BlockState state) {
         super(CableBlockEntities.CABLE_HUB.get(), pos, state);
 
@@ -62,6 +81,81 @@ public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCl
     @Override
     public void addBehaviours(final List<BlockEntityBehaviour> behaviours) {
     }
+
+    //#region // --- CHANNEL LIGHT AND BULB --- //
+    // * Hubs with a bulb on them (Intermediate and Advanced) blink it, see CableHubBulbRenderer
+    protected boolean hasBulb() {
+        return false;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (level == null) {
+            return;
+        }
+        if (isVirtual() || level.isClientSide) {
+            glow.tickChaser();
+            return;
+        }
+
+        final CableNetworkManager manager = CableNetworkManager.get(level);
+
+        // * Lit texture while any of the hub's channels carries a signal
+        final boolean sending = manager.isSendingOnChannels(worldPosition);
+        final BlockState state = getBlockState();
+        if (state.hasProperty(AbstractDirectionalHubBlock.POWERED)
+                && state.getValue(AbstractDirectionalHubBlock.POWERED) != sending) {
+            level.setBlock(worldPosition, state.setValue(AbstractDirectionalHubBlock.POWERED, sending),
+                    Block.UPDATE_CLIENTS);
+        }
+
+        if (!hasBulb()) {
+            return;
+        }
+
+        // * One blink for every change in what is being sent
+        if (pulseCooldown > 0) {
+            pulseCooldown--;
+        }
+        final int hash = manager.channelSignalHash(worldPosition);
+        if (hash != lastSignalHash) {
+            lastSignalHash = hash;
+            pulseWaiting = true;
+        }
+        if (pulseWaiting && pulseCooldown <= 0) {
+            pulseWaiting = false;
+            pulseCooldown = PULSE_INTERVAL;
+            sendPulse = true;
+            sendData();
+        }
+    }
+
+    public float getGlow(final float partialTicks) {
+        return glow.getValue(partialTicks);
+    }
+
+    public void pulse() {
+        glow.setValue(2);
+    }
+
+    @Override
+    protected void write(final CompoundTag tag, final HolderLookup.Provider registries, final boolean clientPacket) {
+        super.write(tag, registries, clientPacket);
+        if (clientPacket && sendPulse) {
+            sendPulse = false;
+            NBTHelper.putMarker(tag, PULSE_KEY);
+        }
+    }
+
+    @Override
+    protected void read(final CompoundTag tag, final HolderLookup.Provider registries, final boolean clientPacket) {
+        super.read(tag, registries, clientPacket);
+        if (clientPacket && tag.contains(PULSE_KEY)) {
+            pulse();
+        }
+    }
+    //#endregion
 
     @Override
     public String getClipboardKey() {

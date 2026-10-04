@@ -1,0 +1,7 @@
+{
+  "parent": "drivebysable:block/integrated_sensor_bus/base",
+  "render_type": "minecraft:cutout_mipped",
+  "textures": {
+    "0": "drivebysable:block/integrated_sensor_bus_powered"
+  }
+}

@@ -1087,6 +1087,36 @@ public final class CableNetworkManager {
     //#endregion
 
     //#region // --- READ ONLY ACCESSORS --- //
+    // * Is this block sending a signal on any of its named channels
+    public boolean isSendingOnChannels(final BlockPos source) {
+        final Map<String, Integer> values = sourceValues.get(source.asLong());
+        if (values == null) {
+            return false;
+        }
+        for (final String channel : values.keySet()) {
+            if (!WORLD_CHANNEL.equals(channel)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // * Changes whenever what the block sends on its named channels changes
+    // * Lets a hub blink its bulb on every change without copying the values
+    public int channelSignalHash(final BlockPos source) {
+        final Map<String, Integer> values = sourceValues.get(source.asLong());
+        if (values == null) {
+            return 0;
+        }
+        int hash = 0;
+        for (final Map.Entry<String, Integer> entry : values.entrySet()) {
+            if (!WORLD_CHANNEL.equals(entry.getKey())) {
+                hash += entry.getKey().hashCode() * 31 + entry.getValue();
+            }
+        }
+        return hash;
+    }
+
     public Map<String, Integer> getSourceSignals(final BlockPos source) {
         final Map<String, Integer> values = sourceValues.get(source.asLong());
         return values == null ? Map.of() : Map.copyOf(values);

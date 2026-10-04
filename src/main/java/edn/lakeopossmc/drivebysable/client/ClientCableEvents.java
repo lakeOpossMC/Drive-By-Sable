@@ -18,6 +18,8 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import edn.lakeopossmc.drivebysable.client.render.CableHubBulbRenderer;
+import edn.lakeopossmc.drivebysable.client.render.CableHubPartialModels;
 import edn.lakeopossmc.drivebysable.client.render.HandheldTypewriterItemRenderer;
 import edn.lakeopossmc.drivebysable.client.render.HandheldTypewriterLecternRenderer;
 import edn.lakeopossmc.drivebysable.client.render.IntegratedSensorBusRenderer;
@@ -44,6 +46,19 @@ public final class ClientCableEvents {
         event.registerBlockEntityRenderer(
                 CableBlockEntities.INTEGRATED_SENSOR_BUS.get(),
                 IntegratedSensorBusRenderer::new);
+
+        // * Bulb blink on the hubs that have one
+        CableHubPartialModels.load();
+        if (CableBlockEntities.INTERMEDIATE_CABLE_HUB != null) {
+            event.registerBlockEntityRenderer(
+                    CableBlockEntities.INTERMEDIATE_CABLE_HUB.get(),
+                    CableHubBulbRenderer::new);
+        }
+        if (CableBlockEntities.ADVANCED_CABLE_HUB != null) {
+            event.registerBlockEntityRenderer(
+                    CableBlockEntities.ADVANCED_CABLE_HUB.get(),
+                    CableHubBulbRenderer::new);
+        }
 
         // * Linked Gearbox cog, fallback for when Flywheel is off
         LinkedGearboxPartialModels.load();
