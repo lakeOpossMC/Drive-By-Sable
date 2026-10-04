@@ -277,7 +277,7 @@ public class CableConfig {
                         "Measured from the command's position to where each Source appears in the world."
                 )
                 .translation("drivebysable.config.commandRadiusLimit")
-                .defineInRange("commandRadiusLimit", 256, 1, 4096);
+                .defineInRange("commandRadiusLimit", 1000, 1, 10000);
 
         builder.pop();
         //#endregion
