@@ -9,14 +9,17 @@
   "block.drivebysable.intermediate_cable_hub": "Intermediate Cable Hub",
   "block.drivebysable.advanced_cable_hub": "Advanced Cable Hub",
   "block.drivebysable.cable_typewriter_hub": "Typewriter Cable Hub",
+  "block.drivebysable.handheld_typewriter_lectern": "Lectern",
   "block.drivebysable.multi_channel_cable_bus": "Multi-Channel Cable Bus",
   "block.drivebysable.integrated_sensor_bus": "Integrated Sensor Bus",
   "block.drivebysable.linked_gearbox": "Radio-Kinetic Transceiver",
+  "block.drivebysable.honeyed_clipboard": "Honeyed Clipboard",
 
   "item.drivebysable.cable": "Cable",
   "item.drivebysable.cable_cutter": "Cable Cutter",
   "item.drivebysable.cable_io_bus": "Cable I/O Bus",
   "item.drivebysable.incomplete_cable_io_bus": "Incomplete Cable I/O Bus",
+  "item.drivebysable.handheld_typewriter_controller": "Handheld Typewriter Controller",
 
   "subtitle.drivebysable.plug.in": "Cable connected",
   "subtitle.drivebysable.plug.out": "Cable disconnected",
@@ -97,9 +100,7 @@
   "block.drivebysable.cable_typewriter_hub.tooltip.condition3": "R-Click with Linked Controller",
   "block.drivebysable.cable_typewriter_hub.tooltip.behaviour3": "Binds the _Linked Controller's_ frequencies to the typewriter.",
   "block.drivebysable.cable_typewriter_hub.tooltip.condition4": "When connected via Cable",
-  "item.drivebysable.handheld_typewriter_controller": "Handheld Typewriter Controller",
-  "item.drivebysable.incomplete_handheld_typewriter_controller": "Incomplete Handheld Typewriter Controller",
-  "block.drivebysable.handheld_typewriter_lectern": "Lectern",
+
   "item.drivebysable.handheld_typewriter_controller.tooltip.summary": "A portable _Linked Typewriter_. Any _keyboard key_ can send a _redstone link_ signal, or a _cable channel_ through a Typewriter Cable Hub.",
   "item.drivebysable.handheld_typewriter_controller.tooltip.condition1": "When R-Clicked",
   "item.drivebysable.handheld_typewriter_controller.tooltip.behaviour1": "_Toggles_ the controller. Any _assigned keys_ are taken over while it's active.",
@@ -174,6 +175,7 @@
   "drivebysable.ponder.linked_gearbox_network.text_4": "Redstone Links can power a Transceiver remotely",
   "drivebysable.ponder.linked_gearbox_network.text_5": "Match the rear frequency slots to the link",
   "drivebysable.ponder.linked_gearbox_network.text_6": "A powered link drops that Transceiver out of its network",
+
   "drivebysable.ponder.cable_hub_intro.header": "Using a Cable Hub",
   "drivebysable.ponder.cable_hub_intro.text_1": "This is a Cable Hub",
   "drivebysable.ponder.cable_hub_intro.text_2": "The Cable Hub can link multiple channels to redstone signal outputs",
