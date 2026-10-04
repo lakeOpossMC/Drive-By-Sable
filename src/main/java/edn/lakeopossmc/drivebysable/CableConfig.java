@@ -1,7 +1,10 @@
 package edn.lakeopossmc.drivebysable;
 
+import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.common.ModConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
+
+import javax.annotation.Nullable;
 
 // --- MOD CONFIG DEF --- //
 public class CableConfig {
@@ -60,9 +63,10 @@ public class CableConfig {
 
         allowCableDisconnect = builder
                 .comment(
-                        "Whether the Cable itself can remove an existing connection.",
+                        "Whether the Cable itself can remove an existing connection in survival.",
                         "When false, pointing a Cable at a connection it already made does nothing,",
                         "and the Cable Cutter becomes the only way to remove connections.",
+                        "Creative mode players can always remove connections with the Cable.",
                         "The Cable Cutter is unaffected by this option."
                 )
                 .translation("drivebysable.config.allowCableDisconnect")
@@ -314,6 +318,10 @@ public class CableConfig {
     }
 
     // * Build config and spec together
+    public static boolean cableCanDisconnect(@Nullable final Player player) {
+        return CONFIG.allowCableDisconnect.get() || (player != null && player.hasInfiniteMaterials());
+    }
+
     static {
         Pair<CableConfig, ModConfigSpec> pair = new ModConfigSpec.Builder().configure(CableConfig::new);
         CONFIG = pair.getLeft();

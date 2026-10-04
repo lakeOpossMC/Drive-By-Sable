@@ -34,7 +34,7 @@ public record LinkedGearboxLeavePacket(BlockPos gearbox) implements CustomPacket
             return;
         }
 
-        if (!CableConfig.CONFIG.allowCableDisconnect.get()
+        if (!CableConfig.cableCanDisconnect(player)
                 && !player.getMainHandItem().is(CableItems.CABLE_CUTTER.get())) {
             CableNetworkFullSyncPacket.sendTo(player);
             return;

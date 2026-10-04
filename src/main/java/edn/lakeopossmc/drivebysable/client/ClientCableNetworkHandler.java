@@ -930,7 +930,8 @@ public final class ClientCableNetworkHandler {
             return true;
         }
 
-        if (isGearboxSource(level) && selectedSource.equals(pos) && gearboxHasLinks(level, pos)) {
+        if (isGearboxSource(level) && selectedSource.equals(pos) && gearboxHasLinks(level, pos)
+                && CableConfig.cableCanDisconnect(player)) {
             return toggleStressLink(player, heldItem, level, pos, face, true);
         }
 
@@ -1132,7 +1133,7 @@ public final class ClientCableNetworkHandler {
         final CableNetworkSink sink = CableNetworkSink.of(pos, face, sinkChannel);
 
         if (currentSelection != null && currentSelection.getOrDefault(currentChannel, Set.of()).contains(sink)) {
-            if (allowAdd && !CableConfig.CONFIG.allowCableDisconnect.get()) {
+            if (allowAdd && !CableConfig.cableCanDisconnect(player)) {
                 showInvalidOperationMessage(player, "drivebysable.invalid_op.cable_removal_disabled");
                 return false;
             }
@@ -1256,7 +1257,7 @@ public final class ClientCableNetworkHandler {
 
         final Set<BlockPos> network = openGearboxNetwork(level);
         if (network.contains(pos) && gearboxHasLinks(level, pos)) {
-            if (allowAdd && !CableConfig.CONFIG.allowCableDisconnect.get()) {
+            if (allowAdd && !CableConfig.cableCanDisconnect(player)) {
                 showInvalidOperationMessage(player, "drivebysable.invalid_op.cable_removal_disabled");
                 return false;
             }
@@ -1389,7 +1390,8 @@ public final class ClientCableNetworkHandler {
         final BlockPos hitPos = hitBlock ? ((BlockHitResult) hitResult).getBlockPos() : null;
         final String subTarget = hitPos == null ? null : pickSubTarget(level, hitPos, player);
 
-        if (hitPos != null && isGearboxSource(level) && selectedSource.equals(hitPos) && gearboxHasLinks(level, hitPos)) {
+        if (hitPos != null && isGearboxSource(level) && selectedSource.equals(hitPos) && gearboxHasLinks(level, hitPos)
+                && CableConfig.cableCanDisconnect(player)) {
             tip.add(Component.translatable("drivebysable.cable_actions.unlink_gearbox", Component.keybind("key.use")));
             tip.add(Component.translatable("drivebysable.cable_actions.exit_setup_sneak",
                     Component.keybind("key.sneak"), Component.keybind("key.use")));
@@ -1415,7 +1417,8 @@ public final class ClientCableNetworkHandler {
                     drivebysable$refuse(tip, refusal);
                     return;
                 }
-                if (openGearboxNetwork(level).contains(hitPos) && gearboxHasLinks(level, hitPos)) {
+                if (CableConfig.cableCanDisconnect(player)
+                        && openGearboxNetwork(level).contains(hitPos) && gearboxHasLinks(level, hitPos)) {
                     tip.add(Component.translatable("drivebysable.cable_actions.unlink_gearbox", Component.keybind("key.use")));
                 }
             }
@@ -1456,7 +1459,7 @@ public final class ClientCableNetworkHandler {
             tip.add(Component.translatable("drivebysable.cable_actions.choose_output_channel", Component.keybind("key.use")));
         } else {
             tip.add(Component.translatable(
-                    CableConfig.CONFIG.allowCableDisconnect.get()
+                    CableConfig.cableCanDisconnect(player)
                             ? "drivebysable.cable_actions.toggle_output"
                             : "drivebysable.cable_actions.add_output",
                     Component.keybind("key.use")

@@ -53,8 +53,8 @@ public record CableRemoveConnectionPacket(
         }
 
         // * The cutter is always allowed
-        // * A cable is only allowed when the config says so
-        if (!CableConfig.CONFIG.allowCableDisconnect.get()
+        // * A cable is allowed when the config says so, and always in creative
+        if (!CableConfig.cableCanDisconnect(player)
                 && !player.getMainHandItem().is(CableItems.CABLE_CUTTER.get())) {
             CableNetworkFullSyncPacket.sendTo(player);
             return;
