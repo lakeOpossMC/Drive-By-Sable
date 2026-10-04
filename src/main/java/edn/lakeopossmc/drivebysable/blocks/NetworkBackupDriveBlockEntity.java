@@ -144,8 +144,8 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity
         //#endregion
 
         // * If setLevel already ran, this is the point the snapshot becomes known
+        // * Only queued here, see setLevel
         queueForBindingIfNeeded();
-        tryBindWorldSpaceSnapshot();
     }
 
     // * Fit the region around what we inherited
@@ -183,18 +183,29 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity
             return;
         }
 
-        if (CableNetworkManager.isPastedCopy(this.boundedSnapshot, this.worldPosition)) {
+        // * Pinning and fitting both look blocks up, so both wait for the tick queue
+        if (CableNetworkManager.isPastedCopy(this.boundedSnapshot, this.worldPosition) || this.regionFitPending) {
             CableNetworkManager.get(this.level).queueForBinding(this.worldPosition);
         }
     }
 
     public void tryBindWorldSpaceSnapshot() {
-        if (this.boundedSnapshot == null || this.level == null || this.level.isClientSide()) {
+        if (this.level == null || this.level.isClientSide()) {
             return;
         }
 
+        if (this.boundedSnapshot == null) {
+            CableNetworkManager.get(this.level).stopWaitingToBind(this.worldPosition);
+            return;
+        }
+
+        tryFitLegacyRegion();
+
         // * Only a pasted copy gets pinned
         if (!CableNetworkManager.isPastedCopy(this.boundedSnapshot, this.worldPosition)) {
+            if (!this.regionFitPending) {
+                CableNetworkManager.get(this.level).stopWaitingToBind(this.worldPosition);
+            }
             return;
         }
 
@@ -263,8 +274,6 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity
         registerLegacyPayload();
 
         queueForBindingIfNeeded();
-        tryBindWorldSpaceSnapshot();
-        tryFitLegacyRegion();
     }
 
     // * The player's region and whatever they saved into it

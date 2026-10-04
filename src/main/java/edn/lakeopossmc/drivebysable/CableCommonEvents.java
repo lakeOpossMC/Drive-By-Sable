@@ -61,6 +61,9 @@ public final class CableCommonEvents {
             return;
         }
 
+        // * First tick only: the level is running now, so blocks can be looked up safely
+        CableNetworkManager.get(level).attachLevel(level);
+
         CableNetworkManager.get(level).flushPendingGraphRebuild(level);
         CableNetworkManager.get(level).tickPendingBinds(level);
         CableNetworkManager.get(level).tickPendingPublishes(level);

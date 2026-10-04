@@ -396,7 +396,6 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity implements WorldS
         super.setLevel(level);
 
         queueBindingIfNeeded();
-        tryBindWorldSpaceSnapshot();
     }
 
     @Override
@@ -573,8 +572,8 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity implements WorldS
         appliedAt = tag.contains(APPLIED_AT_KEY) ? BlockPos.of(tag.getLong(APPLIED_AT_KEY)) : null;
 
         // * If setLevel already ran, this is the point the snapshot becomes known
+        // * Only queued here, see setLevel
         queueBindingIfNeeded();
-        tryBindWorldSpaceSnapshot();
     }
 
     @Override

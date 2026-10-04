@@ -26,11 +26,10 @@ public final class CableNetworkSavedData extends SavedData {
         return new Factory<>(CableNetworkSavedData::new, CableNetworkSavedData::load);
     }
 
-    // * Fetch or create then bind to this level
+    // * Fetch or create
     public static CableNetworkManager get(final ServerLevel level) {
         final CableNetworkSavedData data = level.getDataStorage().computeIfAbsent(factory(), DATA_NAME);
         data.importLegacyNetwork(level);
-        data.manager.attachLevel(level);
         return data.manager;
     }
 
