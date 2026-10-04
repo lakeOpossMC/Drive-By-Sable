@@ -3,7 +3,7 @@
     "render_type": "minecraft:cutout_mipped",
 	"texture_size": [128, 128],
 	"textures": {
-		"0": "drivebysable:block/integrated_sensor_bus",
+		"0": "drivebysable:block/integrated_sensor_bus/integrated_sensor_bus",
 		"particle": "create:block/vault/vault_front_small"
 	},
 	"elements": [

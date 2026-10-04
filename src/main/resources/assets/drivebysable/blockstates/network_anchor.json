@@ -1,10 +1,10 @@
 {
   "variants": {
     "stored=true": {
-      "model": "drivebysable:block/network_anchor"
+      "model": "drivebysable:block/network_anchor/block"
     },
     "stored=false": {
-      "model": "drivebysable:block/network_anchor_empty"
+      "model": "drivebysable:block/network_anchor/block_empty"
     }
   }
 }

@@ -1,0 +1,90 @@
+{
+  "credit": "Made with Blockbench",
+  "texture_size": [
+    32,
+    32
+  ],
+  "textures": {
+    "0": "drivebysable:block/intermediate_cable_hub/intermediate_cable_hub",
+    "particle": "create:block/brass_casing"
+  },
+  "elements": [
+    {
+      "from": [
+        8.0,
+        9.5,
+        7.5
+      ],
+      "to": [
+        14.0,
+        15.5,
+        13.5
+      ],
+      "rotation": {
+        "angle": 0,
+        "axis": "y",
+        "origin": [
+          6.75,
+          6.75,
+          11.25
+        ]
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            10.25,
+            1.25,
+            9,
+            2.5
+          ],
+          "texture": "#0"
+        },
+        "east": {
+          "uv": [
+            10.25,
+            1.25,
+            9,
+            2.5
+          ],
+          "texture": "#0"
+        },
+        "south": {
+          "uv": [
+            9,
+            1.25,
+            10.25,
+            2.5
+          ],
+          "texture": "#0"
+        },
+        "west": {
+          "uv": [
+            9,
+            1.25,
+            10.25,
+            2.5
+          ],
+          "texture": "#0"
+        },
+        "up": {
+          "uv": [
+            9,
+            0,
+            10.25,
+            1.25
+          ],
+          "texture": "#0"
+        },
+        "down": {
+          "uv": [
+            9,
+            2.5,
+            10.25,
+            3.75
+          ],
+          "texture": "#0"
+        }
+      }
+    }
+  ]
+}

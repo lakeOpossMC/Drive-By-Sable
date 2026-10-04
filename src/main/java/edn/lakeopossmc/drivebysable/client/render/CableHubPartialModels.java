@@ -6,12 +6,12 @@ import edn.lakeopossmc.drivebysable.DriveBySableMod;
 // --- THE BULB GLOW OF THE INTERMEDIATE AND ADVANCED CABLE HUBS --- //
 public final class CableHubPartialModels {
 
-    private static final String PREFIX = "block/hub_glow/";
+    private static final String PREFIX = "block/";
 
-    public static final PartialModel INTERMEDIATE_GLOW = of("intermediate");
-    public static final PartialModel INTERMEDIATE_GLOW_VERTICAL = of("intermediate_vertical");
-    public static final PartialModel ADVANCED_GLOW = of("advanced");
-    public static final PartialModel ADVANCED_GLOW_VERTICAL = of("advanced_vertical");
+    public static final PartialModel INTERMEDIATE_GLOW = of("intermediate_cable_hub/glow");
+    public static final PartialModel INTERMEDIATE_GLOW_VERTICAL = of("intermediate_cable_hub/glow_vertical");
+    public static final PartialModel ADVANCED_GLOW = of("advanced_cable_hub/glow");
+    public static final PartialModel ADVANCED_GLOW_VERTICAL = of("advanced_cable_hub/glow_vertical");
 
     private CableHubPartialModels() {
     }

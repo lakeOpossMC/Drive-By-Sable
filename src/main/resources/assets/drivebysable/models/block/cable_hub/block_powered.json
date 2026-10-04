@@ -1,0 +1,6 @@
+{
+  "parent": "drivebysable:block/cable_hub/block",
+  "textures": {
+    "0": "drivebysable:block/cable_hub/cable_hub_powered"
+  }
+}

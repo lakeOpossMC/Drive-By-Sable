@@ -1,4 +1,4 @@
 {
-  "parent": "drivebysable:block/multi_channel_cable_bus"
+  "parent": "drivebysable:block/multi_channel_cable_bus/block"
 }
 

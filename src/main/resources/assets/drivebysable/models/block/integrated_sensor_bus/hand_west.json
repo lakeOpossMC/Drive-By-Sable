@@ -2,7 +2,7 @@
 	"credit": "Made with Blockbench",
 	"texture_size": [128, 128],
 	"textures": {
-		"0": "drivebysable:block/integrated_sensor_bus"
+		"0": "drivebysable:block/integrated_sensor_bus/integrated_sensor_bus"
 	},
 	"elements": [
 		{

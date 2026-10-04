@@ -2,7 +2,7 @@
   "credit": "Made with Blockbench",
   "texture_size": [64, 64],
   "textures": {
-    "0": "drivebysable:block/linked_gearbox",
+    "0": "drivebysable:block/linked_gearbox/linked_gearbox",
     "particle": "create:block/brass_casing"
   },
   "elements": [

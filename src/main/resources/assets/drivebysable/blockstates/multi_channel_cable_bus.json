@@ -1,18 +1,18 @@
 {
   "variants": {
     "facing=north": {
-      "model": "drivebysable:block/multi_channel_cable_bus"
+      "model": "drivebysable:block/multi_channel_cable_bus/block"
     },
     "facing=east": {
-      "model": "drivebysable:block/multi_channel_cable_bus",
+      "model": "drivebysable:block/multi_channel_cable_bus/block",
       "y": 90
     },
     "facing=south": {
-      "model": "drivebysable:block/multi_channel_cable_bus",
+      "model": "drivebysable:block/multi_channel_cable_bus/block",
       "y": 180
     },
     "facing=west": {
-      "model": "drivebysable:block/multi_channel_cable_bus",
+      "model": "drivebysable:block/multi_channel_cable_bus/block",
       "y": 270
     }
   }

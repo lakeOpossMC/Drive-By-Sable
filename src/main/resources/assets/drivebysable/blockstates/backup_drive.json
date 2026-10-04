@@ -1,5 +1,5 @@
 {
   "variants": {
-    "": { "model": "drivebysable:block/backup_drive" }
+    "": { "model": "drivebysable:block/backup_drive/block" }
   }
 }
