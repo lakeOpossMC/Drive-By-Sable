@@ -15,9 +15,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 // --- HOW A LOAD TURNED OUT --- //
+// * Transceivers are reported on their own lines
 public record BackupDriveLoadReportPacket(
         Tally sources,
         Tally outputs,
+        Tally transceivers,
         // * How many connections this load actually made
         int restoredConnections,
         // * How many are still held in the save for another try
@@ -44,6 +46,7 @@ public record BackupDriveLoadReportPacket(
             StreamCodec.composite(
                     Tally.STREAM_CODEC, BackupDriveLoadReportPacket::sources,
                     Tally.STREAM_CODEC, BackupDriveLoadReportPacket::outputs,
+                    Tally.STREAM_CODEC, BackupDriveLoadReportPacket::transceivers,
                     ByteBufCodecs.VAR_INT, BackupDriveLoadReportPacket::restoredConnections,
                     ByteBufCodecs.VAR_INT, BackupDriveLoadReportPacket::keptConnections,
                     BackupDriveLoadReportPacket::new
@@ -56,12 +59,15 @@ public record BackupDriveLoadReportPacket(
 
     private static final int SOURCE_COLOR = 0x7FCDE0;
     private static final int OUTPUT_COLOR = 0xDDC166;
+    private static final int TRANSCEIVER_COLOR = 0x55FFFF;
 
     public static void handle(final BackupDriveLoadReportPacket payload, final IPayloadContext context) {
         final Tally sources = payload.sources();
         final Tally outputs = payload.outputs();
+        final Tally transceivers = payload.transceivers();
 
-        final boolean anythingMissing = sources.missing() > 0 || outputs.missing() > 0;
+        final boolean anythingMissing = sources.missing() > 0 || outputs.missing() > 0
+                || transceivers.missing() > 0;
         final boolean nothingLoaded = payload.restoredConnections() == 0;
 
         final List<MutableComponent> lines = new ArrayList<>();
@@ -94,6 +100,15 @@ public record BackupDriveLoadReportPacket(
         if (outputs.present() > 0) {
             lines.add(present("drivebysable.backup_drive.load_report.outputs_present",
                     outputs.present(), OUTPUT_COLOR));
+        }
+
+        if (transceivers.loaded() > 0 || transceivers.missing() > 0) {
+            lines.add(line("drivebysable.backup_drive.load_report.transceivers",
+                    transceivers.loaded(), transceivers.missing(), TRANSCEIVER_COLOR));
+        }
+        if (transceivers.present() > 0) {
+            lines.add(present("drivebysable.backup_drive.load_report.transceivers_present",
+                    transceivers.present(), TRANSCEIVER_COLOR));
         }
 
         if (anythingMissing) {

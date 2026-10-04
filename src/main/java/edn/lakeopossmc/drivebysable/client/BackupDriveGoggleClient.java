@@ -21,6 +21,8 @@ public final class BackupDriveGoggleClient {
     private static final String PREFIX_FULL = DriveBySableMod.MOD_ID + "." + PREFIX;
 
     private static final String[] COUNT_KEYS = {"valid_sources", "partial_sources", "invalid_sources"};
+    private static final String[] TRANSCEIVER_COUNT_KEYS =
+            {"valid_transceivers", "partial_transceivers", "invalid_transceivers"};
 
     private static final int COLUMN_GAP = 8;
 
@@ -68,12 +70,18 @@ public final class BackupDriveGoggleClient {
         final int outputsOutside = tally[BackupDrivePreview.TALLY_OUTPUTS_OUTSIDE];
         final int invalid = unreachable + outputsOutside;
 
-        if (valid + partial + invalid == 0) {
+        // * Linked Gearboxes are neither sources nor outputs
+        final int validTransceivers = tally[BackupDrivePreview.TALLY_TRANSCEIVERS_VALID];
+        final int partialTransceivers = tally[BackupDrivePreview.TALLY_TRANSCEIVERS_PARTIAL];
+        final int invalidTransceivers = tally[BackupDrivePreview.TALLY_TRANSCEIVERS_INVALID];
+        final boolean anyTransceivers = validTransceivers + partialTransceivers + invalidTransceivers > 0;
+
+        if (valid + partial + invalid == 0 && !anyTransceivers) {
             lang(PREFIX + "no_data").style(ChatFormatting.GRAY).forGoggles(tooltip, 1);
             return;
         }
 
-        final int column = widestLabel() + COLUMN_GAP;
+        final int column = widestLabel(anyTransceivers) + COLUMN_GAP;
 
         count(tooltip, "valid_sources", valid, ChatFormatting.GREEN, column);
 
@@ -91,18 +99,37 @@ public final class BackupDriveGoggleClient {
             reason(tooltip, "reason_all_outside", ChatFormatting.RED);
         }
 
+        if (anyTransceivers) {
+            count(tooltip, "valid_transceivers", validTransceivers, ChatFormatting.GREEN, column);
+
+            count(tooltip, "partial_transceivers", partialTransceivers, ChatFormatting.GOLD, column);
+            if (partialTransceivers > 0) {
+                reason(tooltip, "reason_transceivers_outside", ChatFormatting.GOLD);
+            }
+
+            count(tooltip, "invalid_transceivers", invalidTransceivers, ChatFormatting.RED, column);
+            if (invalidTransceivers > 0) {
+                reason(tooltip, "reason_transceiver_alone", ChatFormatting.RED);
+            }
+        }
+
         // * Only while there is something to correct
-        if (partial + invalid > 0) {
+        if (partial + invalid + partialTransceivers + invalidTransceivers > 0) {
             lang(PREFIX + "fix_issues").style(ChatFormatting.GRAY).forGoggles(tooltip, 1);
         }
     }
 
-    // * How wide the longest of the three labels renders
-    private static int widestLabel() {
+    // * How wide the longest of the labels being shown renders
+    private static int widestLabel(final boolean withTransceivers) {
         final Font font = Minecraft.getInstance().font;
         int widest = 0;
         for (final String key : COUNT_KEYS) {
             widest = Math.max(widest, font.width(Component.translatable(PREFIX_FULL + key)));
+        }
+        if (withTransceivers) {
+            for (final String key : TRANSCEIVER_COUNT_KEYS) {
+                widest = Math.max(widest, font.width(Component.translatable(PREFIX_FULL + key)));
+            }
         }
         return widest;
     }

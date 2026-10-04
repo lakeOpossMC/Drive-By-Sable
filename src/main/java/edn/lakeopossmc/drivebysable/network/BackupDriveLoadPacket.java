@@ -90,6 +90,10 @@ public record BackupDriveLoadPacket(BlockPos drivePos) implements CustomPacketPa
         // * Sampled before and after
         final Map<BlockPos, Set<String>> connectedBefore = CableNetworkManager.get(level)
                 .connectedSourceModules(level, menu.getDrivePos(), drive.getSavedFacing(), snapshot);
+        final CableNetworkManager.SnapshotSummary before = CableNetworkManager.get(level)
+                .summariseSnapshot(level, menu.getDrivePos(), drive.getSavedFacing(), snapshot);
+        final Set<BlockPos> transceiversBefore = CableNetworkManager.get(level)
+                .joinedTransceivers(level, menu.getDrivePos(), drive.getSavedFacing(), snapshot);
 
         final CableNetworkManager.RestoreResult result = CableNetworkManager.get(level)
                 .restoreBackupSnapshot(level, menu.getDrivePos(), drive.getSavedFacing(), snapshot);
@@ -105,14 +109,24 @@ public record BackupDriveLoadPacket(BlockPos drivePos) implements CustomPacketPa
         final List<String> highlightModules = new ArrayList<>();
 
         connectedAfter.forEach((pos, modules) -> {
-            final Set<String> before = connectedBefore.getOrDefault(pos, Set.of());
+            final Set<String> already = connectedBefore.getOrDefault(pos, Set.of());
             for (final String module : modules) {
-                if (!before.contains(module)) {
+                if (!already.contains(module)) {
                     highlightPositions.add(pos);
                     highlightModules.add(module);
                 }
             }
         });
+        final int loadedSources = highlightPositions.size();
+
+        // * Transceivers this load joined up are shown too
+        for (final BlockPos pos : CableNetworkManager.get(level)
+                .joinedTransceivers(level, menu.getDrivePos(), drive.getSavedFacing(), snapshot)) {
+            if (!transceiversBefore.contains(pos)) {
+                highlightPositions.add(pos);
+                highlightModules.add("");
+            }
+        }
 
         if (!highlightPositions.isEmpty()) {
             PacketDistributor.sendToPlayer(player, new BackupDriveHighlightPacket(
@@ -140,11 +154,19 @@ public record BackupDriveLoadPacket(BlockPos drivePos) implements CustomPacketPa
             drive.storeBoundedSnapshot(remaining);
         }
 
+        // * Outputs and transceivers are told apart by what the save holds before and after,
+        // * the restore itself only counts connections
         PacketDistributor.sendToPlayer(player, new BackupDriveLoadReportPacket(
                 new BackupDriveLoadReportPacket.Tally(
-                        highlightPositions.size(), summary.missingSources(), moduleCount(connectedBefore)),
+                        loadedSources, summary.missingSources(), moduleCount(connectedBefore)),
                 new BackupDriveLoadReportPacket.Tally(
-                        result.restoredConnections(), summary.missingSinks(), result.existingConnections()),
+                        Math.max(0, summary.loadedSinks() - before.loadedSinks()),
+                        summary.missingSinks(),
+                        before.loadedSinks()),
+                new BackupDriveLoadReportPacket.Tally(
+                        Math.max(0, summary.loadedTransceivers() - before.loadedTransceivers()),
+                        summary.missingTransceivers(),
+                        before.loadedTransceivers()),
                 result.restoredConnections(),
                 kept
         ));

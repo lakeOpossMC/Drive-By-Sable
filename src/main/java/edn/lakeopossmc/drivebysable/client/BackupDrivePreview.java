@@ -70,7 +70,11 @@ public final class BackupDrivePreview {
     public static final int TALLY_PARTIAL = 1;
     public static final int TALLY_SOURCE_UNREACHABLE = 2;
     public static final int TALLY_OUTPUTS_OUTSIDE = 3;
-    private static final int TALLY_SIZE = 4;
+    // * Linked Gearboxes, judged as networks rather than as sources
+    public static final int TALLY_TRANSCEIVERS_VALID = 4;
+    public static final int TALLY_TRANSCEIVERS_PARTIAL = 5;
+    public static final int TALLY_TRANSCEIVERS_INVALID = 6;
+    private static final int TALLY_SIZE = 7;
 
     // * Which sublevels the region touches this tick
     private static Set<UUID> cachedIntersecting;
@@ -218,8 +222,14 @@ public final class BackupDrivePreview {
                 continue;
             }
 
+            // * Gearbox links are not source to output connections
+            final Map<String, Set<CableNetworkSink>> plain = BackupDriveCapture.withoutGearboxLinks(entry.getValue());
+            if (plain.isEmpty()) {
+                continue;
+            }
+
             for (final Map.Entry<String, Map<String, Set<CableNetworkSink>>> moduleEntry
-                    : BackupDriveCapture.groupByModule(level, source, entry.getValue()).entrySet()) {
+                    : BackupDriveCapture.groupByModule(level, source, plain).entrySet()) {
 
                 final BackupDriveCapture.Status status =
                         BackupDriveCapture.classify(level, box, driveSubLevel, source, moduleEntry.getValue());
@@ -232,6 +242,15 @@ public final class BackupDrivePreview {
                             : TALLY_SOURCE_UNREACHABLE;
                 }]++;
             }
+        }
+
+        for (final BackupDriveCapture.Status status
+                : BackupDriveCapture.classifyTransceivers(level, box, driveSubLevel).values()) {
+            tally[switch (status) {
+                case VALID -> TALLY_TRANSCEIVERS_VALID;
+                case PARTIAL -> TALLY_TRANSCEIVERS_PARTIAL;
+                case INVALID -> TALLY_TRANSCEIVERS_INVALID;
+            }]++;
         }
         return tally;
     }
@@ -311,9 +330,14 @@ public final class BackupDrivePreview {
                 continue;
             }
 
+            final Map<String, Set<CableNetworkSink>> plain = BackupDriveCapture.withoutGearboxLinks(entry.getValue());
+            if (plain.isEmpty()) {
+                continue;
+            }
+
             // * Split by module first
             final Map<String, Map<String, Set<CableNetworkSink>>> byModule =
-                    BackupDriveCapture.groupByModule(level, source, entry.getValue());
+                    BackupDriveCapture.groupByModule(level, source, plain);
 
             for (final Map.Entry<String, Map<String, Set<CableNetworkSink>>> moduleEntry : byModule.entrySet()) {
                 final BackupDriveCapture.Status status = BackupDriveCapture.classify(
@@ -339,6 +363,24 @@ public final class BackupDrivePreview {
                             .put(module, color);
                 }
             }
+        }
+
+        for (final Map.Entry<BlockPos, BackupDriveCapture.Status> transceiver
+                : BackupDriveCapture.classifyTransceivers(level, box, driveSubLevel).entrySet()) {
+            final BlockPos pos = transceiver.getKey();
+            if (level.getBlockState(pos).isAir()) {
+                continue;
+            }
+
+            blockOutlines.add(pos.immutable());
+            Outliner.getInstance()
+                    .showAABB(SOURCE_SLOT + previewDrive.asLong() + ":t" + pos.asLong(), blockBounds(level, pos))
+                    .colored(switch (transceiver.getValue()) {
+                        case VALID -> SOURCE_VALID_COLOR;
+                        case PARTIAL -> SOURCE_PARTIAL_COLOR;
+                        case INVALID -> SOURCE_INVALID_COLOR;
+                    })
+                    .lineWidth(OUTLINE_LINE_WIDTH);
         }
     }
 

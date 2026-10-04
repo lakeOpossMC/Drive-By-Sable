@@ -24,7 +24,10 @@ public record NetworkAnchorSavedPacket(
         int outputsOnOtherLevel,
         int sourcesOnOtherLevel,
         int missingSources,
-        int missingOutputs
+        int missingOutputs,
+        int transceivers,
+        int transceiversOutOfRadius,
+        int missingTransceivers
 ) implements CustomPacketPayload {
 
     public static final int STATUS_SAVED = 0;
@@ -35,17 +38,26 @@ public record NetworkAnchorSavedPacket(
             final int radius,
             final int sources,
             final int outputs,
+            final int transceivers,
             final int outputsOutOfRadius,
             final int outputsOnOtherLevel,
-            final int sourcesOnOtherLevel
+            final int sourcesOnOtherLevel,
+            final int transceiversOutOfRadius
     ) {
         return new NetworkAnchorSavedPacket(
                 STATUS_SAVED, radius, sources, outputs,
-                outputsOutOfRadius, outputsOnOtherLevel, sourcesOnOtherLevel, 0, 0);
+                outputsOutOfRadius, outputsOnOtherLevel, sourcesOnOtherLevel, 0, 0,
+                transceivers, transceiversOutOfRadius, 0);
     }
 
-    public static NetworkAnchorSavedPacket cleared(final int radius, final int sources, final int outputs) {
-        return new NetworkAnchorSavedPacket(STATUS_CLEARED, radius, sources, outputs, 0, 0, 0, 0, 0);
+    public static NetworkAnchorSavedPacket cleared(
+            final int radius,
+            final int sources,
+            final int outputs,
+            final int transceivers
+    ) {
+        return new NetworkAnchorSavedPacket(
+                STATUS_CLEARED, radius, sources, outputs, 0, 0, 0, 0, 0, transceivers, 0, 0);
     }
 
     // * A load fails when blocks it expected are not there
@@ -53,17 +65,21 @@ public record NetworkAnchorSavedPacket(
             final int radius,
             final int sources,
             final int outputs,
+            final int transceivers,
             final int missingSources,
-            final int missingOutputs
+            final int missingOutputs,
+            final int missingTransceivers
     ) {
         return new NetworkAnchorSavedPacket(
-                STATUS_LOADED, radius, sources, outputs, 0, 0, 0, missingSources, missingOutputs);
+                STATUS_LOADED, radius, sources, outputs, 0, 0, 0, missingSources, missingOutputs,
+                transceivers, 0, missingTransceivers);
     }
 
     private static final int DISPLAY_TICKS = 60;
 
     private static final int SOURCE_COLOR = 0x7FCDE0;
     private static final int OUTPUT_COLOR = 0xDDC166;
+    private static final int TRANSCEIVER_COLOR = 0x55FFFF;
 
     public static final Type<NetworkAnchorSavedPacket> TYPE =
             new Type<>(DriveBySableMod.asResource("network_anchor_saved"));
@@ -80,8 +96,14 @@ public record NetworkAnchorSavedPacket(
                         VarInt.write(buffer, payload.sourcesOnOtherLevel());
                         VarInt.write(buffer, payload.missingSources());
                         VarInt.write(buffer, payload.missingOutputs());
+                        VarInt.write(buffer, payload.transceivers());
+                        VarInt.write(buffer, payload.transceiversOutOfRadius());
+                        VarInt.write(buffer, payload.missingTransceivers());
                     },
                     buffer -> new NetworkAnchorSavedPacket(
+                            VarInt.read(buffer),
+                            VarInt.read(buffer),
+                            VarInt.read(buffer),
                             VarInt.read(buffer),
                             VarInt.read(buffer),
                             VarInt.read(buffer),
@@ -107,11 +129,19 @@ public record NetworkAnchorSavedPacket(
                 colored("drivebysable.network_anchor.saved_outputs", payload.outputs(), OUTPUT_COLOR)
         ));
 
+        // * Only shown when there are transceivers to speak of
+        if (payload.transceivers() > 0) {
+            lines.add(colored("drivebysable.network_anchor.saved_transceivers",
+                    payload.transceivers(), TRANSCEIVER_COLOR));
+        }
+
         addIfAny(lines, "drivebysable.network_anchor.rejected_outputs", payload.outputsOutOfRadius());
         addIfAny(lines, "drivebysable.network_anchor.rejected_outputs_level", payload.outputsOnOtherLevel());
         addIfAny(lines, "drivebysable.network_anchor.rejected_sources", payload.sourcesOnOtherLevel());
+        addIfAny(lines, "drivebysable.network_anchor.rejected_transceivers", payload.transceiversOutOfRadius());
         addIfAny(lines, "drivebysable.network_anchor.missing_sources", payload.missingSources());
         addIfAny(lines, "drivebysable.network_anchor.missing_outputs", payload.missingOutputs());
+        addIfAny(lines, "drivebysable.network_anchor.missing_transceivers", payload.missingTransceivers());
 
         context.enqueueWork(() -> CableHoverTip.pin(lines, DISPLAY_TICKS));
     }

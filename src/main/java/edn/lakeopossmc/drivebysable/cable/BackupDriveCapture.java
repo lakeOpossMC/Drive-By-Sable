@@ -124,6 +124,43 @@ public final class BackupDriveCapture {
         return capturable == total ? Status.VALID : Status.PARTIAL;
     }
 
+    //#region // --- LINKED GEARBOXES --- //
+    public static Map<BlockPos, Status> classifyTransceivers(
+            final Level level,
+            final AABB bounds,
+            @Nullable final SubLevel driveSubLevel
+    ) {
+        final Map<BlockPos, Status> statuses = new LinkedHashMap<>();
+        for (final LinkedGearboxLinks.RegionNetwork network : LinkedGearboxLinks.networksIn(level,
+                pos -> withinRegion(level, bounds, driveSubLevel, pos))) {
+            final Status status = network.inside().size() < 2
+                    ? Status.INVALID
+                    : network.outside().isEmpty() ? Status.VALID : Status.PARTIAL;
+            for (final BlockPos pos : network.inside()) {
+                statuses.put(pos, status);
+            }
+        }
+        return statuses;
+    }
+
+    // * What is left of a source once its gearbox links are taken out
+    public static Map<String, Set<CableNetworkSink>> withoutGearboxLinks(final Map<String, Set<CableNetworkSink>> perChannel) {
+        final Map<String, Set<CableNetworkSink>> plain = new LinkedHashMap<>();
+        for (final Map.Entry<String, Set<CableNetworkSink>> entry : perChannel.entrySet()) {
+            final Set<CableNetworkSink> kept = new java.util.LinkedHashSet<>();
+            for (final CableNetworkSink sink : entry.getValue()) {
+                if (!LinkedGearboxLinks.isStressLink(entry.getKey(), sink.sinkChannel())) {
+                    kept.add(sink);
+                }
+            }
+            if (!kept.isEmpty()) {
+                plain.put(entry.getKey(), kept);
+            }
+        }
+        return plain;
+    }
+    //#endregion
+
     public static Map<String, Map<String, Set<CableNetworkSink>>> groupByModule(
             final Level level,
             final BlockPos source,

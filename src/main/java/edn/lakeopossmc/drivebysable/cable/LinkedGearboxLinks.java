@@ -268,7 +268,6 @@ public final class LinkedGearboxLinks {
             }
         }
 
-        int added = 0;
         final List<Set<BlockPos>> pieces = new ArrayList<>();
         final Set<BlockPos> placed = new HashSet<>();
         for (final BlockPos member : remaining) {
@@ -280,6 +279,22 @@ public final class LinkedGearboxLinks {
             }
         }
 
+        final int added = joinPieces(level, pieces, (from, to) -> CableNetworkManager
+                .createConnection(level, from, to, Direction.UP, STRESS_CHANNEL, STRESS_CHANNEL)
+                .isSuccess()).size();
+
+        refreshLinks(level, remaining);
+        return removed - added;
+    }
+
+    // * Makes (or only records) one link, false when it was turned down
+    @FunctionalInterface
+    private interface Linker {
+        boolean link(BlockPos from, BlockPos to);
+    }
+
+    private static List<BlockPos[]> joinPieces(final Level level, final List<Set<BlockPos>> pieces, final Linker linker) {
+        final List<BlockPos[]> made = new ArrayList<>();
         final Set<List<BlockPos>> refused = new HashSet<>();
         while (pieces.size() > 1) {
             final Set<BlockPos> growing = pieces.getFirst();
@@ -312,17 +327,75 @@ public final class LinkedGearboxLinks {
                 pieces.removeFirst();
                 continue;
             }
-            if (!CableNetworkManager.createConnection(level, bestFrom, bestTo, Direction.UP, STRESS_CHANNEL, STRESS_CHANNEL)
-                    .isSuccess()) {
+            if (!linker.link(bestFrom, bestTo)) {
                 refused.add(List.of(bestFrom, bestTo));
                 continue;
             }
-            added++;
+            made.add(new BlockPos[]{bestFrom, bestTo});
             growing.addAll(pieces.remove(bestPiece));
         }
+        return made;
+    }
+    //#endregion
 
-        refreshLinks(level, remaining);
-        return removed - added;
+    //#region // --- SAVING NETWORKS (BACKUP DRIVE, NETWORK ANCHOR) --- //
+    public record RegionNetwork(Set<BlockPos> inside, Set<BlockPos> outside) {
+    }
+
+    public static boolean sameCableNetwork(final Level level, final BlockPos first, final BlockPos second) {
+        return first.equals(second) || cableNetwork(level, first).contains(second);
+    }
+
+    // * Every network with at least one member the region takes. Works on both sides
+    public static List<RegionNetwork> networksIn(final Level level, final Predicate<BlockPos> inRegion) {
+        final CableNetworkManager manager = CableNetworkManager.get(level);
+        if (manager == null) {
+            return List.of();
+        }
+
+        final Set<BlockPos> linked = new LinkedHashSet<>();
+        manager.sourcesWithSinks().forEach((source, perChannel) -> {
+            for (final CableNetworkSink sink : perChannel.getOrDefault(STRESS_CHANNEL, Set.of())) {
+                if (STRESS_CHANNEL.equals(sink.sinkChannel())) {
+                    linked.add(source);
+                    linked.add(sink.blockPos());
+                }
+            }
+        });
+
+        final List<RegionNetwork> networks = new ArrayList<>();
+        final Set<BlockPos> handled = new HashSet<>();
+        for (final BlockPos pos : linked) {
+            if (handled.contains(pos)) {
+                continue;
+            }
+            final Set<BlockPos> inside = new LinkedHashSet<>();
+            final Set<BlockPos> outside = new LinkedHashSet<>();
+            for (final BlockPos member : cableNetwork(level, pos)) {
+                handled.add(member);
+                (inRegion.test(member) ? inside : outside).add(member);
+            }
+            if (!inside.isEmpty()) {
+                networks.add(new RegionNetwork(inside, outside));
+            }
+        }
+        return networks;
+    }
+
+    // * The links a save writes for a region
+    public static List<BlockPos[]> linksToSave(final Level level, final Predicate<BlockPos> inRegion) {
+        final List<BlockPos[]> links = new ArrayList<>();
+        for (final RegionNetwork network : networksIn(level, inRegion)) {
+            if (network.inside().size() < 2) {
+                continue;
+            }
+            final List<Set<BlockPos>> pieces = new ArrayList<>();
+            for (final BlockPos member : network.inside()) {
+                pieces.add(new HashSet<>(Set.of(member)));
+            }
+            links.addAll(joinPieces(level, pieces, (from, to) -> true));
+        }
+        return links;
     }
     //#endregion
 

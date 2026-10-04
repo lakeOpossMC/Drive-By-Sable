@@ -13,6 +13,7 @@ import dev.ryanhcode.sable.sublevel.SubLevel;
 import edn.lakeopossmc.drivebysable.cable.BackupDriveBounds;
 import edn.lakeopossmc.drivebysable.cable.BackupDriveCapture;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
+import edn.lakeopossmc.drivebysable.cable.LinkedGearboxLinks;
 import edn.lakeopossmc.drivebysable.cable.WorldSpaceSnapshotHolder;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSink;
 import edn.lakeopossmc.drivebysable.network.BackupDriveHighlightPacket;
@@ -56,7 +57,7 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity implements WorldS
     private static final float BEACON_VOLUME = 1.4F;
     private static final double HIGHLIGHT_RANGE = 64.0D;
 
-    public static final int MIN_RADIUS = 16;
+    public static final int MIN_RADIUS = 8;
     public static final int MAX_RADIUS = 1024;
     public static final int DEFAULT_RADIUS = 16;
 
@@ -75,6 +76,7 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity implements WorldS
     private int outputsOutOfRadius;
     private int outputsOnOtherLevel;
     private int sourcesOnOtherLevel;
+    private int transceiversOutOfRadius;
 
     public NetworkAnchorBlockEntity(final BlockPos pos, final BlockState blockState) {
         super(CableBlockEntities.NETWORK_ANCHOR.get(), pos, blockState);
@@ -127,7 +129,7 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity implements WorldS
 
         @Override
         public ValueSettings getValueSettings() {
-            return new ValueSettings(0, Math.clamp(value / BOARD_STEP, 1, BOARD_MAX));
+            return new ValueSettings(0, value < BOARD_STEP ? 0 : Math.clamp(value / BOARD_STEP, 1, BOARD_MAX));
         }
 
         @Override
@@ -142,7 +144,9 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity implements WorldS
         }
 
         private static int toRadius(final ValueSettings settings) {
-            return Math.clamp(settings.value() * BOARD_STEP, MIN_RADIUS, MAX_RADIUS);
+            return settings.value() <= 0
+                    ? MIN_RADIUS
+                    : Math.clamp(settings.value() * BOARD_STEP, MIN_RADIUS, MAX_RADIUS);
         }
     }
 
@@ -215,10 +219,12 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity implements WorldS
         PacketDistributor.sendToPlayer(player, NetworkAnchorSavedPacket.saved(
                 radius,
                 CableNetworkManager.countStoredSources(snapshot),
-                CableNetworkManager.countConnectionsInBackupSnapshot(snapshot),
+                CableNetworkManager.countStoredOutputs(snapshot),
+                CableNetworkManager.countStoredTransceivers(snapshot),
                 outputsOutOfRadius,
                 outputsOnOtherLevel,
-                sourcesOnOtherLevel
+                sourcesOnOtherLevel,
+                transceiversOutOfRadius
         ));
     }
 
@@ -226,8 +232,15 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity implements WorldS
         outputsOutOfRadius = 0;
         outputsOnOtherLevel = 0;
         sourcesOnOtherLevel = 0;
+        transceiversOutOfRadius = 0;
 
         final SubLevel anchorSubLevel = BackupDriveCapture.subLevelOf(level, worldPosition);
+
+        // * Linked Gearbox networks are judged as networks
+        for (final LinkedGearboxLinks.RegionNetwork network : LinkedGearboxLinks.networksIn(level,
+                pos -> BackupDriveCapture.withinRegion(level, bounds, anchorSubLevel, pos))) {
+            transceiversOutOfRadius += network.outside().size();
+        }
 
         for (final Map.Entry<BlockPos, Map<String, Set<CableNetworkSink>>> source
                 : CableNetworkManager.get(level).sourcesWithSinks().entrySet()) {
@@ -240,14 +253,22 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity implements WorldS
                 continue;
             }
 
+            // * A gearbox with nothing but gearbox links is not a source at all
+            if (!hasPlainConnections(source.getValue())) {
+                continue;
+            }
+
             // * Only a problem while cross level saving is off
             if (!sameLevel && !BackupDriveCapture.crossLevelSavingAllowed()) {
                 sourcesOnOtherLevel++;
                 continue;
             }
 
-            for (final Set<CableNetworkSink> sinks : source.getValue().values()) {
-                for (final CableNetworkSink sink : sinks) {
+            for (final Map.Entry<String, Set<CableNetworkSink>> channel : source.getValue().entrySet()) {
+                for (final CableNetworkSink sink : channel.getValue()) {
+                    if (LinkedGearboxLinks.isStressLink(channel.getKey(), sink.sinkChannel())) {
+                        continue;
+                    }
                     final BlockPos sinkPos = sink.blockPos();
 
                     if (!BackupDriveCapture.isSameLevel(
@@ -265,6 +286,17 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity implements WorldS
                 }
             }
         }
+    }
+
+    private static boolean hasPlainConnections(final Map<String, Set<CableNetworkSink>> perChannel) {
+        for (final Map.Entry<String, Set<CableNetworkSink>> channel : perChannel.entrySet()) {
+            for (final CableNetworkSink sink : channel.getValue()) {
+                if (!LinkedGearboxLinks.isStressLink(channel.getKey(), sink.sinkChannel())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // * Kept for the out of range counts
@@ -292,7 +324,8 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity implements WorldS
         PacketDistributor.sendToPlayer(player, NetworkAnchorSavedPacket.cleared(
                 radius,
                 CableNetworkManager.countStoredSources(snapshot),
-                CableNetworkManager.countConnectionsInBackupSnapshot(snapshot)
+                CableNetworkManager.countStoredOutputs(snapshot),
+                CableNetworkManager.countStoredTransceivers(snapshot)
         ));
     }
 
@@ -452,8 +485,10 @@ public class NetworkAnchorBlockEntity extends SmartBlockEntity implements WorldS
                 radius,
                 summary.loadedSources(),
                 summary.loadedSinks(),
+                summary.loadedTransceivers(),
                 summary.missingSources(),
-                summary.missingSinks()
+                summary.missingSinks(),
+                summary.missingTransceivers()
         );
 
         for (final ServerPlayer player : serverLevel.players()) {

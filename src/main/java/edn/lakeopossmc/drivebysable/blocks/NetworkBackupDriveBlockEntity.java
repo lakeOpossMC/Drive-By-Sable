@@ -54,6 +54,7 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity
     private static final int SOURCE_COLOR = 0x7FCDE0;
     private static final int OUTPUT_COLOR = 0xDDC166;
     private static final int CABLE_COST_COLOR = 0xFF4444;
+    private static final int TRANSCEIVER_COLOR = 0x55FFFF;
 
     private static final String GOGGLES = "goggles.";
 
@@ -336,14 +337,22 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity
 
     // * What the drive is holding
     private void appendStoredInfo(final List<Component> tooltip) {
+        // * Linked Gearboxes are neither, so they get a line of their own
         final int sources = CableNetworkManager.countStoredSources(this.boundedSnapshot);
-        final int outputs = CableNetworkManager.countConnectionsInBackupSnapshot(this.boundedSnapshot);
+        final int outputs = CableNetworkManager.countStoredOutputs(this.boundedSnapshot);
+        final int transceivers = CableNetworkManager.countStoredTransceivers(this.boundedSnapshot);
 
         lang(GOGGLES + "sources", number(sources, SOURCE_COLOR)).style(ChatFormatting.GRAY).forGoggles(tooltip, 1);
         lang(GOGGLES + "outputs", number(outputs, OUTPUT_COLOR)).style(ChatFormatting.GRAY).forGoggles(tooltip, 1);
+        if (transceivers > 0) {
+            lang(GOGGLES + "transceivers", number(transceivers, TRANSCEIVER_COLOR))
+                    .style(ChatFormatting.GRAY).forGoggles(tooltip, 1);
+        }
 
+        // * One Cable per saved connection, transceiver links included
         if (BackupDriveGoggleClient.showsCableCost()) {
-            lang(GOGGLES + "cost", number(outputs, CABLE_COST_COLOR)).style(ChatFormatting.GRAY).forGoggles(tooltip, 1);
+            final int cables = CableNetworkManager.countConnectionsInBackupSnapshot(this.boundedSnapshot);
+            lang(GOGGLES + "cost", number(cables, CABLE_COST_COLOR)).style(ChatFormatting.GRAY).forGoggles(tooltip, 1);
         }
     }
 

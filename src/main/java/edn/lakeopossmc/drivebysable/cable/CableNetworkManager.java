@@ -681,13 +681,80 @@ public final class CableNetworkManager {
 
         final Set<String> sources = new LinkedHashSet<>();
         for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
-            if (!(entry instanceof final CompoundTag connection) || !isReadable(connection)) {
+            // * A gearbox link has no source end
+            if (!(entry instanceof final CompoundTag connection) || !isReadable(connection)
+                    || isTransceiverLinkTag(connection)) {
                 continue;
             }
 
             sources.add(connection.getLong(SOURCE_KEY) + "|" + connection.getString(SOURCE_MODULE_KEY));
         }
         return sources.size();
+    }
+
+    public static int countStoredOutputs(final CompoundTag snapshot) {
+        if (snapshot == null || !snapshot.contains(CONNECTIONS_KEY, Tag.TAG_LIST)) {
+            return 0;
+        }
+
+        int outputs = 0;
+        for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
+            if (entry instanceof final CompoundTag connection && !isTransceiverLinkTag(connection)) {
+                outputs++;
+            }
+        }
+        return outputs;
+    }
+
+    public static int countStoredTransceivers(final CompoundTag snapshot) {
+        if (snapshot == null || !snapshot.contains(CONNECTIONS_KEY, Tag.TAG_LIST)) {
+            return 0;
+        }
+
+        final Set<String> transceivers = new LinkedHashSet<>();
+        for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
+            if (!(entry instanceof final CompoundTag connection) || !isReadable(connection)
+                    || !isTransceiverLinkTag(connection)) {
+                continue;
+            }
+
+            transceivers.add(storedEndpointKey(connection, SOURCE_KEY, SOURCE_OWNER_KEY, SOURCE_LEVEL_KEY));
+            transceivers.add(storedEndpointKey(connection, SINK_KEY, SINK_OWNER_KEY, SINK_LEVEL_KEY));
+        }
+        return transceivers.size();
+    }
+
+    // * One saved end as written, whichever way this snapshot positions its ends
+    private static String storedEndpointKey(
+            final CompoundTag connection,
+            final String positionKey,
+            final String ownerKey,
+            final String levelKey
+    ) {
+        return connection.getLong(positionKey)
+                + "|" + (connection.hasUUID(ownerKey) ? connection.getUUID(ownerKey) : "")
+                + "|" + connection.getByte(levelKey);
+    }
+
+    // * A saved Linked Gearbox link
+    public static boolean isTransceiverLinkTag(final CompoundTag connection) {
+        return LinkedGearboxLinks.isStressLink(
+                connection.getString(CHANNEL_KEY), connection.getString(SINK_CHANNEL_KEY));
+    }
+
+    // * Is this saved connection already in place?
+    private boolean isAlreadyConnected(
+            final Level level,
+            final BlockPos source,
+            final BlockPos sinkPos,
+            final Direction sinkDirection,
+            final String channel,
+            final String sinkChannel
+    ) {
+        if (LinkedGearboxLinks.isStressLink(channel, sinkChannel)) {
+            return LinkedGearboxLinks.sameCableNetwork(level, source, sinkPos);
+        }
+        return containsConnection(source, sinkPos, sinkDirection, channel, sinkChannel);
     }
 
     public Map<BlockPos, Map<String, Set<CableNetworkSink>>> sourcesWithSinks() {
@@ -712,6 +779,12 @@ public final class CableNetworkManager {
             final BlockPos source = origin.offset(BlockPos.of(connection.getLong(SOURCE_KEY)));
             sources.computeIfAbsent(source, key -> new LinkedHashSet<>())
                     .add(connection.getString(SOURCE_MODULE_KEY));
+
+            // * Both ends of a gearbox link are the same kind of thing
+            if (isTransceiverLinkTag(connection)) {
+                sources.computeIfAbsent(origin.offset(BlockPos.of(connection.getLong(SINK_KEY))),
+                        key -> new LinkedHashSet<>()).add("");
+            }
         }
         return sources;
     }
@@ -1145,17 +1218,22 @@ public final class CableNetworkManager {
         int internalConnections = 0;
         int skippedConnections = 0;
 
+        final List<BlockPos[]> transceiverLinks = LinkedGearboxLinks.linksToSave(level,
+                pos -> BackupDriveCapture.withinRegion(level, bounds, driveSubLevel, pos)
+                        && !isGhostEndpoint(level, pos));
+
         // * An offset from the drive only survives a paste while both ends move
         // * together, which is only true on one level. Once a capture reaches onto
         // * another level the ends have to be recorded against their own sublevels
         // * instead, so placement can put them back against the new plots
-        final boolean ownerAware = capturesAnotherLevel(level, bounds, driveSubLevel);
+        final boolean ownerAware = capturesAnotherLevel(level, bounds, driveSubLevel)
+                || reachesAnotherLevel(level, driveSubLevel, transceiverLinks);
 
         for (final Map.Entry<Long, Map<String, Set<CableNetworkSink>>> sourceEntry : sinks.entrySet()) {
             final BlockPos sourcePos = BlockPos.of(sourceEntry.getKey());
 
             if (!BackupDriveCapture.isSourceCapturable(level, bounds, driveSubLevel, sourcePos)) {
-                skippedConnections += countConnections(sourceEntry.getValue());
+                skippedConnections += countPlainConnections(sourceEntry.getValue());
                 continue;
             }
 
@@ -1166,6 +1244,11 @@ public final class CableNetworkManager {
 
             for (final Map.Entry<String, Set<CableNetworkSink>> channelEntry : sourceEntry.getValue().entrySet()) {
                 for (final CableNetworkSink sink : channelEntry.getValue()) {
+                    // * Gearbox links go in further down
+                    if (LinkedGearboxLinks.isStressLink(channelEntry.getKey(), sink.sinkChannel())) {
+                        continue;
+                    }
+
                     if (!BackupDriveCapture.isSinkCapturable(level, bounds, driveSubLevel, sink.blockPos())) {
                         skippedConnections++;
                         continue;
@@ -1175,27 +1258,8 @@ public final class CableNetworkManager {
                         continue;
                     }
 
-                    final CompoundTag connection = new CompoundTag();
-                    if (ownerAware) {
-                        connection.putLong(SOURCE_KEY,
-                                worldSpaceOffset(level, backupPos, driveSubLevel, sourcePos).asLong());
-                        connection.putLong(SINK_KEY,
-                                worldSpaceOffset(level, backupPos, driveSubLevel, sink.blockPos()).asLong());
-                        connection.putByte(SOURCE_LEVEL_KEY, endpointLevelKind(level, driveSubLevel, sourcePos));
-                        connection.putByte(SINK_LEVEL_KEY, endpointLevelKind(level, driveSubLevel, sink.blockPos()));
-                        writeExactEndpoint(level, connection, SOURCE_EXACT_KEY, SOURCE_BLOCK_KEY,
-                                backupPos, driveSubLevel, sourcePos);
-                        writeExactEndpoint(level, connection, SINK_EXACT_KEY, SINK_BLOCK_KEY,
-                                backupPos, driveSubLevel, sink.blockPos());
-                    } else {
-                        connection.putLong(SOURCE_KEY, sourcePos.subtract(backupPos).asLong());
-                        connection.putLong(SINK_KEY, sink.blockPos().subtract(backupPos).asLong());
-                    }
-                    connection.putByte(DIRECTION_KEY, (byte) sink.direction());
-                    connection.putString(CHANNEL_KEY, channelEntry.getKey());
-                    if (sink.isModule()) {
-                        connection.putString(SINK_CHANNEL_KEY, sink.sinkChannel());
-                    }
+                    final CompoundTag connection = writeBoundedConnection(level, backupPos, driveSubLevel, ownerAware,
+                            sourcePos, sink.blockPos(), sink.direction(), channelEntry.getKey(), sink.sinkChannel());
 
                     // * Recorded while the source is still there
                     final String module = moduleOwnerOf(level, sourcePos, channelEntry.getKey());
@@ -1207,6 +1271,14 @@ public final class CableNetworkManager {
                     internalConnections++;
                 }
             }
+        }
+
+        // * Which end is written as the source means nothing
+        for (final BlockPos[] link : transceiverLinks) {
+            connections.add(writeBoundedConnection(level, backupPos, driveSubLevel, ownerAware,
+                    link[0], link[1], Direction.UP.get3DDataValue(),
+                    LinkedGearboxLinks.STRESS_CHANNEL, LinkedGearboxLinks.STRESS_CHANNEL));
+            internalConnections++;
         }
 
         if (!connections.isEmpty()) {
@@ -1225,6 +1297,72 @@ public final class CableNetworkManager {
         return new BackupSnapshot(tag, internalConnections, skippedConnections);
     }
 
+    private CompoundTag writeBoundedConnection(
+            final Level level,
+            final BlockPos backupPos,
+            @Nullable final SubLevel driveSubLevel,
+            final boolean ownerAware,
+            final BlockPos sourcePos,
+            final BlockPos sinkPos,
+            final int sinkDirection,
+            final String channel,
+            final String sinkChannel
+    ) {
+        final CompoundTag connection = new CompoundTag();
+        if (ownerAware) {
+            connection.putLong(SOURCE_KEY,
+                    worldSpaceOffset(level, backupPos, driveSubLevel, sourcePos).asLong());
+            connection.putLong(SINK_KEY,
+                    worldSpaceOffset(level, backupPos, driveSubLevel, sinkPos).asLong());
+            connection.putByte(SOURCE_LEVEL_KEY, endpointLevelKind(level, driveSubLevel, sourcePos));
+            connection.putByte(SINK_LEVEL_KEY, endpointLevelKind(level, driveSubLevel, sinkPos));
+            writeExactEndpoint(level, connection, SOURCE_EXACT_KEY, SOURCE_BLOCK_KEY,
+                    backupPos, driveSubLevel, sourcePos);
+            writeExactEndpoint(level, connection, SINK_EXACT_KEY, SINK_BLOCK_KEY,
+                    backupPos, driveSubLevel, sinkPos);
+        } else {
+            connection.putLong(SOURCE_KEY, sourcePos.subtract(backupPos).asLong());
+            connection.putLong(SINK_KEY, sinkPos.subtract(backupPos).asLong());
+        }
+        connection.putByte(DIRECTION_KEY, (byte) sinkDirection);
+        connection.putString(CHANNEL_KEY, channel);
+        if (!sinkChannel.isEmpty()) {
+            connection.putString(SINK_CHANNEL_KEY, sinkChannel);
+        }
+        return connection;
+    }
+
+    // * Is either end of a saved gearbox link on a level other than the drive's
+    private static boolean reachesAnotherLevel(
+            final Level level,
+            @Nullable final SubLevel driveSubLevel,
+            final List<BlockPos[]> links
+    ) {
+        if (!BackupDriveCapture.crossLevelSavingAllowed()) {
+            return false;
+        }
+        for (final BlockPos[] link : links) {
+            for (final BlockPos end : link) {
+                if (!BackupDriveCapture.isSameLevel(driveSubLevel, BackupDriveCapture.subLevelOf(level, end))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static int countPlainConnections(final Map<String, Set<CableNetworkSink>> perChannel) {
+        int total = 0;
+        for (final Map.Entry<String, Set<CableNetworkSink>> entry : perChannel.entrySet()) {
+            for (final CableNetworkSink sink : entry.getValue()) {
+                if (!LinkedGearboxLinks.isStressLink(entry.getKey(), sink.sinkChannel())) {
+                    total++;
+                }
+            }
+        }
+        return total;
+    }
+
     // * Does anything this region would capture sit on a level of its own
     private boolean capturesAnotherLevel(
             final Level level,
@@ -1241,12 +1379,19 @@ public final class CableNetworkManager {
                 continue;
             }
 
+            if (countPlainConnections(sourceEntry.getValue()) == 0) {
+                continue;
+            }
+
             if (!BackupDriveCapture.isSameLevel(driveSubLevel, BackupDriveCapture.subLevelOf(level, sourcePos))) {
                 return true;
             }
 
             for (final Map.Entry<String, Set<CableNetworkSink>> channelEntry : sourceEntry.getValue().entrySet()) {
                 for (final CableNetworkSink sink : channelEntry.getValue()) {
+                    if (LinkedGearboxLinks.isStressLink(channelEntry.getKey(), sink.sinkChannel())) {
+                        continue;
+                    }
                     if (BackupDriveCapture.isSinkCapturable(level, bounds, driveSubLevel, sink.blockPos())
                             && !BackupDriveCapture.isSameLevel(
                             driveSubLevel, BackupDriveCapture.subLevelOf(level, sink.blockPos()))) {
@@ -1750,7 +1895,7 @@ public final class CableNetworkManager {
             final Direction sinkDirection = resolved.sinkDirection();
 
             // * Already placed, so there is nothing left to hold on to
-            if (containsConnection(sourcePos, sinkPos, sinkDirection, channel, sinkChannel)) {
+            if (isAlreadyConnected(level, sourcePos, sinkPos, sinkDirection, channel, sinkChannel)) {
                 continue;
             }
 
@@ -1797,7 +1942,9 @@ public final class CableNetworkManager {
             int loadedSources,
             int missingSources,
             int loadedSinks,
-            int missingSinks
+            int missingSinks,
+            int loadedTransceivers,
+            int missingTransceivers
     ) {
     }
 
@@ -1810,9 +1957,11 @@ public final class CableNetworkManager {
         // * Keyed by module
         final Map<String, Boolean> sources = new LinkedHashMap<>();
         final Map<String, Boolean> sinks = new LinkedHashMap<>();
+        final Map<BlockPos, Boolean> transceivers = new LinkedHashMap<>();
+        int unplacedTransceivers = 0;
 
         if (snapshot == null || !snapshot.contains(CONNECTIONS_KEY, Tag.TAG_LIST)) {
-            return new SnapshotSummary(0, 0, 0, 0);
+            return new SnapshotSummary(0, 0, 0, 0, 0, 0);
         }
 
         final Rotation rotation = placementRotation(snapshot, currentFacing);
@@ -1827,9 +1976,14 @@ public final class CableNetworkManager {
             final String channel = connection.getString(CHANNEL_KEY);
             final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
             final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware, worldSpace);
+            final boolean transceiverLink = isTransceiverLinkTag(connection);
 
             // * Still waiting on a sublevel
             if (resolved.deferred()) {
+                if (transceiverLink) {
+                    unplacedTransceivers += 2;
+                    continue;
+                }
                 sources.merge("deferred|" + sources.size(), false, Boolean::logicalOr);
                 sinks.merge("deferred|" + sinks.size(), false, Boolean::logicalOr);
                 continue;
@@ -1839,7 +1993,13 @@ public final class CableNetworkManager {
             final BlockPos sinkPos = resolved.sink();
             final Direction sinkDirection = resolved.sinkDirection();
 
-            final boolean present = containsConnection(sourcePos, sinkPos, sinkDirection, channel, sinkChannel);
+            final boolean present = isAlreadyConnected(level, sourcePos, sinkPos, sinkDirection, channel, sinkChannel);
+
+            if (transceiverLink) {
+                transceivers.merge(sourcePos.immutable(), present, Boolean::logicalOr);
+                transceivers.merge(sinkPos.immutable(), present, Boolean::logicalOr);
+                continue;
+            }
 
             // * A module is its own source
             sources.merge(sourceIdentity(level, sourcePos, connection), present, Boolean::logicalOr);
@@ -1852,11 +2012,23 @@ public final class CableNetworkManager {
             );
         }
 
+        int loadedTransceivers = 0;
+        int missingTransceivers = unplacedTransceivers;
+        for (final Map.Entry<BlockPos, Boolean> transceiver : transceivers.entrySet()) {
+            if (transceiver.getValue()) {
+                loadedTransceivers++;
+            } else if (!LinkedGearboxLinks.isGearbox(level, transceiver.getKey())) {
+                missingTransceivers++;
+            }
+        }
+
         return new SnapshotSummary(
                 (int) sources.values().stream().filter(Boolean::booleanValue).count(),
                 (int) sources.values().stream().filter(loaded -> !loaded).count(),
                 (int) sinks.values().stream().filter(Boolean::booleanValue).count(),
-                (int) sinks.values().stream().filter(loaded -> !loaded).count()
+                (int) sinks.values().stream().filter(loaded -> !loaded).count(),
+                loadedTransceivers,
+                missingTransceivers
         );
     }
 
@@ -1899,7 +2071,7 @@ public final class CableNetworkManager {
                         ? Direction.from3DDataValue(connection.getByte(DIRECTION_KEY))
                         : resolveSinkDirection(connection, sinkChannel, rotation);
 
-                if (containsConnection(
+                if (isAlreadyConnected(level,
                         source, sink, sinkDirection, connection.getString(CHANNEL_KEY), sinkChannel)) {
                     continue;
                 }
@@ -2073,6 +2245,10 @@ public final class CableNetworkManager {
 
             final String channel = connection.getString(CHANNEL_KEY);
             final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
+            if (isTransceiverLinkTag(connection)) {
+                continue;
+            }
+
             final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware, worldSpace);
             if (resolved.deferred()) {
                 continue;
@@ -2082,7 +2258,7 @@ public final class CableNetworkManager {
             final BlockPos sinkPos = resolved.sink();
             final Direction sinkDirection = resolved.sinkDirection();
 
-            if (!containsConnection(sourcePos, sinkPos, sinkDirection, channel, sinkChannel)) {
+            if (!isAlreadyConnected(level, sourcePos, sinkPos, sinkDirection, channel, sinkChannel)) {
                 continue;
             }
 
@@ -2090,6 +2266,40 @@ public final class CableNetworkManager {
             connected.computeIfAbsent(sourcePos.immutable(), ignored -> new LinkedHashSet<>()).add(owner);
         }
         return connected;
+    }
+
+    // * Every saved transceiver that is joined to one it was saved with
+    public Set<BlockPos> joinedTransceivers(
+            final Level level,
+            final BlockPos backupPos,
+            final Direction currentFacing,
+            final CompoundTag snapshot
+    ) {
+        final Set<BlockPos> joined = new LinkedHashSet<>();
+        if (snapshot == null || !snapshot.contains(CONNECTIONS_KEY, Tag.TAG_LIST)) {
+            return joined;
+        }
+
+        final Rotation rotation = placementRotation(snapshot, currentFacing);
+        final boolean ownerAware = isOwnerAware(snapshot);
+        final boolean worldSpace = isWorldSpaceSnapshot(snapshot);
+
+        for (final Tag entry : snapshot.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
+            if (!(entry instanceof final CompoundTag connection) || !isReadable(connection)
+                    || !isTransceiverLinkTag(connection)) {
+                continue;
+            }
+
+            final ResolvedPair resolved = resolveEndpoints(level, connection, backupPos, rotation, ownerAware, worldSpace);
+            if (resolved.deferred()
+                    || !LinkedGearboxLinks.sameCableNetwork(level, resolved.source(), resolved.sink())) {
+                continue;
+            }
+
+            joined.add(resolved.source().immutable());
+            joined.add(resolved.sink().immutable());
+        }
+        return joined;
     }
 
     // * What counts as one source for reporting?
@@ -2148,7 +2358,7 @@ public final class CableNetworkManager {
             final Direction sinkDirection = resolved.sinkDirection();
 
             // * Counted only when it is missing
-            if (!containsConnection(sourcePos, sinkPos, sinkDirection, channel, sinkChannel)
+            if (!isAlreadyConnected(level, sourcePos, sinkPos, sinkDirection, channel, sinkChannel)
                     && isRestorable(level, sourcePos, channel, sinkPos, sinkChannel)) {
                 pending++;
             }
@@ -2643,7 +2853,7 @@ public final class CableNetworkManager {
                 final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
                 final Direction sinkDirection = Direction.from3DDataValue(connection.getByte(DIRECTION_KEY));
 
-                if (containsConnection(sourcePos, sinkPos, sinkDirection, channel, sinkChannel)) {
+                if (isAlreadyConnected(level, sourcePos, sinkPos, sinkDirection, channel, sinkChannel)) {
                     existingConnections++;
                     continue;
                 }
@@ -2714,7 +2924,7 @@ public final class CableNetworkManager {
                     }
                 }
 
-                if (containsConnection(sourcePos, sinkPos, sinkDirection, channel, sinkChannel)) {
+                if (isAlreadyConnected(level, sourcePos, sinkPos, sinkDirection, channel, sinkChannel)) {
                     existingConnections++;
                     continue;
                 }
@@ -2779,7 +2989,7 @@ public final class CableNetworkManager {
                 final String channel = connection.getString(CHANNEL_KEY);
                 final String sinkChannel = connection.getString(SINK_CHANNEL_KEY);
 
-                if (containsConnection(sourcePos, sinkPos, sinkDirection, channel, sinkChannel)) {
+                if (isAlreadyConnected(level, sourcePos, sinkPos, sinkDirection, channel, sinkChannel)) {
                     existingConnections++;
                     continue;
                 }
