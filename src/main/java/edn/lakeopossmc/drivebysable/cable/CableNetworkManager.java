@@ -288,6 +288,14 @@ public final class CableNetworkManager {
             return ConnectionResult.FAIL_SAME_BLOCK;
         }
 
+        // * Linked Gearbox stress links have their own rules
+        if (LinkedGearboxLinks.isStressConnection(level, source, channel, sink.sinkChannel())) {
+            final ConnectionResult gearboxResult = LinkedGearboxLinks.validateLink(level, source, sinkPos, channel, sink.sinkChannel());
+            if (!gearboxResult.isSuccess()) {
+                return gearboxResult;
+            }
+        }
+
         if (!isValidChannel(level, source, channel)) {
             return ConnectionResult.FAIL_INVALID_CHANNEL;
         }
@@ -360,7 +368,8 @@ public final class CableNetworkManager {
 
     // * Instance form so addConnection does not bounce back through get(level)
     private boolean exceedsSourceLimit(final Level level, final BlockPos source) {
-        if (sinks.containsKey(source.asLong())) {
+        // * Linked gearbox links have no direction
+        if (sinks.containsKey(source.asLong()) || LinkedGearboxLinks.isGearbox(level, source)) {
             return false;
         }
         return countSourcesInSameDomain(level, source) >= sourceLimitFor(level, source);
@@ -373,6 +382,10 @@ public final class CableNetworkManager {
     }
 
     private boolean exceedsSinkLimit(final BlockPos source, final String channel) {
+        // * Gearbox links are only limited by range
+        if (LinkedGearboxLinks.STRESS_CHANNEL.equals(channel)) {
+            return false;
+        }
         final Set<CableNetworkSink> sinksOnChannel = sinks
                 .getOrDefault(source.asLong(), Map.of())
                 .get(channel);
@@ -420,6 +433,20 @@ public final class CableNetworkManager {
         return distanceSqr > (double) limit * limit ? RangeResult.OUT_OF_RANGE : RangeResult.OK;
     }
 
+    // * Straight line distance where both blocks appear in the world
+    public static double worldSpaceDistanceSqr(final Level level, final BlockPos first, final BlockPos second) {
+        final SubLevel firstSubLevel = Sable.HELPER.getContaining(level, first);
+        final SubLevel secondSubLevel = Sable.HELPER.getContaining(level, second);
+        if (isSameSubLevelContext(firstSubLevel, secondSubLevel)) {
+            return first.distSqr(second);
+        }
+        return toWorldSpace(first, firstSubLevel).distanceToSqr(toWorldSpace(second, secondSubLevel));
+    }
+
+    public static boolean isInSubLevel(final Level level, final BlockPos pos) {
+        return Sable.HELPER.getContaining(level, pos) != null;
+    }
+
     private static Vec3 toWorldSpace(final BlockPos pos, final SubLevel subLevel) {
         final Vec3 centre = Vec3.atCenterOf(pos);
         return subLevel == null ? centre : subLevel.logicalPose().transformPosition(centre);
@@ -437,6 +464,10 @@ public final class CableNetworkManager {
     // * Empty means a plain block face, which any block can be
     private boolean isValidSinkChannel(final Level level, final BlockPos sinkPos, final String sinkChannel) {
         if (sinkChannel.isEmpty()) {
+            return true;
+        }
+
+        if (LinkedGearboxLinks.STRESS_CHANNEL.equals(sinkChannel) && LinkedGearboxLinks.isGearbox(level, sinkPos)) {
             return true;
         }
 
@@ -3348,6 +3379,9 @@ public final class CableNetworkManager {
 
         int count = 0;
         for (final long existingSourceKey : sinks.keySet()) {
+            if (LinkedGearboxLinks.isGearbox(level, BlockPos.of(existingSourceKey))) {
+                continue;
+            }
             if (isSameSourceDomain(level, BlockPos.of(existingSourceKey), sourceSubLevelId)) {
                 count++;
             }
@@ -3451,7 +3485,10 @@ public final class CableNetworkManager {
         FAIL_INVALID_CHANNEL("This channel is not available on this source!", "drivebysable.invalid_op.stale_source_channel"),
         FAIL_INVALID_SINK_CHANNEL("This channel is not available on this output!", "drivebysable.invalid_op.stale_output_channel"),
         FAIL_OUT_OF_RANGE("That output is too far from this source!", "drivebysable.invalid_op.out_of_range"),
-        FAIL_CROSS_LEVEL("Cross-level connections are disabled!", "drivebysable.invalid_op.cross_level");
+        FAIL_CROSS_LEVEL("Cross-level connections are disabled!", "drivebysable.invalid_op.cross_level"),
+        FAIL_GEARBOX_TARGET_REQUIRED("Linked Gearboxes can only link to other Linked Gearboxes!", "drivebysable.invalid_op.gearbox_target_required"),
+        FAIL_GEARBOX_SUBLEVEL_ONLY("Linked Gearboxes must be on a sublevel!", "drivebysable.invalid_op.gearbox_sublevel_only"),
+        FAIL_GEARBOX_OUT_OF_RANGE("That Linked Gearbox is out of range!", "drivebysable.invalid_op.gearbox_out_of_range");
 
         private final String description;
         private final String langKey;
