@@ -7,6 +7,7 @@ import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.blocks.AdvancedCableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.CableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlockEntity;
+import edn.lakeopossmc.drivebysable.blocks.LinkedGearboxBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.MultiChannelCableBusBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlockEntity;
 import edn.lakeopossmc.drivebysable.mixinducks.LinkedTypewriterBlockEntityDuck;
@@ -69,6 +70,15 @@ final class ComputerCraftBridge {
             }
         }
 
+        final var linkedGearboxHolder = CableBlockEntities.LINKED_GEARBOX;
+        if (linkedGearboxHolder != null) {
+            final var linkedGearbox = linkedGearboxHolder.get();
+            if (linkedGearbox != null) {
+                event.registerBlockEntity(peripheralCapability, linkedGearbox,
+                        (b, d) -> b.getPeripheral() instanceof final IPeripheral p ? p : null);
+            }
+        }
+
         final var advancedCableHubHolder = CableBlockEntities.ADVANCED_CABLE_HUB;
         if (advancedCableHubHolder != null) {
             final var advancedCableHub = advancedCableHubHolder.get();
@@ -76,6 +86,25 @@ final class ComputerCraftBridge {
                 event.registerBlockEntity(peripheralCapability, advancedCableHub,
                         (b, d) -> b.getPeripheral() instanceof final IPeripheral p ? p : null);
             }
+        }
+    }
+
+    static Object newTransceiverPeripheral(final LinkedGearboxBlockEntity owner) {
+        return new LinkedGearboxPeripheral(owner);
+    }
+
+    static boolean hasTransceiverComputers(final LinkedGearboxBlockEntity transceiver) {
+        return transceiver.getPeripheral() instanceof final LinkedGearboxPeripheral peripheral
+                && peripheral.hasComputers();
+    }
+
+    static void queueTransceiverEvent(
+            final LinkedGearboxBlockEntity transceiver,
+            final String event,
+            final Object... arguments
+    ) {
+        if (transceiver.getPeripheral() instanceof final LinkedGearboxPeripheral peripheral) {
+            peripheral.queueEvent(event, arguments);
         }
     }
 

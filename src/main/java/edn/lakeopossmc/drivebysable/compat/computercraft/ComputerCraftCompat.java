@@ -5,6 +5,7 @@ import edn.lakeopossmc.drivebysable.blocks.AdvancedCableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.CableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlockEntity;
+import edn.lakeopossmc.drivebysable.blocks.LinkedGearboxBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.MultiChannelCableBusBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -56,6 +57,35 @@ public final class ComputerCraftCompat {
 
         ComputerCraftBridge.queueCableBusInput(bus, channel, signal, intercepted);
     }
+
+    //#region // --- LINKED GEARBOX ("TRANSCEIVER") --- //
+    // * Events a transceiver raises on attached computers, see LinkedGearboxPeripheral
+    public static final String TRANSCEIVER_ROLE_EVENT = "transceiver_role";
+    public static final String TRANSCEIVER_NETWORK_EVENT = "transceiver_network";
+    public static final String TRANSCEIVER_OVERSTRESSED_EVENT = "transceiver_overstressed";
+
+    // * Null when Computer Craft is absent
+    @Nullable
+    public static Object newTransceiverPeripheral(final LinkedGearboxBlockEntity owner) {
+        return isLoaded() ? ComputerCraftBridge.newTransceiverPeripheral(owner) : null;
+    }
+
+    public static boolean hasTransceiverComputers(final LinkedGearboxBlockEntity transceiver) {
+        return isLoaded() && ComputerCraftBridge.hasTransceiverComputers(transceiver);
+    }
+
+    public static void queueTransceiverEvent(
+            final LinkedGearboxBlockEntity transceiver,
+            final String event,
+            final Object... arguments
+    ) {
+        if (!isLoaded()) {
+            return;
+        }
+
+        ComputerCraftBridge.queueTransceiverEvent(transceiver, event, arguments);
+    }
+    //#endregion
 
     // * Null when Computer Craft is absent, so the Cable Bus simply has no peripheral
     @Nullable

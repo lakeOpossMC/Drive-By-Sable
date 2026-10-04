@@ -14,6 +14,7 @@ import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.CableConfig;
 import edn.lakeopossmc.drivebysable.cable.LinkedGearboxFrequencies;
 import edn.lakeopossmc.drivebysable.cable.LinkedGearboxLinks;
+import edn.lakeopossmc.drivebysable.compat.computercraft.ComputerCraftCompat;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -72,6 +73,14 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     private LinkedGearboxPowerLink powerLink;
     private int wirelessSignal;
 
+    // * ComputerCraft peripheral
+    @Nullable
+    private final Object peripheral;
+    private boolean computerDisabled;
+    private boolean reportedOverstressed;
+    @Nullable
+    private Set<BlockPos> reportedNetwork;
+
     private boolean linked;
     private Set<BlockPos> partners = Set.of();
     private Set<BlockPos> activePartners = Set.of();
@@ -96,6 +105,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
 
     public LinkedGearboxBlockEntity(final BlockEntityType<?> type, final BlockPos pos, final BlockState state) {
         super(type, pos, state);
+        this.peripheral = ComputerCraftCompat.newTransceiverPeripheral(this);
     }
 
     //#region // --- BEHAVIOURS --- //
@@ -133,6 +143,102 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     public boolean isWirelesslyPowered() {
         return wirelessSignal > 0;
     }
+
+    //#region // --- COMPUTERCRAFT --- //
+    // * Everything LinkedGearboxPeripheral reads or does
+    @Nullable
+    public Object getPeripheral() {
+        return peripheral;
+    }
+
+    // * Switched off by a computer: drops out of its network
+    public void setComputerDisabled(final boolean disabled) {
+        if (computerDisabled == disabled) {
+            return;
+        }
+        computerDisabled = disabled;
+        if (level != null && !level.isClientSide) {
+            LinkedGearboxBlock.updatePower(level, worldPosition);
+        }
+    }
+
+    public boolean isComputerDisabled() {
+        return computerDisabled;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public boolean isLeadDriver() {
+        return isLead();
+    }
+
+    // * Same as the mode panel
+    public void setOutputMode(final LinkedGearboxOutputMode mode) {
+        if (modeBehaviour != null) {
+            modeBehaviour.setValue(mode.ordinal());
+        }
+    }
+
+    // * The three goggle numbers, in SU at the current speed
+    public float getStressImpactNow() {
+        return calculateStressApplied() * Math.abs(getTheoreticalSpeed());
+    }
+
+    // * Receiver: its share of the pool. Driver: what it adds to the pool
+    public float getStressCapacityNow() {
+        return role == Role.RECEIVER
+                ? calculateAddedStressCapacity() * Math.abs(getTheoreticalSpeed())
+                : role == Role.DRIVER ? linkCap : 0;
+    }
+
+    // * Receiver: what its side is drawing from its share
+    public float getStressUsedNow() {
+        return role == Role.RECEIVER ? linkFlow : 0;
+    }
+
+    // * Driver: SU it adds to the pool, and its part of the network's bill
+    public float getPoolContribution() {
+        return role == Role.DRIVER ? contribution() : 0;
+    }
+
+    public float getDrivenLoad() {
+        return role == Role.DRIVER ? drivenLoad : 0;
+    }
+
+    public List<LinkedGearboxBlockEntity> getNetworkMembers() {
+        return level == null || level.isClientSide ? List.of(this) : group();
+    }
+
+    // * Told to attached computers
+    private void reportOverstress() {
+        final boolean overstressed = isOverStressed();
+        if (overstressed != reportedOverstressed) {
+            reportedOverstressed = overstressed;
+            ComputerCraftCompat.queueTransceiverEvent(
+                    this, ComputerCraftCompat.TRANSCEIVER_OVERSTRESSED_EVENT, overstressed);
+        }
+    }
+
+    // * The network is only walked while a computer is listening
+    private void reportNetwork() {
+        if (!ComputerCraftCompat.hasTransceiverComputers(this)) {
+            reportedNetwork = null;
+            return;
+        }
+
+        final Set<BlockPos> members = new HashSet<>();
+        for (final LinkedGearboxBlockEntity member : group()) {
+            members.add(member.getBlockPos());
+        }
+        if (reportedNetwork != null && !members.equals(reportedNetwork)) {
+            ComputerCraftCompat.queueTransceiverEvent(
+                    this, ComputerCraftCompat.TRANSCEIVER_NETWORK_EVENT, members.size());
+        }
+        reportedNetwork = members;
+    }
+    //#endregion
 
     @Nullable
     public LinkedGearboxPowerLink getPowerLink() {
@@ -243,7 +349,9 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             updateFrequencyRegistration();
             updatePartners();
             updateRole();
+            reportNetwork();
         }
+        reportOverstress();
 
         if (role == Role.RECEIVER) {
             followDriver();
@@ -473,6 +581,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             return;
         }
 
+        // * Leaving a role clears what it added to the networks
         if (oldRole == Role.RECEIVER && newRole != Role.RECEIVER) {
             setGeneration(0, 0);
         }
@@ -481,6 +590,10 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         }
         if (newRole == Role.IDLE || newRole == Role.OPPOSED) {
             setLinkStats(0, 0);
+        }
+        if (newRole != oldRole) {
+            ComputerCraftCompat.queueTransceiverEvent(
+                    this, ComputerCraftCompat.TRANSCEIVER_ROLE_EVENT, newRole.name().toLowerCase(java.util.Locale.ROOT));
         }
         setChanged();
         sendData();

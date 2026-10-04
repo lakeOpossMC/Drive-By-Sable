@@ -158,7 +158,7 @@ public class LinkedGearboxBlock extends DirectionalKineticBlock
 
         final boolean powered = level.hasNeighborSignal(pos)
                 || level.getBlockEntity(pos) instanceof final LinkedGearboxBlockEntity gearbox
-                && gearbox.isWirelesslyPowered();
+                && (gearbox.isWirelesslyPowered() || gearbox.isComputerDisabled());
         if (powered == state.getValue(POWERED)) return;
 
         level.setBlock(pos, state.setValue(POWERED, powered), Block.UPDATE_CLIENTS);
