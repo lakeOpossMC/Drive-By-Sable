@@ -38,6 +38,14 @@ public class DriveBySablePonderScenes {
                             DriveBySablePonderPlugin.DRIVE_BY_SABLE_TAG);
         }
 
+        registry.forComponents(CableItems.LINKED_GEARBOX.getId())
+                .addStoryBoard("linked_gearbox1", LinkedGearboxScenes::wirelessRotation,
+                        DriveBySablePonderPlugin.DRIVE_BY_SABLE_TAG)
+                .addStoryBoard("linked_gearbox1", LinkedGearboxScenes::speedAndStress,
+                        DriveBySablePonderPlugin.DRIVE_BY_SABLE_TAG)
+                .addStoryBoard("linked_gearbox2", LinkedGearboxScenes::networksAndFrequencies,
+                        DriveBySablePonderPlugin.DRIVE_BY_SABLE_TAG);
+
         if (CableItems.CABLE_TYPEWRITER_HUB != null) {
             registry.forComponents(CableItems.CABLE_TYPEWRITER_HUB.getId())
                     .addStoryBoard("cable_typewriter_hub1", CableScenes::cableTypewriterHubIntro,

@@ -5,6 +5,7 @@ import edn.lakeopossmc.drivebysable.blocks.AdvancedCableHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.HandheldTypewriterLecternBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.IntermediateCableHubBlockEntity;
+import edn.lakeopossmc.drivebysable.blocks.LinkedGearboxBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.NetworkAnchorBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlockEntity;
 import edn.lakeopossmc.drivebysable.blocks.MultiChannelCableBusBlockEntity;
@@ -96,6 +97,12 @@ public final class CableBlockEntities {
             BLOCK_ENTITY_TYPES.register(
                     "network_anchor",
                     () -> BlockEntityType.Builder.of(NetworkAnchorBlockEntity::new, CableBlocks.NETWORK_ANCHOR.get()).build(null)
+            );
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<LinkedGearboxBlockEntity>> LINKED_GEARBOX =
+            BLOCK_ENTITY_TYPES.register(
+                    "linked_gearbox",
+                    () -> BlockEntityType.Builder.of(LinkedGearboxBlockEntity::new, CableBlocks.LINKED_GEARBOX.get()).build(null)
             );
 
     // * Null when simulated isnt loaded

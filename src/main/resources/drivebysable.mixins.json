@@ -6,6 +6,7 @@
     "MixinServerLevel",
     "MixinStructureTemplate",
     "MixinDiodeBlock",
+    "MixinRotationPropagator",
     "compat.aeronautics.MixinWheelMountBlockEntity",
     "compat.MixinSubLevelAssemblyHelper",
     "compat.MixinSubLevelContainer",

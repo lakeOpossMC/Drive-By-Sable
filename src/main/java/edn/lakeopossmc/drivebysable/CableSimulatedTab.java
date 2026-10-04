@@ -3,6 +3,7 @@ package edn.lakeopossmc.drivebysable;
 import dev.simulated_team.simulated.registrate.SimulatedRegistrate;
 import edn.lakeopossmc.drivebysable.items.HandheldTypewriterControllerItem;
 import edn.lakeopossmc.drivebysable.items.IntegratedSensorBusItem;
+import edn.lakeopossmc.drivebysable.items.LinkedGearboxItem;
 import edn.lakeopossmc.drivebysable.items.MultiChannelCableBusItem;
 import edn.lakeopossmc.drivebysable.items.NetworkAnchorItem;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -61,6 +62,9 @@ public final class CableSimulatedTab {
             addItem(CableItems.INTEGRATED_SENSOR_BUS.get());
         }
 
+        if (LinkedGearboxItem.isExtensionEnabled()) {
+            addItem(CableItems.LINKED_GEARBOX.get());
+        }
         addItem(CableItems.BACKUP_DRIVE.get());
 
         if (NetworkAnchorItem.isExtensionEnabled()) {

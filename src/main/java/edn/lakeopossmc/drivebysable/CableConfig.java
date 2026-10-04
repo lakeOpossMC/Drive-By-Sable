@@ -29,6 +29,14 @@ public class CableConfig {
     public final ModConfigSpec.BooleanValue multiChannelCableBus;
     public final ModConfigSpec.BooleanValue integratedSensorBus;
     public final ModConfigSpec.BooleanValue handheldTypewriterController;
+
+    // * Linked Gearbox subgroup
+    public final ModConfigSpec.BooleanValue linkedGearbox;
+    public final ModConfigSpec.DoubleValue linkedGearboxStressImpact;
+    public final ModConfigSpec.DoubleValue linkedGearboxStressPerRpm;
+    public final ModConfigSpec.BooleanValue linkedGearboxCostBySpeed;
+    public final ModConfigSpec.IntValue linkedGearboxRange;
+    public final ModConfigSpec.BooleanValue linkedGearboxSubLevelOnly;
     //#endregion
 
     //#region // --- COMMANDS --- //
@@ -189,6 +197,70 @@ public class CableConfig {
                 )
                 .translation("drivebysable.config.handheldTypewriterController")
                 .define("handheldTypewriterController", true);
+
+        //#region // --- LINKED GEARBOX (NESTED IN EXTENSIONS) --- //
+        builder
+                .comment("Stress, range and placement rules for Radio-Kinetic Transceivers.")
+                .translation("drivebysable.config.linkedGearbox")
+                .push("radioKineticTransceiver");
+
+        linkedGearbox = builder
+                .comment(
+                        "Whether the Radio-Kinetic Transceiver is available.",
+                        "A block that sends rotation and stress wirelessly to others of its kind, linked by Cable or frequency.",
+                        "Existing Radio-Kinetic Transceivers already placed in a world are unaffected."
+                )
+                .translation("drivebysable.config.linkedGearboxEnabled")
+                .define("enabled", true);
+
+        linkedGearboxStressImpact = builder
+                .comment(
+                        "Stress, in SU, a Radio-Kinetic Transceiver consumes itself at Create's maximum rotation speed.",
+                        "Scales linearly with speed."
+                )
+                .translation("drivebysable.config.linkedGearboxStressImpact")
+                .defineInRange("stressImpactAtMaxSpeed", 512.0, 0.0, 16384.0);
+
+        linkedGearboxStressPerRpm = builder
+                .comment(
+                        "Stress capacity, in SU, a Radio-Kinetic Transceiver passes through its network for each RPM of",
+                        "the Transceiver driving the network.",
+                        "Every Transceiver turned by its own side adds its part to one pool, shared between the",
+                        "ones it drives.",
+                        "0 turns the limit off."
+                )
+                .translation("drivebysable.config.linkedGearboxStressPerRpm")
+                .defineInRange("transferStressPerRpm", 16.0, 0.0, 1024.0);
+
+        linkedGearboxCostBySpeed = builder
+                .comment(
+                        "The stress impact of every Transceiver in a linked network is added up and paid by the",
+                        "Transceivers turned by their own side. True: each pays in proportion to its speed, the",
+                        "same way it adds capacity, so a faster driver pays more. False: split evenly."
+                )
+                .translation("drivebysable.config.linkedGearboxCostBySpeed")
+                .define("splitCostBySpeed", true);
+
+        linkedGearboxRange = builder
+                .comment(
+                        "Furthest, in blocks, two Transceivers may be from each other.",
+                        "Measured where each Transceiver appears in the world, so a sublevel that moves",
+                        "out of range drops that unit until it comes back.",
+                        "Applies on top of the general networkConstraints range limit."
+                )
+                .translation("drivebysable.config.linkedGearboxRange")
+                .defineInRange("rangeLimit", 64, 0, 512);
+
+        linkedGearboxSubLevelOnly = builder
+                .comment(
+                        "Whether Radio-Kinetic Transceivers only link while they sit inside a sublevel.",
+                        "Applies to every Transceiver: one outside a sublevel neither links nor passes rotation on."
+                )
+                .translation("drivebysable.config.linkedGearboxSubLevelOnly")
+                .define("subLevelOnly", true);
+
+        builder.pop();
+        //#endregion
 
         builder.pop();
         //#endregion

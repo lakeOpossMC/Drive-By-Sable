@@ -1,0 +1,16 @@
+{
+  "credit": "Made with Blockbench",
+  "parent": "minecraft:block/block",
+  "loader": "neoforge:composite",
+  "textures": {
+    "particle": "create:block/brass_casing"
+  },
+  "children": {
+    "casing": {
+      "parent": "drivebysable:block/linked_gearbox/block"
+    },
+    "cogwheel": {
+      "parent": "create:block/cogwheel"
+    }
+  }
+}

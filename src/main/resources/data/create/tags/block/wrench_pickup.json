@@ -10,6 +10,7 @@
       "required": false
     },
     "drivebysable:backup_drive",
+    "drivebysable:linked_gearbox",
     {
       "id": "drivebysable:multi_channel_cable_bus",
       "required": false

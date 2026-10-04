@@ -17,6 +17,7 @@ import edn.lakeopossmc.drivebysable.client.screen.ChannelQuickSelectScreen;
 import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlockEntity;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import edn.lakeopossmc.drivebysable.cable.ChannelGroupedCableSource;
+import edn.lakeopossmc.drivebysable.cable.LinkedGearboxLinks;
 import edn.lakeopossmc.drivebysable.mixin.client.MixinGuiOverlayMessageAccessor;
 import edn.lakeopossmc.drivebysable.cable.ModuleSinkTarget;
 import edn.lakeopossmc.drivebysable.cable.MultiChannelCableSource;
@@ -37,6 +38,7 @@ import edn.lakeopossmc.drivebysable.network.CableSelectionStatePacket;
 import edn.lakeopossmc.drivebysable.network.MovementKeybindsPacket;
 import edn.lakeopossmc.drivebysable.network.TweakedKeybindsPacket;
 import edn.lakeopossmc.drivebysable.network.CableRemoveConnectionPacket;
+import edn.lakeopossmc.drivebysable.network.LinkedGearboxLeavePacket;
 import edn.lakeopossmc.drivebysable.util.BlockFace;
 import edn.lakeopossmc.drivebysable.util.CableOutlineBox;
 import edn.lakeopossmc.drivebysable.util.FaceOutlines;
@@ -459,6 +461,7 @@ public final class ClientCableNetworkHandler {
             moduleOutlines.clear();
             CableHoverTip.clear();
             clearChannelReadout();
+            LinkedGearboxGroupHighlight.hide();
             return;
         }
 
@@ -475,6 +478,8 @@ public final class ClientCableNetworkHandler {
         } else if (selectedSource != null) {
             player.displayClientMessage(armedSinkPos != null
                     ? channelMessage(OUTPUT_CHANNEL_MESSAGE, armedSinkChannel)
+                    : isGearboxSource(level)
+                    ? stressMessage(true)
                     : channelMessage(SOURCE_CHANNEL_MESSAGE, currentChannel), true);
             showingChannelReadout = true;
         } else {
@@ -485,13 +490,19 @@ public final class ClientCableNetworkHandler {
         moduleOutlines.clear();
         sinkOutlined.clear();
 
-        if (selectedSource != null) {
+        if (selectedSource != null && !LinkedGearboxLinks.isGearbox(level, selectedSource)) {
             if (!claimedByDrive(selectedSource, selectedSourceModule)) {
                 drawSourceOutline(level, selectedSource, selectedSourceModule, LineColor.SOURCE.SELECTED.getColor());
             }
         }
 
         drawOutlines(level, selectedSource, currentNetwork, currentChannel);
+
+        if (isGearboxSource(level)) {
+            LinkedGearboxGroupHighlight.show(level, LinkedGearboxLinks.linkGroup(level, selectedSource));
+        } else {
+            LinkedGearboxGroupHighlight.hide();
+        }
 
         // * Same treatment for a module under the crosshair
         if (minecraft.hitResult instanceof final BlockHitResult hover
@@ -581,6 +592,11 @@ public final class ClientCableNetworkHandler {
             return CableNetworkManager.wouldExceedSourceLimit(level, pos) || hasNoOpenChannels(level, pos);
         }
 
+        if (isGearboxSource(level) && !pos.equals(selectedSource)
+                && stressLinkRefusal(level, pos) != CableNetworkManager.ConnectionResult.OK) {
+            return true;
+        }
+
         if (CableNetworkManager.checkRange(level, selectedSource, pos).blocked()) {
             return true;
         }
@@ -616,7 +632,7 @@ public final class ClientCableNetworkHandler {
 
         // * Sneak clears the whole target
         if (player.isShiftKeyDown() || selectedSource == null) {
-            return !hasConnections(pos);
+            return !hasConnections(pos) && !hasGearboxLinks(level, pos);
         }
 
         // * The source itself stays valid: it is how you leave select mode
@@ -914,6 +930,10 @@ public final class ClientCableNetworkHandler {
             return true;
         }
 
+        if (isGearboxSource(level) && selectedSource.equals(pos) && gearboxHasLinks(level, pos)) {
+            return toggleStressLink(player, heldItem, level, pos, face, true);
+        }
+
         // * Clicking endpoint started from leaves setup mode
         if (selectedSource.equals(pos) && Objects.equals(selectedSourceModule, subTarget)) {
             // * An armed output is honoured on the way out
@@ -928,6 +948,10 @@ public final class ClientCableNetworkHandler {
         // * Any second click confirms
         if (armedSinkPos != null) {
             return confirmArmedSink(player, heldItem, level, true);
+        }
+
+        if (isGearboxSource(level)) {
+            return toggleStressLink(player, heldItem, level, pos, face, true);
         }
 
         // * Either a module on a panel, or a plain block that names its own output channels
@@ -970,7 +994,7 @@ public final class ClientCableNetworkHandler {
         }
 
         if (selectedSource == null) {
-            if (!hasConnections(pos)) {
+            if (!hasConnections(pos) && !hasGearboxLinks(level, pos)) {
                 showInvalidOperationMessage(player, "drivebysable.invalid_op.no_connections");
                 return false;
             }
@@ -985,6 +1009,10 @@ public final class ClientCableNetworkHandler {
             return true;
         }
 
+        if (isGearboxSource(level) && selectedSource.equals(pos) && gearboxHasLinks(level, pos)) {
+            return toggleStressLink(player, ItemStack.EMPTY, level, pos, face, false);
+        }
+
         if (selectedSource.equals(pos) && Objects.equals(selectedSourceModule, subTarget)) {
             if (armedSinkPos != null) {
                 confirmArmedSink(player, ItemStack.EMPTY, level, false);
@@ -996,6 +1024,10 @@ public final class ClientCableNetworkHandler {
 
         if (armedSinkPos != null) {
             return confirmArmedSink(player, ItemStack.EMPTY, level, false);
+        }
+
+        if (isGearboxSource(level)) {
+            return toggleStressLink(player, ItemStack.EMPTY, level, pos, face, false);
         }
 
         if (subTarget != null || isMultiChannelSink(level, pos)) {
@@ -1156,6 +1188,125 @@ public final class ClientCableNetworkHandler {
     }
     //#endregion
 
+    //#region // --- LINKED GEARBOX LINKS --- //
+    private static boolean isGearboxSource(final Level level) {
+        return selectedSource != null && LinkedGearboxLinks.isGearbox(level, selectedSource);
+    }
+
+    private static Component stressMessage(final boolean from) {
+        final int color = from ? LineColor.SOURCE.SELECTED.getColor() : LineColor.SINK.SELECTED.getColor();
+        return Component.translatable(from
+                        ? "drivebysable.linked_gearbox.transfer_from"
+                        : "drivebysable.linked_gearbox.transfer_to")
+                .withStyle(style -> style.withColor(color));
+    }
+
+    // * The network being edited
+    private static Set<BlockPos> openGearboxNetwork(final Level level) {
+        return LinkedGearboxLinks.linkGroup(level, selectedSource).members();
+    }
+
+    @Nullable
+    private static BlockPos nearestOtherMember(final Level level, final Set<BlockPos> network, final BlockPos leaving) {
+        BlockPos nearest = null;
+        double nearestDistance = Double.MAX_VALUE;
+        for (final BlockPos member : network) {
+            if (member.equals(leaving) || !LinkedGearboxLinks.isGearbox(level, member)) {
+                continue;
+            }
+            final double distance = CableNetworkManager.worldSpaceDistanceSqr(level, leaving, member);
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearest = member.immutable();
+            }
+        }
+        return nearest;
+    }
+
+    // * Linked to anything at all
+    private static boolean gearboxHasLinks(final Level level, final BlockPos pos) {
+        return LinkedGearboxLinks.isGearbox(level, pos) && !LinkedGearboxLinks.linkNeighbours(level, pos).isEmpty();
+    }
+
+    // * OK when the hovered gearbox can join or leave
+    private static CableNetworkManager.ConnectionResult stressLinkRefusal(final Level level, final BlockPos pos) {
+        if (!LinkedGearboxLinks.isGearbox(level, pos)) {
+            return CableNetworkManager.ConnectionResult.FAIL_GEARBOX_TARGET_REQUIRED;
+        }
+        final Set<BlockPos> network = openGearboxNetwork(level);
+        // * Members can always be clicked to take them out
+        if (network.contains(pos) && gearboxHasLinks(level, pos)) {
+            return CableNetworkManager.ConnectionResult.OK;
+        }
+        // * A newcomer joins through whichever member is in reach
+        return LinkedGearboxLinks.joinPoint(level, network, pos) != null
+                ? CableNetworkManager.ConnectionResult.OK
+                : LinkedGearboxLinks.joinRefusal(level, network, pos);
+    }
+
+    private static boolean toggleStressLink(
+            final Player player,
+            final ItemStack heldItem,
+            final Level level,
+            final BlockPos pos,
+            final Direction face,
+            final boolean allowAdd
+    ) {
+        clearArmedSink();
+
+        final Set<BlockPos> network = openGearboxNetwork(level);
+        if (network.contains(pos) && gearboxHasLinks(level, pos)) {
+            if (allowAdd && !CableConfig.CONFIG.allowCableDisconnect.get()) {
+                showInvalidOperationMessage(player, "drivebysable.invalid_op.cable_removal_disabled");
+                return false;
+            }
+            if (pos.equals(selectedSource)) {
+                final BlockPos anchor = nearestOtherMember(level, network, pos);
+                if (anchor != null) {
+                    selectedSource = anchor;
+                    selectedSourceModule = null;
+                    markSelectingStack(player, player.getMainHandItem(), anchor, null);
+                    reportSelection(true);
+                }
+            }
+
+            PacketDistributor.sendToServer(new LinkedGearboxLeavePacket(pos.immutable()));
+            messageHoldTicks = MESSAGE_HOLD_TICKS;
+            player.displayClientMessage(Component.translatable("drivebysable.linked_gearbox.left")
+                    .withStyle(ChatFormatting.GRAY), true);
+            return true;
+        }
+
+        if (!allowAdd) {
+            showInvalidOperationMessage(player, "drivebysable.invalid_op.no_output_connections");
+            return false;
+        }
+
+        final CableNetworkManager.ConnectionResult result = stressLinkRefusal(level, pos);
+        final BlockPos joinPoint = LinkedGearboxLinks.joinPoint(level, network, pos);
+        if (!result.isSuccess() || joinPoint == null) {
+            showInvalidOperationMessage(player, result.isSuccess()
+                    ? CableNetworkManager.ConnectionResult.FAIL_GEARBOX_OUT_OF_RANGE.getLangKey()
+                    : result.getLangKey());
+            return false;
+        }
+
+        PacketDistributor.sendToServer(new CableAddConnectionPacket(
+                joinPoint, pos.immutable(), Direction.UP,
+                LinkedGearboxLinks.STRESS_CHANNEL, LinkedGearboxLinks.STRESS_CHANNEL));
+        if (CableConfig.CONFIG.shouldConsumeCables.get()) {
+            heldItem.consume(1, player);
+        }
+        messageHoldTicks = MESSAGE_HOLD_TICKS;
+        player.displayClientMessage(stressMessage(false), true);
+        return true;
+    }
+
+    private static boolean hasGearboxLinks(final Level level, final BlockPos pos) {
+        return gearboxHasLinks(level, pos);
+    }
+    //#endregion
+
     //#region // --- INVALID OP FLASH MESSAGE --- //
     // * Display message in red, then flash white
     public static void showInvalidOperationMessage(final Player player, final String langKey) {
@@ -1238,13 +1389,39 @@ public final class ClientCableNetworkHandler {
         final BlockPos hitPos = hitBlock ? ((BlockHitResult) hitResult).getBlockPos() : null;
         final String subTarget = hitPos == null ? null : pickSubTarget(level, hitPos, player);
 
+        if (hitPos != null && isGearboxSource(level) && selectedSource.equals(hitPos) && gearboxHasLinks(level, hitPos)) {
+            tip.add(Component.translatable("drivebysable.cable_actions.unlink_gearbox", Component.keybind("key.use")));
+            tip.add(Component.translatable("drivebysable.cable_actions.exit_setup_sneak",
+                    Component.keybind("key.sneak"), Component.keybind("key.use")));
+            CableHoverTip.show(tip);
+            return;
+        }
+
         if (hitPos != null && selectedSource.equals(hitPos) && Objects.equals(selectedSourceModule, subTarget)) {
             tip.add(Component.translatable("drivebysable.cable_actions.exit_setup", Component.keybind("key.use")));
             CableHoverTip.show(tip);
             return;
         }
 
-        tip.add(Component.translatable("drivebysable.cable_actions.select_channel"));
+        if (isGearboxSource(level)) {
+            if (hitPos != null) {
+                final String refusal = switch (stressLinkRefusal(level, hitPos)) {
+                    case FAIL_GEARBOX_TARGET_REQUIRED -> "drivebysable.cable_actions.gearbox_target_required";
+                    case FAIL_GEARBOX_SUBLEVEL_ONLY -> "drivebysable.cable_actions.gearbox_sublevel_only";
+                    case FAIL_GEARBOX_OUT_OF_RANGE -> "drivebysable.cable_actions.gearbox_out_of_range";
+                    default -> null;
+                };
+                if (refusal != null) {
+                    drivebysable$refuse(tip, refusal);
+                    return;
+                }
+                if (openGearboxNetwork(level).contains(hitPos) && gearboxHasLinks(level, hitPos)) {
+                    tip.add(Component.translatable("drivebysable.cable_actions.unlink_gearbox", Component.keybind("key.use")));
+                }
+            }
+        } else {
+            tip.add(Component.translatable("drivebysable.cable_actions.select_channel"));
+        }
 
         // * Only worth mentioning when the block actually has groups to move between
         if (hasMultipleChannelGroups(level)) {
@@ -1395,6 +1572,10 @@ public final class ClientCableNetworkHandler {
     ) {
         if (subTarget != null) {
             return !connectedSinkChannels(level, pos, subTarget).isEmpty();
+        }
+
+        if (isGearboxSource(level)) {
+            return openGearboxNetwork(level).contains(pos) && gearboxHasLinks(level, pos);
         }
 
         return currentNetwork
@@ -1617,7 +1798,11 @@ public final class ClientCableNetworkHandler {
 
         final Player player = Minecraft.getInstance().player;
         if (player != null) {
-            announceChannel(player, SOURCE_CHANNEL_MESSAGE, currentChannel);
+            if (LinkedGearboxLinks.isGearbox(level, selectedSource)) {
+                player.displayClientMessage(stressMessage(true), true);
+            } else {
+                announceChannel(player, SOURCE_CHANNEL_MESSAGE, currentChannel);
+            }
         }
     }
 
@@ -1758,6 +1943,9 @@ public final class ClientCableNetworkHandler {
                 final Set<CableNetworkSink> activeSinks = new HashSet<>(ownChannels.getOrDefault(activeChannel, Set.of()));
 
                 for (final Map.Entry<String, Set<CableNetworkSink>> channelEntry : ownChannels.entrySet()) {
+                    if (LinkedGearboxLinks.STRESS_CHANNEL.equals(channelEntry.getKey())) {
+                        continue;
+                    }
                     final boolean active = channelEntry.getKey().equals(activeChannel);
 
                     // * The greyed out channels are the ones this hides
@@ -1816,6 +2004,11 @@ public final class ClientCableNetworkHandler {
             final BlockPos source,
             final Map<String, Set<CableNetworkSink>> perChannel
     ) {
+        // * Gearbox links are only shown by LinkedGearboxGroupHighlight
+        if (LinkedGearboxLinks.isGearbox(level, source)) {
+            return;
+        }
+
         final int color = LineColor.SOURCE.SAME_NETWORK.getColor();
         if (!(level.getBlockState(source).getBlock() instanceof SubTargetCableEndpoint)) {
             if (!claimedByDrive(source)) {

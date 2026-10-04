@@ -11,6 +11,7 @@
       "required": false
     },
     "drivebysable:backup_drive",
+    "drivebysable:linked_gearbox",
     {
       "id": "drivebysable:cable_typewriter_hub",
       "required": false

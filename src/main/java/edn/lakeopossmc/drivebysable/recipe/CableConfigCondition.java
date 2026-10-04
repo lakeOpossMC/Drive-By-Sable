@@ -21,7 +21,8 @@ public record CableConfigCondition(Option option, boolean expected) implements I
         CHEAPER_HUBS("andesite_hub"),
         MULTI_CHANNEL_CABLE_BUS("multi_channel_cable_bus"),
         INTEGRATED_SENSOR_BUS("integrated_sensor_bus"),
-        HANDHELD_TYPEWRITER_CONTROLLER("handheld_typewriter_controller");
+        HANDHELD_TYPEWRITER_CONTROLLER("handheld_typewriter_controller"),
+        LINKED_GEARBOX("linked_gearbox");
 
         private final String name;
 
@@ -41,6 +42,7 @@ public record CableConfigCondition(Option option, boolean expected) implements I
                 case MULTI_CHANNEL_CABLE_BUS -> CableConfig.CONFIG.multiChannelCableBus.get();
                 case INTEGRATED_SENSOR_BUS -> CableConfig.CONFIG.integratedSensorBus.get();
                 case HANDHELD_TYPEWRITER_CONTROLLER -> CableConfig.CONFIG.handheldTypewriterController.get();
+                case LINKED_GEARBOX -> CableConfig.CONFIG.linkedGearbox.get();
             };
         }
     }

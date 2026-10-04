@@ -4,6 +4,7 @@ import dev.simulated_team.simulated.content.blocks.redstone.linked_typewriter.Li
 import dev.simulated_team.simulated.content.blocks.redstone.linked_typewriter.LinkedTypewriterRenderer;
 import dev.simulated_team.simulated.index.SimSoundEvents;
 import com.simibubi.create.foundation.item.render.SimpleCustomRenderer;
+import dev.engine_room.flywheel.lib.visualization.SimpleBlockEntityVisualizer;
 import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.CableItems;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
@@ -16,9 +17,13 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import edn.lakeopossmc.drivebysable.client.render.HandheldTypewriterItemRenderer;
 import edn.lakeopossmc.drivebysable.client.render.HandheldTypewriterLecternRenderer;
 import edn.lakeopossmc.drivebysable.client.render.IntegratedSensorBusRenderer;
+import edn.lakeopossmc.drivebysable.client.render.LinkedGearboxPartialModels;
+import edn.lakeopossmc.drivebysable.client.render.LinkedGearboxRenderer;
+import edn.lakeopossmc.drivebysable.client.render.LinkedGearboxVisual;
 import edn.lakeopossmc.drivebysable.client.render.SensorBusPartialModels;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
@@ -40,6 +45,12 @@ public final class ClientCableEvents {
                 CableBlockEntities.INTEGRATED_SENSOR_BUS.get(),
                 IntegratedSensorBusRenderer::new);
 
+        // * Linked Gearbox cog, fallback for when Flywheel is off
+        LinkedGearboxPartialModels.load();
+        event.registerBlockEntityRenderer(
+                CableBlockEntities.LINKED_GEARBOX.get(),
+                LinkedGearboxRenderer::new);
+
         if (!SIMULATED_LOADED) return;
 
         event.registerBlockEntityRenderer(
@@ -49,6 +60,14 @@ public final class ClientCableEvents {
         event.registerBlockEntityRenderer(
                 CableBlockEntities.HANDHELD_TYPEWRITER_LECTERN.get(),
                 HandheldTypewriterLecternRenderer::new);
+    }
+
+    @SubscribeEvent
+    public static void onClientSetup(final FMLClientSetupEvent event) {
+        event.enqueueWork(() -> SimpleBlockEntityVisualizer.builder(CableBlockEntities.LINKED_GEARBOX.get())
+                .factory(LinkedGearboxVisual::new)
+                .skipVanillaRender(be -> false)
+                .apply());
     }
 
     @SubscribeEvent

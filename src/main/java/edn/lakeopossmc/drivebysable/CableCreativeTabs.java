@@ -2,6 +2,7 @@ package edn.lakeopossmc.drivebysable;
 
 import edn.lakeopossmc.drivebysable.items.HandheldTypewriterControllerItem;
 import edn.lakeopossmc.drivebysable.items.IntegratedSensorBusItem;
+import edn.lakeopossmc.drivebysable.items.LinkedGearboxItem;
 import edn.lakeopossmc.drivebysable.items.MultiChannelCableBusItem;
 import edn.lakeopossmc.drivebysable.items.NetworkAnchorItem;
 import net.minecraft.core.registries.Registries;
@@ -41,15 +42,18 @@ public final class CableCreativeTabs {
                                 output.accept(CableItems.HANDHELD_TYPEWRITER_CONTROLLER.get());
                             }
                         }
-                        output.accept(CableItems.BACKUP_DRIVE.get());
-                        if (NetworkAnchorItem.isExtensionEnabled()) {
-                            output.accept(CableItems.NETWORK_ANCHOR.get());
-                        }
                         if (MultiChannelCableBusItem.isExtensionEnabled()) {
                             output.accept(CableItems.MULTI_CHANNEL_CABLE_BUS.get());
                         }
                         if (IntegratedSensorBusItem.isExtensionEnabled()) {
                             output.accept(CableItems.INTEGRATED_SENSOR_BUS.get());
+                        }
+                        if (LinkedGearboxItem.isExtensionEnabled()) {
+                            output.accept(CableItems.LINKED_GEARBOX.get());
+                        }
+                        output.accept(CableItems.BACKUP_DRIVE.get());
+                        if (NetworkAnchorItem.isExtensionEnabled()) {
+                            output.accept(CableItems.NETWORK_ANCHOR.get());
                         }
                     })
                     .build()

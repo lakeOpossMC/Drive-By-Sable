@@ -6,6 +6,7 @@ import edn.lakeopossmc.drivebysable.items.CableTypewriterHubItem;
 import edn.lakeopossmc.drivebysable.items.HandheldTypewriterControllerItem;
 import edn.lakeopossmc.drivebysable.items.NetworkBackupDriveItem;
 import edn.lakeopossmc.drivebysable.items.IntegratedSensorBusItem;
+import edn.lakeopossmc.drivebysable.items.LinkedGearboxItem;
 import edn.lakeopossmc.drivebysable.items.MultiChannelCableBusItem;
 import edn.lakeopossmc.drivebysable.items.NetworkAnchorItem;
 import edn.lakeopossmc.drivebysable.legacy.LegacyTypewriterCompat;
@@ -37,6 +38,10 @@ public final class CableItems {
             () -> new NetworkBackupDriveItem(CableBlocks.BACKUP_DRIVE.get(), new Item.Properties())
     );
     public static final DeferredItem<BlockItem> CABLE_HUB_BLOCK = ITEMS.registerSimpleBlockItem("cable_hub", CableBlocks.CABLE_HUB);
+    public static final DeferredItem<BlockItem> LINKED_GEARBOX = ITEMS.register(
+            "linked_gearbox",
+            () -> new LinkedGearboxItem(CableBlocks.LINKED_GEARBOX.get(), new Item.Properties())
+    );
     public static final DeferredItem<BlockItem> INTEGRATED_SENSOR_BUS = ITEMS.register(
             "integrated_sensor_bus",
             () -> new IntegratedSensorBusItem(CableBlocks.INTEGRATED_SENSOR_BUS.get(), new Item.Properties())

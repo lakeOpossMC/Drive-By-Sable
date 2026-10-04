@@ -1,0 +1,25 @@
+{
+  "neoforge:conditions": [
+    { "type": "drivebysable:config", "option": "linked_gearbox", "expected": true }
+  ],
+  "type": "create:mechanical_crafting",
+  "accept_mirrored": false,
+  "category": "misc",
+  "key": {
+    "I": { "item": "drivebysable:cable_io_bus" },
+    "T": { "item": "create:transmitter" },
+    "P": { "item": "create:precision_mechanism" },
+    "B": { "tag": "c:plates/brass" },
+    "C": { "item": "create:cogwheel" },
+    "R": { "item": "minecraft:redstone" },
+    "K": { "item": "create:brass_casing" }
+  },
+  "pattern": [
+    " I ",
+    "TPT",
+    "BCB",
+    "RKR"
+  ],
+  "result": { "count": 2, "id": "drivebysable:linked_gearbox" },
+  "show_notification": false
+}

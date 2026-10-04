@@ -5,6 +5,7 @@ import edn.lakeopossmc.drivebysable.CableItems;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
 import edn.lakeopossmc.drivebysable.items.HandheldTypewriterControllerItem;
 import edn.lakeopossmc.drivebysable.items.IntegratedSensorBusItem;
+import edn.lakeopossmc.drivebysable.items.LinkedGearboxItem;
 import edn.lakeopossmc.drivebysable.items.MultiChannelCableBusItem;
 import edn.lakeopossmc.drivebysable.items.NetworkAnchorItem;
 import net.createmod.ponder.api.registration.PonderSceneRegistrationHelper;
@@ -62,6 +63,10 @@ public class DriveBySablePonderPlugin extends CreatePonderPlugin {
             tag.add(CableItems.INTEGRATED_SENSOR_BUS.getId());
         }
 
+        if (LinkedGearboxItem.isExtensionEnabled()) {
+            tag.add(CableItems.LINKED_GEARBOX.getId());
+        }
+
         tag.add(CableItems.BACKUP_DRIVE.getId());
 
         if (NetworkAnchorItem.isExtensionEnabled()) {
@@ -78,7 +83,8 @@ public class DriveBySablePonderPlugin extends CreatePonderPlugin {
         return (MultiChannelCableBusItem.isExtensionEnabled() ? 1 : 0)
                 | (IntegratedSensorBusItem.isExtensionEnabled() ? 2 : 0)
                 | (NetworkAnchorItem.isExtensionEnabled() ? 4 : 0)
-                | (HandheldTypewriterControllerItem.isExtensionEnabled() ? 8 : 0);
+                | (HandheldTypewriterControllerItem.isExtensionEnabled() ? 8 : 0)
+                | (LinkedGearboxItem.isExtensionEnabled() ? 16 : 0);
     }
 
     // * True when a toggle changed since the tag was last built

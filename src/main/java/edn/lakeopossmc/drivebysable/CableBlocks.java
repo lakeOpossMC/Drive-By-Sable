@@ -5,6 +5,7 @@ import edn.lakeopossmc.drivebysable.blocks.CableHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.HandheldTypewriterLecternBlock;
 import edn.lakeopossmc.drivebysable.blocks.IntermediateCableHubBlock;
+import edn.lakeopossmc.drivebysable.blocks.LinkedGearboxBlock;
 import edn.lakeopossmc.drivebysable.blocks.NetworkAnchorBlock;
 import edn.lakeopossmc.drivebysable.blocks.IntegratedSensorBusBlock;
 import edn.lakeopossmc.drivebysable.blocks.MultiChannelCableBusBlock;
@@ -78,6 +79,17 @@ public final class CableBlocks {
                     .sound(SoundType.METAL)
                     .strength(3.0F, 6.0F)
                     .requiresCorrectToolForDrops())
+    );
+
+    // * Kinetic block
+    public static final DeferredBlock<LinkedGearboxBlock> LINKED_GEARBOX = BLOCKS.register(
+            "linked_gearbox",
+            () -> new LinkedGearboxBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.TERRACOTTA_BROWN)
+                    .sound(SoundType.METAL)
+                    .strength(2.0F, 6.0F)
+                    .requiresCorrectToolForDrops()
+                    .noOcclusion())
     );
 
     // * Null when get creative isnt loaded

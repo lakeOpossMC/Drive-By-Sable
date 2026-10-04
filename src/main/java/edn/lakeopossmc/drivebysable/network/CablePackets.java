@@ -15,6 +15,7 @@ public final class CablePackets {
                 .playToServer(BindLecternCableHubPacket.TYPE, BindLecternCableHubPacket.STREAM_CODEC, BindLecternCableHubPacket::handle)
                 .playToServer(CableAddConnectionPacket.TYPE, CableAddConnectionPacket.STREAM_CODEC, CableAddConnectionPacket::handle)
                 .playToServer(CableRemoveConnectionPacket.TYPE, CableRemoveConnectionPacket.STREAM_CODEC, CableRemoveConnectionPacket::handle)
+                .playToServer(LinkedGearboxLeavePacket.TYPE, LinkedGearboxLeavePacket.STREAM_CODEC, LinkedGearboxLeavePacket::handle)
                 .playToServer(CableNetworkRequestSyncPacket.TYPE, CableNetworkRequestSyncPacket.STREAM_CODEC, CableNetworkRequestSyncPacket::handle)
                 .playToServer(BackupDriveSavePacket.TYPE, BackupDriveSavePacket.STREAM_CODEC, BackupDriveSavePacket::handle)
                 .playToServer(BackupDriveRegionPacket.TYPE, BackupDriveRegionPacket.STREAM_CODEC, BackupDriveRegionPacket::handle)

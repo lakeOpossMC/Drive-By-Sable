@@ -1,5 +1,6 @@
 package edn.lakeopossmc.drivebysable;
 
+import edn.lakeopossmc.drivebysable.blocks.LinkedGearboxBlock;
 import edn.lakeopossmc.drivebysable.cable.SubLevelPlotCleanup;
 import edn.lakeopossmc.drivebysable.command.CableCommandArguments;
 import edn.lakeopossmc.drivebysable.command.CableCommands;
@@ -75,6 +76,11 @@ public class DriveBySableMod {
 
     // * Register simulated tab
     private void commonSetup(final FMLCommonSetupEvent event) {
+        event.enqueueWork(() -> {
+            LinkedGearboxBlock.registerStress(CableBlocks.LINKED_GEARBOX.get());
+            LinkedGearboxBlock.registerTooltip(CableItems.LINKED_GEARBOX.get(), CableBlocks.LINKED_GEARBOX.get());
+        });
+
         if (ModList.get().isLoaded("simulated")) {
             event.enqueueWork(CableSimulatedTab::register);
         }
