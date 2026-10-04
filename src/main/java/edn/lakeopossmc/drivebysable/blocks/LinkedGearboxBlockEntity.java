@@ -104,7 +104,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         super.addBehaviours(behaviours);
 
         modeBehaviour = new LinkedGearboxModeBehaviour(this);
-        modeBehaviour.onlyActiveWhen(() -> linked);
+        modeBehaviour.onlyActiveWhen(() -> linked && role != Role.DRIVER && role != Role.OPPOSED);
         behaviours.add(modeBehaviour);
 
         frequency = LinkBehaviour.receiver(this,
@@ -186,19 +186,24 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             return added;
         }
 
-        if (!generator && added) {
+        if (role != Role.DRIVER && role != Role.OPPOSED) {
+            if (!generator && added) {
+                tooltip.add(Component.empty());
+            }
+            CreateLang.builder()
+                    .add(Component.translatable("drivebysable.linked_gearbox.goggles.output_speed"))
+                    .style(ChatFormatting.GRAY)
+                    .forGoggles(tooltip);
+            CreateLang.builder()
+                    .add(getOutputMode().goggleText())
+                    .style(ChatFormatting.GOLD)
+                    .forGoggles(tooltip, 1);
+            added = true;
+        }
+
+        if (added) {
             tooltip.add(Component.empty());
         }
-        CreateLang.builder()
-                .add(Component.translatable("drivebysable.linked_gearbox.goggles.output_speed"))
-                .style(ChatFormatting.GRAY)
-                .forGoggles(tooltip);
-        CreateLang.builder()
-                .add(getOutputMode().goggleText())
-                .style(ChatFormatting.GOLD)
-                .forGoggles(tooltip, 1);
-
-        tooltip.add(Component.empty());
         CreateLang.builder()
                 .add(Component.translatable(role == Role.RECEIVER
                         ? "drivebysable.linked_gearbox.goggles.receiver"
@@ -280,6 +285,15 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         activePartners = Set.copyOf(active);
     }
 
+    public void refreshLinks() {
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        updateFrequencyRegistration();
+        updatePartners();
+        linkUpdateCooldown = 0;
+    }
+
     public boolean clearLinkingFrequency() {
         if (level == null || level.isClientSide || frequency == null) {
             return false;
@@ -317,7 +331,8 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             final LinkedGearboxBlockEntity current = queue.poll();
             members.add(current);
             for (final BlockPos partner : current.activePartners) {
-                if (seen.add(partner) && level.getBlockEntity(partner) instanceof final LinkedGearboxBlockEntity other) {
+                if (seen.add(partner) && level.isLoaded(partner)
+                        && level.getBlockEntity(partner) instanceof final LinkedGearboxBlockEntity other) {
                     queue.add(other);
                 }
             }
@@ -404,6 +419,25 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         }
     }
 
+    private void regroup() {
+        final List<LinkedGearboxBlockEntity> members = group();
+        for (final LinkedGearboxBlockEntity member : members) {
+            if (member.role != Role.RECEIVER) {
+                member.updateRole();
+            }
+        }
+        for (final LinkedGearboxBlockEntity member : members) {
+            if (member.role == Role.RECEIVER) {
+                member.updateRole();
+            }
+        }
+        for (final LinkedGearboxBlockEntity member : members) {
+            if (member.role == Role.DRIVER) {
+                member.updateDriver();
+            }
+        }
+    }
+
     private boolean hasOwnPower() {
         if (!hasNetwork()) {
             return false;
@@ -472,8 +506,9 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     private void followDriver() {
         LinkedGearboxBlockEntity driver = driver();
         // * The lead stopped, look for another driver straight away
-        if (driver == null) {
-            updateRole();
+        // * stopping until each member's next update
+        if (driver == null || !driver.turnedExternally()) {
+            regroup();
             driver = role == Role.RECEIVER ? driver() : null;
         }
         // * No driver left

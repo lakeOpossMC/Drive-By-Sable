@@ -1,6 +1,8 @@
 package edn.lakeopossmc.drivebysable;
 
+import edn.lakeopossmc.drivebysable.blocks.LinkedGearboxBlock;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
+import edn.lakeopossmc.drivebysable.cable.LinkedGearboxLinks;
 import edn.lakeopossmc.drivebysable.cable.CableSelectionTracker;
 import edn.lakeopossmc.drivebysable.compat.GetCreativeCableServerHandler;
 import edn.lakeopossmc.drivebysable.compat.HandheldTypewriterServerHandler;
@@ -134,6 +136,13 @@ public final class CableCommonEvents {
         if (brokenBlock instanceof final SubTargetCableEndpoint endpoint) {
             removeVanishedSubTargets(level, pos, player, brokenBlock, endpoint);
             return;
+        }
+
+        if (brokenBlock instanceof LinkedGearboxBlock) {
+            final int refund = LinkedGearboxLinks.leaveNetwork(level, pos);
+            if (refund > 0) {
+                CableNetworkManager.refundCables(player, level, refund);
+            }
         }
 
         // * Run immediately so the player refund fires before onRemove

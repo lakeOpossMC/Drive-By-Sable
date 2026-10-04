@@ -2941,6 +2941,7 @@ public final class CableNetworkManager {
 
     //#region // --- SUBLEVEL PLOT CLEANUP --- //
     public static void purgeRemovedPlot(final ServerLevel level, final LevelPlot plot, final String reason) {
+        LinkedGearboxLinks.leaveNetworkWhere(level, pos -> isInPlot(plot, pos.asLong()));
         get(level).purgeEndpointsWhere(level, key -> isInPlot(plot, key), reason);
     }
 

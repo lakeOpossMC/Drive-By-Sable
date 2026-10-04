@@ -10,11 +10,13 @@ import net.minecraft.world.level.Level;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 
 // --- LINKED GEARBOX CABLE LINKS --- //
 public final class LinkedGearboxLinks {
@@ -178,23 +180,86 @@ public final class LinkedGearboxLinks {
     //#region // --- LEAVING A NETWORK --- //
     // * Server only
     public static int leaveNetwork(final Level level, final BlockPos leaving) {
+        final BlockPos pos = leaving.immutable();
+        final int refund = leaveNetwork(level, Set.of(pos));
+        if (!level.isClientSide && level.isLoaded(pos) && isGearbox(level, pos)) {
+            refreshLinks(level, Set.of(pos));
+        }
+        return refund;
+    }
+
+    public static int leaveNetwork(final Level level, final Collection<BlockPos> leaving) {
         final CableNetworkManager manager = CableNetworkManager.get(level);
         if (manager == null || level.isClientSide) {
             return 0;
         }
 
-        final Set<BlockPos> remaining = cableNetwork(level, leaving);
-        remaining.remove(leaving);
+        final Set<BlockPos> gone = new LinkedHashSet<>();
+        for (final BlockPos pos : leaving) {
+            gone.add(pos.immutable());
+        }
 
-        int removed = 0;
-        for (final BlockPos neighbour : cableNeighbours(level, leaving)) {
-            final BlockPos source = storedSourceOf(level, leaving, neighbour);
-            if (source == null) {
+        int refund = 0;
+        final Set<BlockPos> handled = new HashSet<>();
+        for (final BlockPos pos : gone) {
+            if (handled.contains(pos)) {
                 continue;
             }
-            final BlockPos sink = source.equals(leaving) ? neighbour : leaving;
-            if (CableNetworkManager.removeConnection(level, source, sink, Direction.UP, STRESS_CHANNEL, STRESS_CHANNEL)) {
-                removed++;
+            final Set<BlockPos> remaining = cableNetwork(level, pos);
+            final Set<BlockPos> leavingHere = new LinkedHashSet<>(remaining);
+            leavingHere.retainAll(gone);
+            handled.addAll(leavingHere);
+            remaining.removeAll(leavingHere);
+            refund += leaveOneNetwork(level, leavingHere, remaining);
+        }
+        return refund;
+    }
+
+    public static void leaveNetworkWhere(final Level level, final Predicate<BlockPos> isLeaving) {
+        final CableNetworkManager manager = CableNetworkManager.get(level);
+        if (manager == null || level.isClientSide) {
+            return;
+        }
+
+        final Set<BlockPos> leaving = new LinkedHashSet<>();
+        manager.sourcesWithSinks().forEach((source, perChannel) -> {
+            for (final CableNetworkSink sink : perChannel.getOrDefault(STRESS_CHANNEL, Set.of())) {
+                if (!STRESS_CHANNEL.equals(sink.sinkChannel())) {
+                    continue;
+                }
+                if (isLeaving.test(source)) {
+                    leaving.add(source);
+                }
+                if (isLeaving.test(sink.blockPos())) {
+                    leaving.add(sink.blockPos());
+                }
+            }
+        });
+        if (!leaving.isEmpty()) {
+            leaveNetwork(level, leaving);
+        }
+    }
+
+    private static void refreshLinks(final Level level, final Collection<BlockPos> gearboxes) {
+        for (final BlockPos pos : gearboxes) {
+            if (level.isLoaded(pos) && level.getBlockEntity(pos) instanceof final LinkedGearboxBlockEntity gearbox) {
+                gearbox.refreshLinks();
+            }
+        }
+    }
+
+    private static int leaveOneNetwork(final Level level, final Set<BlockPos> leavingHere, final Set<BlockPos> remaining) {
+        int removed = 0;
+        for (final BlockPos leaving : leavingHere) {
+            for (final BlockPos neighbour : cableNeighbours(level, leaving)) {
+                final BlockPos source = storedSourceOf(level, leaving, neighbour);
+                if (source == null) {
+                    continue;
+                }
+                final BlockPos sink = source.equals(leaving) ? neighbour : leaving;
+                if (CableNetworkManager.removeConnection(level, source, sink, Direction.UP, STRESS_CHANNEL, STRESS_CHANNEL)) {
+                    removed++;
+                }
             }
         }
 
@@ -210,6 +275,7 @@ public final class LinkedGearboxLinks {
             }
         }
 
+        final Set<List<BlockPos>> refused = new HashSet<>();
         while (pieces.size() > 1) {
             final Set<BlockPos> growing = pieces.getFirst();
             BlockPos bestFrom = null;
@@ -220,8 +286,10 @@ public final class LinkedGearboxLinks {
             for (int i = 1; i < pieces.size(); i++) {
                 for (final BlockPos from : growing) {
                     for (final BlockPos to : pieces.get(i)) {
-                        if (!isGearbox(level, from) || !isGearbox(level, to)
-                                || !checkPlacement(level, from, to).isSuccess()) {
+                        if (refused.contains(List.of(from, to))
+                                || !isGearbox(level, from) || !isGearbox(level, to)
+                                || !checkPlacement(level, from, to).isSuccess()
+                                || CableNetworkManager.checkRange(level, from, to) != CableNetworkManager.RangeResult.OK) {
                             continue;
                         }
                         final double distance = CableNetworkManager.worldSpaceDistanceSqr(level, from, to);
@@ -239,12 +307,16 @@ public final class LinkedGearboxLinks {
                 pieces.removeFirst();
                 continue;
             }
-            if (CableNetworkManager.createConnection(level, bestFrom, bestTo, Direction.UP, STRESS_CHANNEL, STRESS_CHANNEL)
+            if (!CableNetworkManager.createConnection(level, bestFrom, bestTo, Direction.UP, STRESS_CHANNEL, STRESS_CHANNEL)
                     .isSuccess()) {
-                added++;
+                refused.add(List.of(bestFrom, bestTo));
+                continue;
             }
+            added++;
             growing.addAll(pieces.remove(bestPiece));
         }
+
+        refreshLinks(level, remaining);
         return removed - added;
     }
     //#endregion

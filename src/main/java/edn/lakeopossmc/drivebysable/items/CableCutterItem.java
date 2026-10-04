@@ -5,6 +5,7 @@ import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import edn.lakeopossmc.drivebysable.cable.CableSelectionTracker;
 import edn.lakeopossmc.drivebysable.cable.SubTargetCableEndpoint;
 import edn.lakeopossmc.drivebysable.cable.CableServerFeedback;
+import edn.lakeopossmc.drivebysable.cable.LinkedGearboxLinks;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSink;
 import edn.lakeopossmc.drivebysable.util.CableSelectionMark;
 import net.minecraft.ChatFormatting;
@@ -81,18 +82,31 @@ public class CableCutterItem extends Item {
 
         final String subTarget = resolveSubTarget(level, pos, player);
 
+        final boolean gearbox = subTarget == null && LinkedGearboxLinks.isGearbox(level, pos);
+
         // * Check if on client side first
         if (level.isClientSide()) {
             final boolean hasConnections = subTarget != null
                     ? CableNetworkManager.hasConnectionsForSubTarget(level, pos, subTarget)
-                    : hasAnyConnection(level, pos);
+                    : hasAnyConnection(level, pos)
+                    || gearbox && !LinkedGearboxLinks.cableNeighbours(level, pos).isEmpty();
             return hasConnections ? InteractionResult.SUCCESS : InteractionResult.FAIL;
         }
 
         // * Check whether connections were removed or not
-        final boolean removed = subTarget != null
-                ? CableNetworkManager.removeAllForSubTarget((ServerPlayer) player, level, pos, subTarget)
-                : CableNetworkManager.removeAllFromSource((ServerPlayer) player, level, pos);
+        final boolean removed;
+        if (gearbox) {
+            final boolean linked = !LinkedGearboxLinks.cableNeighbours(level, pos).isEmpty();
+            final int refund = LinkedGearboxLinks.leaveNetwork(level, pos);
+            if (refund > 0) {
+                CableNetworkManager.refundCables((ServerPlayer) player, level, refund);
+            }
+            removed = CableNetworkManager.removeAllFromSource((ServerPlayer) player, level, pos) || linked;
+        } else {
+            removed = subTarget != null
+                    ? CableNetworkManager.removeAllForSubTarget((ServerPlayer) player, level, pos, subTarget)
+                    : CableNetworkManager.removeAllFromSource((ServerPlayer) player, level, pos);
+        }
         if (removed) {
             // * Play shear use sound if success
             level.playSound(null, pos, SoundEvents.SHEEP_SHEAR, SoundSource.BLOCKS, 1.0F, 1.0F);
