@@ -2,7 +2,9 @@ package edn.lakeopossmc.drivebysable.command;
 
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager.IncomingConnection;
+import edn.lakeopossmc.drivebysable.cable.LinkedGearboxLinks;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSink;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 
 import java.util.ArrayList;
@@ -15,13 +17,71 @@ public final class CableChannels {
     private CableChannels() {
     }
 
+    //#region // --- WHAT THE COMMANDS SEE OF THE NETWORK --- //
+    // * Linked Gearbox links are left out of everything here
+    public static Map<String, List<CableNetworkSink>> connections(final CableNetworkManager manager, final BlockPos pos) {
+        final Map<String, List<CableNetworkSink>> channels = new LinkedHashMap<>();
+        manager.getConnections(pos).forEach((channel, sinks) -> {
+            final List<CableNetworkSink> kept = new ArrayList<>(sinks.size());
+            for (final CableNetworkSink sink : sinks) {
+                if (!LinkedGearboxLinks.isStressLink(channel, sink.sinkChannel())) {
+                    kept.add(sink);
+                }
+            }
+            if (!kept.isEmpty()) {
+                channels.put(channel, kept);
+            }
+        });
+        return channels;
+    }
+
+    public static List<IncomingConnection> incoming(final CableNetworkManager manager, final BlockPos pos) {
+        final List<IncomingConnection> kept = new ArrayList<>();
+        for (final IncomingConnection incoming : manager.getIncoming(pos)) {
+            if (!LinkedGearboxLinks.isStressLink(incoming.channel(), incoming.sinkChannel())) {
+                kept.add(incoming);
+            }
+        }
+        return kept;
+    }
+
+    public static boolean isSource(final CableNetworkManager manager, final BlockPos pos) {
+        return manager.isSource(pos) && !connections(manager, pos).isEmpty();
+    }
+
+    public static boolean isOutput(final CableNetworkManager manager, final BlockPos pos) {
+        return manager.isOutput(pos) && !incoming(manager, pos).isEmpty();
+    }
+
+    public static boolean isEndpoint(final CableNetworkManager manager, final BlockPos pos) {
+        return isSource(manager, pos) || isOutput(manager, pos);
+    }
+
+    // * True when the block also has gearbox links
+    public static boolean hasGearboxLinks(final CableNetworkManager manager, final BlockPos pos) {
+        for (final Map.Entry<String, List<CableNetworkSink>> entry : manager.getConnections(pos).entrySet()) {
+            for (final CableNetworkSink sink : entry.getValue()) {
+                if (LinkedGearboxLinks.isStressLink(entry.getKey(), sink.sinkChannel())) {
+                    return true;
+                }
+            }
+        }
+        for (final IncomingConnection incoming : manager.getIncoming(pos)) {
+            if (LinkedGearboxLinks.isStressLink(incoming.channel(), incoming.sinkChannel())) {
+                return true;
+            }
+        }
+        return false;
+    }
+    //#endregion
+
     public static Map<String, List<CableNetworkSink>> sending(
             final ServerLevel level,
             final CableNetworkManager manager,
             final CableEndpoint endpoint
     ) {
         final Map<String, List<CableNetworkSink>> channels = new LinkedHashMap<>();
-        manager.getConnections(endpoint.pos()).forEach((channel, sinks) -> {
+        connections(manager, endpoint.pos()).forEach((channel, sinks) -> {
             if (belongsTo(level, endpoint, channel)) {
                 channels.put(channel, List.copyOf(sinks));
             }
@@ -35,7 +95,7 @@ public final class CableChannels {
             final CableEndpoint endpoint
     ) {
         final Map<String, List<IncomingConnection>> channels = new LinkedHashMap<>();
-        for (final IncomingConnection incoming : manager.getIncoming(endpoint.pos())) {
+        for (final IncomingConnection incoming : incoming(manager, endpoint.pos())) {
             if (endpoint.hasModule()
                     && !SourceModules.receivedBy(level, endpoint.pos(), incoming, endpoint.module())) {
                 continue;

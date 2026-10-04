@@ -18,10 +18,10 @@ public final class HelpCommand {
     }
 
     private static final List<Topic> TOPICS = List.of(
-            new Topic("targets", List.of(16), Set.of(3, 4, 5, 6, 7, 14)),
-            new Topic("info", List.of(11), Set.of(5, 6, 7, 8)),
+            new Topic("targets", List.of(18), Set.of(3, 4, 5, 6, 7, 14)),
+            new Topic("info", List.of(13), Set.of(5, 6, 7, 8)),
             new Topic("highlight", List.of(10, 3), Set.of(5, 6, 7)),
-            new Topic("remove", List.of(11), Set.of(9)),
+            new Topic("remove", List.of(14), Set.of(9, 14)),
             new Topic("listNext", List.of(5), Set.of())
     );
 

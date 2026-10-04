@@ -30,10 +30,10 @@ public final class HighlightCommand {
 
     private static final int DEFAULT_SECONDS = 10;
     private static final int MAX_SECONDS = 300;
-    private static final int INFINITE = -1;
+    static final int INFINITE = -1;
 
-    private static final int MAX_ENDPOINTS = 512;
-    private static final int MAX_LINKS = 4096;
+    static final int MAX_ENDPOINTS = 512;
+    static final int MAX_LINKS = 4096;
 
     private HighlightCommand() {
     }
@@ -82,11 +82,18 @@ public final class HighlightCommand {
             final boolean withConnected
     ) throws CommandSyntaxException {
         final CommandSourceStack source = context.getSource();
+
+        // * Transceiver networks are their own target type
+        final CableTarget target = TargetArgument.getTarget(context, "target");
+        if (target.side().transceivers()) {
+            return TransceiverCommands.highlight(context, target, modules, seconds, withConnected);
+        }
+
         final ServerPlayer player = source.getPlayerOrException();
 
         final CableTargets.Resolved resolved = CableTargets.resolve(
                 source,
-                TargetArgument.getTarget(context, "target"),
+                target,
                 modules ? ModuleArgument.getModule(context, "module") : null);
 
         final ServerLevel level = resolved.level();

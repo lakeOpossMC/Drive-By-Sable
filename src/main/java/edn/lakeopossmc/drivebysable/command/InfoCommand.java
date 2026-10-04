@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 // --- /dbs info <target> <@mod[name]> [summarize | getChannel[name] | getLevel | getType] --- //
+// * A @target[transceiver] is handed to TransceiverCommands, which lists what it is linked to
 public final class InfoCommand {
 
     private static final DynamicCommandExceptionType NO_SUCH_CHANNEL = new DynamicCommandExceptionType(
@@ -68,6 +69,11 @@ public final class InfoCommand {
             final CommandContext<CommandSourceStack> context,
             final boolean modules
     ) throws CommandSyntaxException {
+        final CableTarget target = TargetArgument.getTarget(context, "target");
+        if (target.side().transceivers()) {
+            return TransceiverCommands.summarize(context, target, modules);
+        }
+
         final CableTargets.Resolved resolved = resolve(context, modules);
         final List<CableEndpoint> endpoints = resolved.endpoints();
 
@@ -220,6 +226,9 @@ public final class InfoCommand {
             final boolean modules
     ) throws CommandSyntaxException {
         final CableTarget target = TargetArgument.getTarget(context, "target");
+        if (target.side().transceivers()) {
+            return TransceiverCommands.getChannel();
+        }
         CableTargets.requireSingle(target);
 
         final CableTargets.Resolved resolved = resolve(context, modules);
@@ -341,7 +350,12 @@ public final class InfoCommand {
             final CommandContext<CommandSourceStack> context,
             final boolean modules
     ) throws CommandSyntaxException {
-        CableTargets.requireSingle(TargetArgument.getTarget(context, "target"));
+        final CableTarget target = TargetArgument.getTarget(context, "target");
+        if (target.side().transceivers()) {
+            return TransceiverCommands.getLevel(context, target, modules);
+        }
+
+        CableTargets.requireSingle(target);
         final CableTargets.Resolved resolved = resolve(context, modules);
         final CableEndpoint endpoint = resolved.endpoints().get(0);
         final ServerLevel level = resolved.level();
@@ -374,7 +388,12 @@ public final class InfoCommand {
             throw MODULES_NOT_ALLOWED.create();
         }
 
-        CableTargets.requireSingle(TargetArgument.getTarget(context, "target"));
+        final CableTarget target = TargetArgument.getTarget(context, "target");
+        if (target.side().transceivers()) {
+            return TransceiverCommands.getType(context, target, false);
+        }
+
+        CableTargets.requireSingle(target);
         final CableTargets.Resolved resolved = resolve(context, false);
         final CableEndpoint endpoint = resolved.endpoints().get(0);
         final ServerLevel level = resolved.level();

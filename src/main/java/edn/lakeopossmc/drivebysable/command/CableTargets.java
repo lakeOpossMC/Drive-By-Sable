@@ -7,7 +7,9 @@ import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.companion.math.BoundingBox3d;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import edn.lakeopossmc.drivebysable.CableConfig;
+import edn.lakeopossmc.drivebysable.blocks.LinkedGearboxBlockEntity;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
+import edn.lakeopossmc.drivebysable.cable.LinkedGearboxFrequencies;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -21,8 +23,10 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 // --- TURNS A @target INTO ENDPOINTS --- //
 public final class CableTargets {
@@ -42,6 +46,8 @@ public final class CableTargets {
             Component.translatable("commands.drivebysable.target.single_only"));
     private static final SimpleCommandExceptionType NO_MODULES_HERE = new SimpleCommandExceptionType(
             Component.translatable("commands.drivebysable.target.no_modules"));
+    private static final SimpleCommandExceptionType NO_TRANSCEIVERS = new SimpleCommandExceptionType(
+            Component.translatable("commands.drivebysable.target.none.transceiver"));
 
     private CableTargets() {
     }
@@ -119,7 +125,8 @@ public final class CableTargets {
             final CableNetworkManager manager,
             final BlockPos typed
     ) throws CommandSyntaxException {
-        if (manager.isEndpoint(typed)) {
+        // * CableChannels leaves Linked Gearbox links out
+        if (CableChannels.isEndpoint(manager, typed)) {
             return typed;
         }
 
@@ -128,7 +135,7 @@ public final class CableTargets {
                 centre.x - 0.5, centre.y - 0.5, centre.z - 0.5,
                 centre.x + 0.5, centre.y + 0.5, centre.z + 0.5))) {
             final BlockPos local = BlockPos.containing(subLevel.logicalPose().transformPositionInverse(centre));
-            if (manager.isEndpoint(local)) {
+            if (CableChannels.isEndpoint(manager, local)) {
                 return local;
             }
         }
@@ -149,7 +156,7 @@ public final class CableTargets {
         }
 
         final BlockPos pos = blockHit.getBlockPos();
-        if (!manager.isEndpoint(pos)) {
+        if (!CableChannels.isEndpoint(manager, pos)) {
             throw NONE_FOUND.create();
         }
         return pos.immutable();
@@ -188,18 +195,26 @@ public final class CableTargets {
             final CableNetworkManager manager,
             final CableTarget target
     ) {
-        final Vec3 origin = origin(source);
         final List<BlockPos> blocks = new ArrayList<>();
         for (final BlockPos pos : manager.getEndpointPositions()) {
-            if (target.side().wantsSources() && manager.isSource(pos)) {
+            if (target.side().wantsSources() && CableChannels.isSource(manager, pos)) {
                 blocks.add(pos);
                 continue;
             }
-            if (target.side().wantsOutputs() && manager.isOutput(pos)) {
+            if (target.side().wantsOutputs() && CableChannels.isOutput(manager, pos)) {
                 blocks.add(pos);
             }
         }
+        return byDistance(source, level, blocks);
+    }
 
+    // * Nearest to whoever ran the command first
+    private static List<BlockPos> byDistance(
+            final CommandSourceStack source,
+            final ServerLevel level,
+            final List<BlockPos> blocks
+    ) {
+        final Vec3 origin = origin(source);
         final Map<BlockPos, Double> distances = new HashMap<>(blocks.size());
         for (final BlockPos pos : blocks) {
             distances.put(pos, SourceText.worldCentre(level, pos).distanceToSqr(origin));
@@ -213,6 +228,117 @@ public final class CableTargets {
     }
     //#endregion
 
+    //#region // --- TRANSCEIVERS --- //
+    // * @target[transceiver]: Linked Gearboxes
+    public static List<BlockPos> resolveTransceivers(
+            final CommandSourceStack source,
+            final CableTarget target
+    ) throws CommandSyntaxException {
+        final ServerLevel level = source.getLevel();
+        final CableNetworkManager manager = CableNetworkManager.get(level);
+
+        return switch (target.kind()) {
+            case COORD -> List.of(transceiverAtCoords(level, manager, target.coords()));
+            case LOOK -> {
+                final BlockHitResult hit = lookHit(source);
+                if (!isLinkedTransceiver(level, manager, hit.getBlockPos())) {
+                    throw NO_TRANSCEIVERS.create();
+                }
+                yield List.of(hit.getBlockPos().immutable());
+            }
+            case NEAREST -> {
+                final List<BlockPos> sorted = byDistance(source, level, linkedTransceivers(level, manager));
+                if (sorted.isEmpty()) {
+                    throw NO_TRANSCEIVERS.create();
+                }
+                yield List.of(sorted.get(0));
+            }
+            case RADIUS -> {
+                final int limit = CableConfig.CONFIG.commandRadiusLimit.get();
+                if (target.radius() > limit) {
+                    throw RADIUS_TOO_LARGE.create(limit);
+                }
+
+                final Vec3 origin = origin(source);
+                final double maxDistanceSqr = (double) target.radius() * target.radius();
+                final List<BlockPos> inside = new ArrayList<>();
+                for (final BlockPos pos : byDistance(source, level, linkedTransceivers(level, manager))) {
+                    if (SourceText.worldCentre(level, pos).distanceToSqr(origin) > maxDistanceSqr) {
+                        break;
+                    }
+                    inside.add(pos);
+                }
+                if (inside.isEmpty()) {
+                    throw NO_TRANSCEIVERS.create();
+                }
+                yield inside;
+            }
+            case ALL -> {
+                final List<BlockPos> sorted = byDistance(source, level, linkedTransceivers(level, manager));
+                if (sorted.isEmpty()) {
+                    throw NO_TRANSCEIVERS.create();
+                }
+                yield sorted;
+            }
+        };
+    }
+
+    private static boolean isLinkedTransceiver(
+            final ServerLevel level,
+            final CableNetworkManager manager,
+            final BlockPos pos
+    ) {
+        if (CableChannels.hasGearboxLinks(manager, pos)) {
+            return true;
+        }
+        return level.isLoaded(pos)
+                && level.getBlockEntity(pos) instanceof final LinkedGearboxBlockEntity gearbox
+                && gearbox.isLinked();
+    }
+
+    private static List<BlockPos> linkedTransceivers(final ServerLevel level, final CableNetworkManager manager) {
+        final Set<BlockPos> linked = new LinkedHashSet<>();
+        for (final BlockPos pos : manager.getEndpointPositions()) {
+            if (CableChannels.hasGearboxLinks(manager, pos)) {
+                linked.add(pos);
+            }
+        }
+        linked.addAll(LinkedGearboxFrequencies.linked(level));
+        return new ArrayList<>(linked);
+    }
+
+    private static BlockPos transceiverAtCoords(
+            final ServerLevel level,
+            final CableNetworkManager manager,
+            final BlockPos typed
+    ) throws CommandSyntaxException {
+        if (isLinkedTransceiver(level, manager, typed)) {
+            return typed;
+        }
+
+        final Vec3 centre = Vec3.atCenterOf(typed);
+        for (final SubLevel subLevel : Sable.HELPER.getAllIntersecting(level, new BoundingBox3d(
+                centre.x - 0.5, centre.y - 0.5, centre.z - 0.5,
+                centre.x + 0.5, centre.y + 0.5, centre.z + 0.5))) {
+            final BlockPos local = BlockPos.containing(subLevel.logicalPose().transformPositionInverse(centre));
+            if (isLinkedTransceiver(level, manager, local)) {
+                return local;
+            }
+        }
+        throw NO_TRANSCEIVERS.create();
+    }
+
+    private static BlockHitResult lookHit(final CommandSourceStack source) throws CommandSyntaxException {
+        final ServerPlayer player = source.getPlayerOrException();
+
+        final HitResult hit = player.pick(LOOK_REACH, 1.0F, false);
+        if (!(hit instanceof final BlockHitResult blockHit) || hit.getType() != HitResult.Type.BLOCK) {
+            throw NOT_LOOKING.create();
+        }
+        return blockHit;
+    }
+    //#endregion
+
     private static List<CableEndpoint> endpointsOn(
             final ServerLevel level,
             final CableNetworkManager manager,
@@ -221,7 +347,7 @@ public final class CableTargets {
             final boolean source
     ) throws CommandSyntaxException {
         if (module == null) {
-            final boolean plays = source ? manager.isSource(pos) : manager.isOutput(pos);
+            final boolean plays = source ? CableChannels.isSource(manager, pos) : CableChannels.isOutput(manager, pos);
             return plays ? List.of(new CableEndpoint(pos, "", source)) : List.of();
         }
 

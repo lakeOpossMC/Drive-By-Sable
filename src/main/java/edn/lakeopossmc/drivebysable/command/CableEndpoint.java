@@ -24,7 +24,8 @@ public record CableEndpoint(BlockPos pos, String module, boolean source) {
             final CableNetworkManager manager,
             final BlockPos pos
     ) {
-        final Set<String> channels = manager.getConnections(pos).keySet();
+        // * Read through CableChannels, which leaves Linked Gearbox links out
+        final Set<String> channels = CableChannels.connections(manager, pos).keySet();
         if (channels.isEmpty()) {
             return List.of();
         }
@@ -61,7 +62,7 @@ public record CableEndpoint(BlockPos pos, String module, boolean source) {
             final CableNetworkManager manager,
             final BlockPos pos
     ) {
-        final List<IncomingConnection> incoming = manager.getIncoming(pos);
+        final List<IncomingConnection> incoming = CableChannels.incoming(manager, pos);
         if (incoming.isEmpty()) {
             return List.of();
         }

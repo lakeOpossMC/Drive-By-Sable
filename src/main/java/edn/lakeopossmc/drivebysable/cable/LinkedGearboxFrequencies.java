@@ -55,6 +55,16 @@ public final class LinkedGearboxFrequencies {
         }
     }
 
+    public static Set<BlockPos> linked(final LevelAccessor level) {
+        final Set<BlockPos> linked = new LinkedHashSet<>();
+        for (final Set<BlockPos> members : GROUPS.get(level).values()) {
+            if (members.size() > 1) {
+                linked.addAll(members);
+            }
+        }
+        return linked;
+    }
+
     // * Everything else on this frequency
     public static Set<BlockPos> partners(final LevelAccessor level, final BlockPos pos, @Nullable final Key key) {
         if (key == null) {

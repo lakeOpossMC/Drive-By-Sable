@@ -16,11 +16,11 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 // --- READS A @target OUT OF A COMMAND --- //
-// * @coord[x, y, z], @coord[x, y, z, source], @look[output], @n, @rad[32, source], @a
+// * @coord[x, y, z], @coord[x, y, z, source], @look[output], @n[transceiver], @rad[32, source], @a
 public final class TargetArgument implements ArgumentType<CableTarget> {
 
     private static final Collection<String> EXAMPLES =
-            List.of("@n", "@look[source]", "@coord[12, 64, -30, output]", "@rad[32]", "@a[source]");
+            List.of("@n", "@look[source]", "@coord[12, 64, -30, output]", "@rad[32]", "@a[source]", "@n[transceiver]");
 
     private static final SimpleCommandExceptionType EXPECTED_TARGET = new SimpleCommandExceptionType(
             Component.translatable("commands.drivebysable.argument.target.expected"));
@@ -152,11 +152,12 @@ public final class TargetArgument implements ArgumentType<CableTarget> {
         }
 
         final String side = parts.get(index).toLowerCase(java.util.Locale.ROOT);
-        return switch (side) {
-            case "source" -> CableTarget.Side.SOURCE;
-            case "output" -> CableTarget.Side.OUTPUT;
-            default -> throw UNKNOWN_SIDE.createWithContext(reader, side);
-        };
+        for (final CableTarget.Side candidate : CableTarget.Side.values()) {
+            if (!candidate.word().isEmpty() && candidate.word().equals(side)) {
+                return candidate;
+            }
+        }
+        throw UNKNOWN_SIDE.createWithContext(reader, side);
     }
 
     @Override
@@ -180,8 +181,9 @@ public final class TargetArgument implements ArgumentType<CableTarget> {
         final String prefix = written.substring(0, Math.max(start, lastComma + 1));
         final String typed = written.substring(Math.max(start, lastComma + 1)).trim();
 
-        for (final String side : List.of("source", "output")) {
-            if (side.startsWith(typed)) {
+        for (final CableTarget.Side candidate : CableTarget.Side.values()) {
+            final String side = candidate.word();
+            if (!side.isEmpty() && side.startsWith(typed)) {
                 builder.suggest(builder.getRemaining().substring(0, prefix.length()) + side + "]");
             }
         }

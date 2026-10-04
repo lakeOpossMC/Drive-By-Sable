@@ -24,11 +24,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-// --- /dbs remove <target> <@mod[name]> [proceed without confirm] --- //
+// --- /dbs remove <target> <@mod[name]> [proceed without confirm] [connected] --- //
 public final class RemoveCommand {
 
     private static final SimpleCommandExceptionType SIDE_REQUIRED = new SimpleCommandExceptionType(
             Component.translatable("commands.drivebysable.remove.side_required"));
+    private static final SimpleCommandExceptionType CONNECTED_TRANSCEIVER_ONLY = new SimpleCommandExceptionType(
+            Component.translatable("commands.drivebysable.remove.connected_transceiver_only"));
 
     private RemoveCommand() {
     }
@@ -48,21 +50,35 @@ public final class RemoveCommand {
             final boolean modules
     ) {
         // * Without the flag the removal is only described
-        node.executes(context -> run(context, modules, false));
+        node.executes(context -> run(context, modules, false, false));
         node.then(Commands.argument("proceed", BoolArgumentType.bool())
-                .executes(context -> run(context, modules, BoolArgumentType.getBool(context, "proceed"))));
+                .executes(context -> run(context, modules, BoolArgumentType.getBool(context, "proceed"), false))
+                .then(Commands.argument("connected", BoolArgumentType.bool())
+                        .executes(context -> run(
+                                context,
+                                modules,
+                                BoolArgumentType.getBool(context, "proceed"),
+                                BoolArgumentType.getBool(context, "connected")))));
         return node;
     }
 
     private static int run(
             final CommandContext<CommandSourceStack> context,
             final boolean modules,
-            final boolean proceed
+            final boolean proceed,
+            final boolean connected
     ) throws CommandSyntaxException {
         final CommandSourceStack source = context.getSource();
         final CableTarget target = TargetArgument.getTarget(context, "target");
         if (target.side() == CableTarget.Side.BOTH) {
             throw SIDE_REQUIRED.create();
+        }
+
+        if (target.side().transceivers()) {
+            return TransceiverCommands.remove(context, target, modules, proceed, connected);
+        }
+        if (connected) {
+            throw CONNECTED_TRANSCEIVER_ONLY.create();
         }
 
         final String module = modules ? ModuleArgument.getModule(context, "module") : null;
@@ -101,8 +117,11 @@ public final class RemoveCommand {
             final CableNetworkManager manager,
             final CableEndpoint endpoint
     ) {
+        // * Linked Gearbox links are never touched
+        final boolean keepLinks = CableChannels.hasGearboxLinks(manager, endpoint.pos());
+
         if (endpoint.source()) {
-            if (!endpoint.hasModule()) {
+            if (!endpoint.hasModule() && !keepLinks) {
                 manager.removeAllFromSourceInternal(null, level, endpoint.pos());
                 return;
             }
@@ -113,7 +132,14 @@ public final class RemoveCommand {
         }
 
         if (!endpoint.hasModule()) {
-            manager.removeAllToSinkInternal(level, endpoint.pos());
+            if (!keepLinks) {
+                manager.removeAllToSinkInternal(level, endpoint.pos());
+                return;
+            }
+            for (final IncomingConnection incoming : CableChannels.incoming(manager, endpoint.pos())) {
+                manager.removeConnectionInternal(level, incoming.source(), endpoint.pos(), incoming.direction(),
+                        incoming.channel(), incoming.sinkChannel());
+            }
             return;
         }
         for (final Map.Entry<String, List<IncomingConnection>> entry

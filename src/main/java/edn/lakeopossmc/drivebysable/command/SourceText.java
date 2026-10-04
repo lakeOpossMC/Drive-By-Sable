@@ -96,6 +96,27 @@ public final class SourceText {
                 Component.translatable("commands.drivebysable.click.channel"));
     }
 
+    private static final ChatFormatting TRANSCEIVER_COLOR = ChatFormatting.AQUA;
+
+    public static Component transceiver(final Level level, final BlockPos pos) {
+        return bracketed(blockNameOf(level, pos).withStyle(TRANSCEIVER_COLOR));
+    }
+
+    public static Component transceiverLink(final Level level, final BlockPos pos) {
+        return runs(transceiver(level, pos),
+                "/dbs info @coord[" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ", transceiver] summarize",
+                Component.translatable("commands.drivebysable.click.summarize"));
+    }
+
+    public static Component transceiverNumber(final int value) {
+        return bracketed(Component.literal(String.valueOf(value)).withStyle(TRANSCEIVER_COLOR));
+    }
+
+    public static Component transceiverType() {
+        return bracketed(Component.translatable("commands.drivebysable.type.transceiver")
+                .withStyle(ChatFormatting.LIGHT_PURPLE));
+    }
+
     private static String coordSelector(final BlockPos pos, final boolean source) {
         return "@coord[" + pos.getX() + ", " + pos.getY() + ", " + pos.getZ()
                 + ", " + (source ? "source" : "output") + "]";

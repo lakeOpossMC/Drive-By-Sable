@@ -34,6 +34,11 @@ public final class LinkedGearboxLinks {
         return STRESS_CHANNEL.equals(channel) || STRESS_CHANNEL.equals(sinkChannel) || isGearbox(level, source);
     }
 
+    // * A stored connection that is really a gearbox link
+    public static boolean isStressLink(final String channel, final String sinkChannel) {
+        return STRESS_CHANNEL.equals(channel) && STRESS_CHANNEL.equals(sinkChannel);
+    }
+
     //#region // --- LOOKUPS --- //
     // * Every gearbox directly cabled to this one
     public static Set<BlockPos> cableNeighbours(final Level level, final BlockPos pos) {

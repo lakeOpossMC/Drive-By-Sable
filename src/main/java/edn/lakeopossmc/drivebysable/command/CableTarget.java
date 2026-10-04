@@ -5,7 +5,7 @@ import net.minecraft.core.BlockPos;
 import javax.annotation.Nullable;
 
 // --- A PARSED @target --- //
-// * @coord[x, y, z, source|output], @look[...], @n[...], @rad[blocks, ...], @a[...]
+// * @coord[x, y, z, source|output|transceiver], @look[...], @n[...], @rad[blocks, ...], @a[...]
 public record CableTarget(Kind kind, Side side, @Nullable BlockPos coords, int radius) {
 
     // * What a target looks for
@@ -33,17 +33,33 @@ public record CableTarget(Kind kind, Side side, @Nullable BlockPos coords, int r
     }
 
     // * Which end of a connection the target is after
+    // * TRANSCEIVER is its own type
     public enum Side {
-        SOURCE,
-        OUTPUT,
-        BOTH;
+        SOURCE("source"),
+        OUTPUT("output"),
+        TRANSCEIVER("transceiver"),
+        BOTH("");
+
+        private final String word;
+
+        Side(final String word) {
+            this.word = word;
+        }
+
+        public String word() {
+            return word;
+        }
 
         public boolean wantsSources() {
-            return this != OUTPUT;
+            return this == SOURCE || this == BOTH;
         }
 
         public boolean wantsOutputs() {
-            return this != SOURCE;
+            return this == OUTPUT || this == BOTH;
+        }
+
+        public boolean transceivers() {
+            return this == TRANSCEIVER;
         }
     }
 
@@ -65,7 +81,6 @@ public record CableTarget(Kind kind, Side side, @Nullable BlockPos coords, int r
         if (side == Side.BOTH) {
             return "";
         }
-        final String word = side == Side.SOURCE ? "source" : "output";
-        return leading ? ", " + word : word;
+        return leading ? ", " + side.word() : side.word();
     }
 }
