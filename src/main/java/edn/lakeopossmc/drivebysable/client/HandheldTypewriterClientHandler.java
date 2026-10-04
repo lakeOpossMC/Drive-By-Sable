@@ -51,6 +51,9 @@ public final class HandheldTypewriterClientHandler {
 
     private static final boolean SIMULATED_LOADED = ModList.get().isLoaded("simulated");
     private static final int PACKET_RATE = 5;
+
+    // * How often a switched on controller tells its bound Typewriter Hub it is still on
+    private static final int ACTIVE_RATE = 10;
     private static final int BIND_OUTLINE_COLOR = 0xB73C2D;
 
     private static Mode mode = Mode.IDLE;
@@ -59,6 +62,7 @@ public final class HandheldTypewriterClientHandler {
     private static InteractionHand bindHand = InteractionHand.MAIN_HAND;
     private static final Set<Integer> pressed = new HashSet<>();
     private static int packetCooldown;
+    private static int activeCooldown;
     private static int bindMessageCooldown;
     private static boolean handheldScreenOpen;
     private static int handheldScreenPending;
@@ -85,6 +89,7 @@ public final class HandheldTypewriterClientHandler {
         if (mode == Mode.IDLE) {
             mode = Mode.ACTIVE;
             lecternPos = null;
+            activeCooldown = 0;
         } else {
             stop();
         }
@@ -104,6 +109,7 @@ public final class HandheldTypewriterClientHandler {
         if (mode == Mode.IDLE) {
             mode = Mode.ACTIVE;
             lecternPos = pos.immutable();
+            activeCooldown = 0;
         }
     }
 
@@ -139,6 +145,10 @@ public final class HandheldTypewriterClientHandler {
         if (!pressed.isEmpty()) {
             PacketDistributor.sendToServer(new HandheldTypewriterInputPacket(List.copyOf(pressed), false, Optional.ofNullable(lecternPos)));
         }
+        // * Switched off, so a bound Typewriter Hub goes dark straight away
+        if (mode == Mode.ACTIVE) {
+            PacketDistributor.sendToServer(new HandheldTypewriterInputPacket(List.of(), false, Optional.ofNullable(lecternPos)));
+        }
         if (lecternPos != null) {
             PacketDistributor.sendToServer(new HandheldTypewriterStopLecternPacket(lecternPos));
         }
@@ -146,6 +156,7 @@ public final class HandheldTypewriterClientHandler {
         pressed.clear();
         HandheldTypewriterItemRenderer.resetKeys();
         packetCooldown = 0;
+        activeCooldown = 0;
         lecternPos = null;
         bindPos = null;
         mode = Mode.IDLE;
@@ -316,6 +327,17 @@ public final class HandheldTypewriterClientHandler {
         if (minecraft.screen != null) {
             stop();
             return;
+        }
+
+        // * Keeps a bound Typewriter Hub lit for as long as the controller is switched on
+        if (activeCooldown > 0) {
+            activeCooldown--;
+        }
+        if (activeCooldown == 0) {
+            if (HubItem.getHubPos(currentController(minecraft)).isPresent()) {
+                PacketDistributor.sendToServer(new HandheldTypewriterInputPacket(List.of(), true, Optional.ofNullable(lecternPos)));
+            }
+            activeCooldown = ACTIVE_RATE;
         }
 
         if (packetCooldown > 0) {

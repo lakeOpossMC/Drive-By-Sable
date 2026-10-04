@@ -58,8 +58,12 @@ public final class HandheldTypewriterServerHandler {
 
         //#region // --- CABLE CHANNELS --- //
         final Optional<BlockPos> hubPos = HubItem.getHubPos(controller);
-        if (hubPos.isPresent() && level.getBlockEntity(hubPos.get()) instanceof CableTypewriterHubBlockEntity) {
+        // * The keyless packets never load the hub's chunk, real key presses still reach it
+        if (hubPos.isPresent()
+                && (!keys.isEmpty() || level.isLoaded(hubPos.get()))
+                && level.getBlockEntity(hubPos.get()) instanceof final CableTypewriterHubBlockEntity hub) {
             setChannels(level, hubPos.get(), keys, pressed);
+            hub.receiveHandheldInput(player.getUUID(), keys, pressed);
         }
         if (lecternPos != null) {
             setChannels(level, lecternPos, keys, pressed);

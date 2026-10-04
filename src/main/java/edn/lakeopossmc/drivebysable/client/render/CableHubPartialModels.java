@@ -13,6 +13,14 @@ public final class CableHubPartialModels {
     public static final PartialModel ADVANCED_GLOW = of("advanced_cable_hub/glow");
     public static final PartialModel ADVANCED_GLOW_VERTICAL = of("advanced_cable_hub/glow_vertical");
 
+    public static final PartialModel INTERMEDIATE_BULB = of("intermediate_cable_hub/bulb");
+    public static final PartialModel INTERMEDIATE_BULB_VERTICAL = of("intermediate_cable_hub/bulb_vertical");
+    public static final PartialModel ADVANCED_BULB = of("advanced_cable_hub/bulb");
+    public static final PartialModel ADVANCED_BULB_VERTICAL = of("advanced_cable_hub/bulb_vertical");
+
+    public static final PartialModel TYPEWRITER_GLOW = of("cable_typewriter_hub/glow");
+    public static final PartialModel TYPEWRITER_BULB = of("cable_typewriter_hub/bulb");
+
     private CableHubPartialModels() {
     }
 

@@ -11,6 +11,7 @@ import edn.lakeopossmc.drivebysable.blocks.CableHubBlockEntity;
 import net.createmod.catnip.render.CachedBuffers;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.state.BlockState;
@@ -75,6 +76,9 @@ public class CableHubBulbRenderer extends SafeBlockEntityRenderer<CableHubBlockE
         final PartialModel model = advanced
                 ? (vertical ? CableHubPartialModels.ADVANCED_GLOW_VERTICAL : CableHubPartialModels.ADVANCED_GLOW)
                 : (vertical ? CableHubPartialModels.INTERMEDIATE_GLOW_VERTICAL : CableHubPartialModels.INTERMEDIATE_GLOW);
+        final PartialModel bulb = advanced
+                ? (vertical ? CableHubPartialModels.ADVANCED_BULB_VERTICAL : CableHubPartialModels.ADVANCED_BULB)
+                : (vertical ? CableHubPartialModels.INTERMEDIATE_BULB_VERTICAL : CableHubPartialModels.INTERMEDIATE_BULB);
 
         ms.pushPose();
 
@@ -83,6 +87,10 @@ public class CableHubBulbRenderer extends SafeBlockEntityRenderer<CableHubBlockE
                 .rotateYDegrees(-yRotation)
                 .rotateXDegrees(-xRotation)
                 .uncenter();
+
+        CachedBuffers.partial(bulb, state)
+                .light(LightTexture.FULL_BRIGHT)
+                .renderInto(ms, buffer.getBuffer(RenderType.translucent()));
 
         CachedBuffers.partial(model, state)
                 .light(LightTexture.FULL_BRIGHT)

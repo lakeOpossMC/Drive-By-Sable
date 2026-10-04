@@ -13,7 +13,10 @@ import edn.lakeopossmc.drivebysable.compat.keytranslator.ControllerChannelTransl
 import edn.lakeopossmc.drivebysable.compat.computercraft.ComputerCraftCompat;
 import edn.lakeopossmc.drivebysable.mixinducks.LinkedTypewriterBlockEntityDuck;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import net.createmod.catnip.animation.LerpedFloat;
+import net.createmod.catnip.animation.LerpedFloat.Chaser;
 import net.createmod.catnip.lang.Lang;
+import net.createmod.catnip.nbt.NBTHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -28,6 +31,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -48,10 +53,27 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
     // * Whoever is at the keyboard right now
     private static final String CURRENT_USER_KEY = "CurrentUser";
 
+    private static final String PULSE_KEY = "Pulse";
+
+    // * A handheld counts as switched on for this long after it was last heard from
+    private static final int HANDHELD_TIMEOUT = 30;
+
     private static CableTypewriterHubBlockEntity clientInstance;
 
     private final Set<String> connectedChannels = new HashSet<>();
     private boolean promiscuousMode = false;
+
+    private final LerpedFloat glow = LerpedFloat.linear().startWithValue(0);
+    private boolean sendPulse;
+    private boolean pulseWaiting;
+
+    // * Players with a switched on Handheld Typewriter bound here, and the keys each is holding
+    private final Map<UUID, HandheldUser> handheldUsers = new HashMap<>();
+
+    private static final class HandheldUser {
+        private final Set<Integer> held = new HashSet<>();
+        private int timeout = HANDHELD_TIMEOUT;
+    }
 
     // * Carries the connection half of the clipboard under the mod's own key
     // * See CableTypewriterHubConnectionClipboard for why it is not on this class
@@ -59,6 +81,7 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
 
     public CableTypewriterHubBlockEntity(final BlockPos pos, final BlockState state) {
         super(CableBlockEntities.CABLE_TYPEWRITER_HUB.get(), pos, state);
+        this.glow.chase(0, 0.5F, Chaser.EXP);
     }
 
     @Override
@@ -70,11 +93,67 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
 
     @Override
     public void tick() {
+        // * Before the typewriter's own tick
+        if (this.level instanceof ServerLevel) {
+            tickHandhelds();
+        }
+
         super.tick();
+
+        if (this.level != null && this.level.isClientSide) {
+            this.glow.tickChaser();
+        }
         if (this.level instanceof final ServerLevel level) {
+            // * One blink per tick, however many keys went down in it
+            if (this.pulseWaiting) {
+                this.pulseWaiting = false;
+                this.sendPulse = true;
+                this.sendData();
+            }
             updateConnectedChannels(level);
         }
     }
+
+    //#region // --- HANDHELD TYPEWRITERS BOUND TO THIS HUB --- //
+    public void receiveHandheldInput(final UUID player, final Collection<Integer> keys, final boolean pressed) {
+        if (pressed) {
+            final HandheldUser user = this.handheldUsers.computeIfAbsent(player, id -> new HandheldUser());
+            user.timeout = HANDHELD_TIMEOUT;
+            for (final Integer key : keys) {
+                if (key != null && user.held.add(key)) {
+                    this.pulseWaiting = true;
+                }
+            }
+        } else if (keys.isEmpty()) {
+            // * Switched off
+            this.handheldUsers.remove(player);
+        } else {
+            final HandheldUser user = this.handheldUsers.get(player);
+            if (user != null) {
+                user.held.removeAll(keys);
+            }
+        }
+        updatePowered();
+    }
+
+    // * A handheld that went quiet (dropped, logged out, out of reach)
+    private void tickHandhelds() {
+        if (this.handheldUsers.isEmpty()) {
+            return;
+        }
+        this.handheldUsers.values().removeIf(user -> --user.timeout <= 0);
+        updatePowered();
+    }
+
+    // * Lit while someone is at the keyboard or has a handheld switched on
+    private void updatePowered() {
+        this.powered = !this.handheldUsers.isEmpty() || this.isInUse();
+    }
+
+    public float getGlow(final float partialTicks) {
+        return this.glow.getValue(partialTicks);
+    }
+    //#endregion
 
     //#region // --- TRACK WHICH CHANNELS HAVE LINKS --- //
     // * Only resyncs to client when the set actually changed
@@ -127,6 +206,7 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
 
         if (this.level instanceof final ServerLevel level) {
             CableTypewriterHubServerHandler.receiveKey(level, this.getBlockPos(), key, true);
+            this.pulseWaiting = true;
 
             if (!isEventHandledBySuper) {
                 this.getPressedKeys().add(key);
@@ -184,6 +264,11 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
             tag.put("ConnectedChannels", list);
 
             tag.put("PromiscuousMode", this.isInPromiscuousMode() ? ByteTag.ONE : ByteTag.ZERO);
+
+            if (this.sendPulse) {
+                this.sendPulse = false;
+                NBTHelper.putMarker(tag, PULSE_KEY);
+            }
         }
     }
 
@@ -213,6 +298,10 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
 
         if (tag.contains("PromiscuousMode")) {
             this.setPromiscuousMode(tag.getByte("PromiscuousMode") != 0);
+        }
+
+        if (tag.contains(PULSE_KEY)) {
+            this.glow.setValue(2);
         }
     }
 

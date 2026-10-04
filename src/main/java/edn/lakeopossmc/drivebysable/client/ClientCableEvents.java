@@ -1,7 +1,6 @@
 package edn.lakeopossmc.drivebysable.client;
 
 import dev.simulated_team.simulated.content.blocks.redstone.linked_typewriter.LinkedTypewriterInteractionHandler;
-import dev.simulated_team.simulated.content.blocks.redstone.linked_typewriter.LinkedTypewriterRenderer;
 import dev.simulated_team.simulated.index.SimSoundEvents;
 import com.simibubi.create.foundation.item.render.SimpleCustomRenderer;
 import dev.engine_room.flywheel.lib.visualization.SimpleBlockEntityVisualizer;
@@ -20,6 +19,7 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import edn.lakeopossmc.drivebysable.client.render.CableHubBulbRenderer;
 import edn.lakeopossmc.drivebysable.client.render.CableHubPartialModels;
+import edn.lakeopossmc.drivebysable.client.render.CableTypewriterHubRenderer;
 import edn.lakeopossmc.drivebysable.client.render.HandheldTypewriterItemRenderer;
 import edn.lakeopossmc.drivebysable.client.render.HandheldTypewriterLecternRenderer;
 import edn.lakeopossmc.drivebysable.client.render.IntegratedSensorBusRenderer;
@@ -70,7 +70,7 @@ public final class ClientCableEvents {
 
         event.registerBlockEntityRenderer(
                 CableBlockEntities.CABLE_TYPEWRITER_HUB.get(),
-                LinkedTypewriterRenderer::new);
+                CableTypewriterHubRenderer::new);
         HandheldTypewriterItemRenderer.load();
         event.registerBlockEntityRenderer(
                 CableBlockEntities.HANDHELD_TYPEWRITER_LECTERN.get(),
