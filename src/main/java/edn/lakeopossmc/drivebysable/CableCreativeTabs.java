@@ -27,6 +27,8 @@ public final class CableCreativeTabs {
                     .title(Component.translatable("itemGroup.drivebysable"))
                     .icon(() -> CableItems.CABLE.get().getDefaultInstance())
                     .displayItems((parameters, output) -> {
+                        output.accept(CableItems.HONEYED_CLIPBOARD.get());
+                        output.accept(CableItems.CABLE_IO_BUS.get());
                         output.accept(CableItems.CABLE.get());
                         output.accept(CableItems.CABLE_CUTTER.get());
                         output.accept(CableItems.CABLE_HUB_BLOCK.get());

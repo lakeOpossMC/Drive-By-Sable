@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "drivebysable:item/honeyed_clipboard"
+  }
+}

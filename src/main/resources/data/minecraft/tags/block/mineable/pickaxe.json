@@ -2,6 +2,7 @@
   "replace": false,
   "values": [
     "drivebysable:cable_hub",
+    "drivebysable:honeyed_clipboard",
     {
       "id": "drivebysable:intermediate_cable_hub",
       "required": false

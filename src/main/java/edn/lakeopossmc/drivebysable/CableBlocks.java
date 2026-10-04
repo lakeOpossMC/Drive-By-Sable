@@ -4,6 +4,7 @@ import edn.lakeopossmc.drivebysable.blocks.AdvancedCableHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.CableHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.HandheldTypewriterLecternBlock;
+import edn.lakeopossmc.drivebysable.blocks.HoneyedClipboardBlock;
 import edn.lakeopossmc.drivebysable.blocks.IntermediateCableHubBlock;
 import edn.lakeopossmc.drivebysable.blocks.LinkedGearboxBlock;
 import edn.lakeopossmc.drivebysable.blocks.NetworkAnchorBlock;
@@ -139,6 +140,14 @@ public final class CableBlocks {
                     "handheld_typewriter_lectern",
                     () -> new HandheldTypewriterLecternBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.LECTERN)))
                     : null;
+
+    public static final DeferredBlock<HoneyedClipboardBlock> HONEYED_CLIPBOARD = BLOCKS.register(
+            "honeyed_clipboard",
+            () -> new HoneyedClipboardBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.STRIPPED_SPRUCE_WOOD)
+                    .mapColor(MapColor.COLOR_ORANGE)
+                    .sound(SoundType.HONEY_BLOCK)
+                    .forceSolidOn())
+    );
 
     private CableBlocks() {
     }

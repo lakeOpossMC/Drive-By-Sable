@@ -4,6 +4,7 @@ import edn.lakeopossmc.drivebysable.items.CableCutterItem;
 import edn.lakeopossmc.drivebysable.items.CableItem;
 import edn.lakeopossmc.drivebysable.items.CableTypewriterHubItem;
 import edn.lakeopossmc.drivebysable.items.HandheldTypewriterControllerItem;
+import edn.lakeopossmc.drivebysable.items.HoneyedClipboardItem;
 import edn.lakeopossmc.drivebysable.items.NetworkBackupDriveItem;
 import edn.lakeopossmc.drivebysable.items.IntegratedSensorBusItem;
 import edn.lakeopossmc.drivebysable.items.LinkedGearboxItem;
@@ -12,6 +13,7 @@ import edn.lakeopossmc.drivebysable.items.NetworkAnchorItem;
 import edn.lakeopossmc.drivebysable.legacy.LegacyTypewriterCompat;
 import edn.lakeopossmc.drivebysable.legacy.LegacyWireCompat;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
@@ -91,12 +93,15 @@ public final class CableItems {
                     () -> new HandheldTypewriterControllerItem(new Item.Properties().stacksTo(1)))
                     : null;
 
-    // * Null when simulated isnt loaded
-    @Nullable
-    public static final DeferredItem<Item> INCOMPLETE_HANDHELD_TYPEWRITER_CONTROLLER =
-            ModList.get().isLoaded("simulated")
-                    ? ITEMS.registerSimpleItem("incomplete_handheld_typewriter_controller")
-                    : null;
+    public static final DeferredItem<HoneyedClipboardItem> HONEYED_CLIPBOARD = ITEMS.register(
+            "honeyed_clipboard",
+            () -> new HoneyedClipboardItem(
+                    CableBlocks.HONEYED_CLIPBOARD.get(),
+                    new Item.Properties().food(new FoodProperties.Builder()
+                            .nutrition(6)
+                            .saturationModifier(0.8F)
+                            .build()))
+    );
 
     private CableItems() {
     }
@@ -110,6 +115,13 @@ public final class CableItems {
                     ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, "cable_typewriter_hub")
             );
         }
+
+        // * The Honeyed Clipboard used to be the Handheld Typewriter's in-between assembly item
+        ITEMS.addAlias(
+                ResourceLocation.fromNamespaceAndPath(
+                        DriveBySableMod.MOD_ID, "incomplete_handheld_typewriter_controller"),
+                ResourceLocation.fromNamespaceAndPath(DriveBySableMod.MOD_ID, "honeyed_clipboard")
+        );
 
         alias(LegacyWireCompat.LEGACY_WIRE, "cable");
         alias(LegacyWireCompat.LEGACY_WIRE_CUTTER, "cable_cutter");

@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "face=floor,facing=north": { "model": "drivebysable:block/honeyed_clipboard/block" },
+    "face=floor,facing=east": { "model": "drivebysable:block/honeyed_clipboard/block", "y": 90 },
+    "face=floor,facing=south": { "model": "drivebysable:block/honeyed_clipboard/block", "y": 180 },
+    "face=floor,facing=west": { "model": "drivebysable:block/honeyed_clipboard/block", "y": 270 },
+    "face=wall,facing=north": { "model": "drivebysable:block/honeyed_clipboard/block", "x": 90 },
+    "face=wall,facing=east": { "model": "drivebysable:block/honeyed_clipboard/block", "x": 90, "y": 90 },
+    "face=wall,facing=south": { "model": "drivebysable:block/honeyed_clipboard/block", "x": 90, "y": 180 },
+    "face=wall,facing=west": { "model": "drivebysable:block/honeyed_clipboard/block", "x": 90, "y": 270 },
+    "face=ceiling,facing=north": { "model": "drivebysable:block/honeyed_clipboard/block", "x": 180, "y": 180 },
+    "face=ceiling,facing=east": { "model": "drivebysable:block/honeyed_clipboard/block", "x": 180, "y": 270 },
+    "face=ceiling,facing=south": { "model": "drivebysable:block/honeyed_clipboard/block", "x": 180 },
+    "face=ceiling,facing=west": { "model": "drivebysable:block/honeyed_clipboard/block", "x": 180, "y": 90 }
+  }
+}

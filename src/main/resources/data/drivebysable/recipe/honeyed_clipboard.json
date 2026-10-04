@@ -1,0 +1,10 @@
+{
+  "type": "create:filling",
+  "ingredients": [
+    { "item": "create:clipboard" },
+    { "type": "neoforge:tag", "amount": 250, "tag": "c:honey" }
+  ],
+  "results": [
+    { "id": "drivebysable:honeyed_clipboard" }
+  ]
+}

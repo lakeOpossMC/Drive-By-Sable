@@ -39,6 +39,7 @@ public final class CableSimulatedTab {
 
     // * Skip items tied to a mod that isnt loaded
     public static void register() {
+        addItem(CableItems.HONEYED_CLIPBOARD.get());
         addItem(CableItems.CABLE_IO_BUS.get());
         addItem(CableItems.CABLE.get());
         addItem(CableItems.CABLE_CUTTER.get());
