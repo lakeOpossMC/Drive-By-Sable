@@ -21,6 +21,10 @@ public final class CableAdvancementLayout {
 
     private static final String MAIN_LINE = "cable";
 
+    // * Distance between neighbours
+    private static final float COLUMN_SPACING = 1.5F;
+    private static final float ROW_SPACING = 1.15F;
+
     private static final List<String> ORDER = List.of(
             "cable_cutter", "network_cut",
             "cable",
@@ -72,7 +76,7 @@ public final class CableAdvancementLayout {
         }
 
         final float finalRow = row;
-        node.advancement().display().ifPresent(display -> display.setLocation(column, finalRow));
+        node.advancement().display().ifPresent(display -> display.setLocation(column * COLUMN_SPACING, finalRow * ROW_SPACING));
         return row;
     }
 
