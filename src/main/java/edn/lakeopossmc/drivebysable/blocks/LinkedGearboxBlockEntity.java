@@ -65,6 +65,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     private static final String LOAD_KEY = "LinkLoad";
     private static final String FLOW_KEY = "LinkFlow";
     private static final String CAP_KEY = "LinkCap";
+    private static final String AWARDED_KEY = "LinkAwarded";
 
     @Nullable
     private LinkedGearboxModeBehaviour modeBehaviour;
@@ -72,6 +73,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     private boolean awardedReceiving;
     private boolean awardedDoubled;
     private boolean awardedOpposed;
+    private boolean awardedOverstressed;
     @Nullable
     private LinkBehaviour frequency;
     @Nullable
@@ -216,7 +218,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         return level == null || level.isClientSide ? List.of(this) : group();
     }
 
-    // * Told to attached computers
+    // * Only a change counts, and what was already awarded is saved
     private void awardAdvancements() {
         final boolean receiving = role == Role.RECEIVER;
         final boolean doubled = receiving && Math.abs(getOutputMode().ratio()) == 2;
@@ -239,11 +241,13 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
 
     private void reportOverstress() {
         final boolean overstressed = isOverStressed();
+        if (overstressed && !awardedOverstressed) {
+            CableAdvancements.awardNearby(level, worldPosition, CableAdvancements.TRANSCEIVER_OVERSTRESSED);
+        }
+        awardedOverstressed = overstressed;
+
         if (overstressed != reportedOverstressed) {
             reportedOverstressed = overstressed;
-            if (overstressed) {
-                CableAdvancements.awardNearby(level, worldPosition, CableAdvancements.TRANSCEIVER_OVERSTRESSED);
-            }
             ComputerCraftCompat.queueTransceiverEvent(
                     this, ComputerCraftCompat.TRANSCEIVER_OVERSTRESSED_EVENT, overstressed);
         }
@@ -853,6 +857,9 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             tag.putLongArray(PARTNERS_KEY, partners.stream().mapToLong(BlockPos::asLong).toArray());
             tag.putFloat(FLOW_KEY, linkFlow);
             tag.putFloat(CAP_KEY, linkCap);
+        } else {
+            tag.putByte(AWARDED_KEY, (byte) ((awardedReceiving ? 1 : 0) | (awardedDoubled ? 2 : 0)
+                    | (awardedOpposed ? 4 : 0) | (awardedOverstressed ? 8 : 0)));
         }
     }
 
@@ -877,6 +884,12 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             partners = Set.copyOf(synced);
             linkFlow = tag.getFloat(FLOW_KEY);
             linkCap = tag.getFloat(CAP_KEY);
+        } else {
+            final byte awarded = tag.getByte(AWARDED_KEY);
+            awardedReceiving = (awarded & 1) != 0;
+            awardedDoubled = (awarded & 2) != 0;
+            awardedOpposed = (awarded & 4) != 0;
+            awardedOverstressed = (awarded & 8) != 0;
         }
         super.read(tag, registries, clientPacket);
     }

@@ -50,6 +50,9 @@ public final class CableAdvancements {
     // * "At or near" the configured range: this share of it
     private static final double LONG_CONNECTION_SHARE = 0.9;
 
+    // * With no range limit there is no maximum, so a fixed distance counts
+    private static final int LONG_CONNECTION_UNLIMITED = 256;
+
     // * Connections one sneak click of the Cable Cutters has to remove for "Snip Snip"
     public static final int NETWORK_CUT_SIZE = 5;
 
@@ -75,6 +78,7 @@ public final class CableAdvancements {
     public static void register(final IEventBus modEventBus) {
         TRIGGERS.register(modEventBus);
         NeoForge.EVENT_BUS.addListener(CableAdvancements::onPlayerTick);
+        CableAdvancementLayout.register();
     }
 
     public static void award(@Nullable final Player player, final String event) {
@@ -105,12 +109,9 @@ public final class CableAdvancements {
             award(player, CROSS_LEVEL_CONNECTION);
         }
 
-        final int limit = rangeLimit(level, source, sink);
-        if (limit > 0) {
-            final double near = limit * LONG_CONNECTION_SHARE;
-            if (CableNetworkManager.worldSpaceDistanceSqr(level, source, sink) >= near * near) {
-                award(player, LONG_CONNECTION);
-            }
+        final double far = longConnectionDistance(level, source, sink);
+        if (far > 0 && CableNetworkManager.worldSpaceDistanceSqr(level, source, sink) >= far * far) {
+            award(player, LONG_CONNECTION);
         }
 
         if (level.getBlockState(source).getBlock() instanceof IntegratedSensorBusBlock) {
@@ -122,13 +123,15 @@ public final class CableAdvancements {
         }
     }
 
-    // * Transceivers have a shorter range of their own
-    private static int rangeLimit(final Level level, final BlockPos source, final BlockPos sink) {
+    // * Transceivers always have a range of their own
+    private static double longConnectionDistance(final Level level, final BlockPos source, final BlockPos sink) {
+        final boolean enforced = CableConfig.CONFIG.rangeLimitEnforced.get();
         final int general = CableConfig.CONFIG.rangeLimit.get();
         if (LinkedGearboxLinks.isGearbox(level, source) && LinkedGearboxLinks.isGearbox(level, sink)) {
-            return Math.min(general, CableConfig.CONFIG.linkedGearboxRange.get());
+            final int own = CableConfig.CONFIG.linkedGearboxRange.get();
+            return (enforced ? Math.min(general, own) : own) * LONG_CONNECTION_SHARE;
         }
-        return general;
+        return enforced ? general * LONG_CONNECTION_SHARE : LONG_CONNECTION_UNLIMITED;
     }
 
     // * Both in the world, or both in the same sublevel

@@ -30,6 +30,7 @@ public class HoneyedClipboardItem extends BlockItem {
     }
 
     // * Eating a clipboard hurts a little!
+    // * The health is put straight back
     @Override
     public ItemStack finishUsingItem(final ItemStack stack, final Level level, final LivingEntity entity) {
         final ItemStack remaining = super.finishUsingItem(stack, level, entity);
@@ -37,7 +38,11 @@ public class HoneyedClipboardItem extends BlockItem {
             CableAdvancements.onClipboardEaten(player);
         }
         if (!level.isClientSide && entity.isAlive()) {
-            entity.hurt(level.damageSources().generic(), Math.min(BITE_DAMAGE, entity.getHealth() * 0.5F));
+            final float before = entity.getHealth();
+            entity.hurt(level.damageSources().generic(), Math.min(BITE_DAMAGE, before * 0.5F));
+            if (entity.isAlive() && entity.getHealth() < before) {
+                entity.setHealth(before);
+            }
         }
         return remaining;
     }
