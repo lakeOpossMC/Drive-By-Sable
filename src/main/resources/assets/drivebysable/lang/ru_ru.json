@@ -359,6 +359,7 @@
   "drivebysable.config.maxSourcesInWorld": "Максимум источников в мире",
   "drivebysable.config.expensiveBackupDrive": "Дорогой рецепт сетевого хранилища",
   "drivebysable.config.andesiteHub": "Андезитовый кабельный хаб",
+  "drivebysable.config.fancyCables": "Красивая отрисовка кабелей",
   "drivebysable.pack.andesite_hub": "Андезитовый кабельный хаб",
   "drivebysable.config.networkAnchor": "Сетевой якорь",
   "drivebysable.config.integratedSensorBus": "Интегрированная сенсорная шина",

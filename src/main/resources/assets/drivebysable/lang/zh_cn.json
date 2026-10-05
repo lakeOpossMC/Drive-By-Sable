@@ -359,6 +359,7 @@
   "drivebysable.config.maxSourcesInWorld": "世界中最大源数",
   "drivebysable.config.expensiveBackupDrive": "昂贵的备份驱动器配方",
   "drivebysable.config.andesiteHub": "安山岩电缆集线器",
+  "drivebysable.config.fancyCables": "精致电缆渲染",
   "drivebysable.pack.andesite_hub": "安山岩电缆集线器",
   "drivebysable.config.networkAnchor": "网络锚点",
   "drivebysable.config.integratedSensorBus": "集成传感器总线",

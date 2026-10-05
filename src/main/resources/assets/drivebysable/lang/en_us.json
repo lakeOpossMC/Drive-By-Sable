@@ -359,6 +359,7 @@
   "drivebysable.config.maxSourcesInWorld": "Maximum Sources in World",
   "drivebysable.config.expensiveBackupDrive": "Expensive Backup Drive Recipe",
   "drivebysable.config.andesiteHub": "Andesite Cable Hub",
+  "drivebysable.config.fancyCables": "Fancy Cable Rendering",
   "drivebysable.pack.andesite_hub": "Andesite Cable Hub",
   "drivebysable.config.networkAnchor": "Network Anchor",
   "drivebysable.config.integratedSensorBus": "Integrated Sensor Bus",

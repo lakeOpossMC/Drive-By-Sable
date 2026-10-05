@@ -359,6 +359,7 @@
   "drivebysable.config.maxSourcesInWorld": "Maksymalna Liczba Źródeł w Świecie",
   "drivebysable.config.expensiveBackupDrive": "Droższa Receptura Dysku Kopii Zapasowej",
   "drivebysable.config.andesiteHub": "Andezytowy Koncentrator Kabli",
+  "drivebysable.config.fancyCables": "Ozdobne Renderowanie Kabli",
   "drivebysable.pack.andesite_hub": "Andezytowy Koncentrator Kabli",
   "drivebysable.config.networkAnchor": "Kotwica Sieciowa",
   "drivebysable.config.integratedSensorBus": "Zintegrowana Magistrala Czujników",
