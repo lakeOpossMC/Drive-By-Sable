@@ -11,6 +11,7 @@ import com.simibubi.create.content.trains.track.TrackBlockOutline;
 import edn.lakeopossmc.drivebysable.CableBlocks;
 import edn.lakeopossmc.drivebysable.CableConfig;
 import edn.lakeopossmc.drivebysable.CableItems;
+import edn.lakeopossmc.drivebysable.client.render.FancyCableRenderer;
 import edn.lakeopossmc.drivebysable.util.CableSelectionMark;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
 import edn.lakeopossmc.drivebysable.client.screen.ChannelQuickSelectScreen;
@@ -97,6 +98,8 @@ import java.util.Set;
 @EventBusSubscriber(modid = DriveBySableMod.MOD_ID, value = Dist.CLIENT)
 public final class ClientCableNetworkHandler {
     private static final AABB UNIT_CUBE = AABB.unitCubeFromLowerCorner(Vec3.ZERO);
+
+    private static final int FANCY_ACTIVE_BAND = 0x97333B;
     private static final Map<Long, Map<String, Set<CableNetworkSink>>> EMPTY_NETWORK = Map.of();
     private static final float OUTLINE_LINE_WIDTH = 0.0625F;
     // * Hover outline colour when the thing under the crosshair is further from the
@@ -2070,18 +2073,25 @@ public final class ClientCableNetworkHandler {
             lineEnd = Vec3.atCenterOf(end).add(Vec3.atLowerCornerOf(sink.facing().getNormal()).scale(0.5D));
         }
 
-        Outliner.getInstance()
-                .showLine(
-                        net.createmod.catnip.data.Pair.of(
-                                "cableConnection",
-                                net.createmod.catnip.data.Pair.of(
-                                        net.createmod.catnip.data.Pair.of(start, end),
-                                        net.createmod.catnip.data.Pair.of(sink.sinkChannel() + "|" + sink.direction(), channel)
-                                )
-                        ),
-                        lineStart,
-                        lineEnd
+        final Object lineKey = net.createmod.catnip.data.Pair.of(
+                "cableConnection",
+                net.createmod.catnip.data.Pair.of(
+                        net.createmod.catnip.data.Pair.of(start, end),
+                        net.createmod.catnip.data.Pair.of(sink.sinkChannel() + "|" + sink.direction(), channel)
                 )
+        );
+
+        // * The fancyCables option hangs a cable here instead
+        if (FancyCableRenderer.enabled()) {
+            final boolean active = cableColor == LineColor.CABLE.SELECTED.getColor();
+            FancyCableRenderer.show(lineKey, start, highlightCentre(level, start),
+                    end, sink.isModule() ? highlightCentre(level, end) : lineEnd,
+                    active ? FANCY_ACTIVE_BAND : cableColor);
+            return;
+        }
+
+        Outliner.getInstance()
+                .showLine(lineKey, lineStart, lineEnd)
                 .colored(cableColor);
     }
 
@@ -2233,6 +2243,17 @@ public final class ClientCableNetworkHandler {
     // * Uses approximate bounding box
     private static final Set<BlockPos> sinkOutlined = new HashSet<>();
 
+    private static AABB highlightBox(final Level level, final BlockPos pos) {
+        final BlockState state = level.getBlockState(pos);
+        final AABB box = state.getShape(level, pos).isEmpty() ? UNIT_CUBE : state.getShape(level, pos).bounds();
+        return box.move(pos);
+    }
+
+    // * The middle of the box drawOutline puts around a block
+    private static Vec3 highlightCentre(final Level level, final BlockPos pos) {
+        return highlightBox(level, pos).getCenter();
+    }
+
     private static void drawOutline(final Level level, final BlockPos pos, final int color) {
         drawOutline(level, pos, color, false);
     }
@@ -2244,10 +2265,8 @@ public final class ClientCableNetworkHandler {
             return;
         }
 
-        final BlockState state = level.getBlockState(pos);
-        final AABB box = state.getShape(level, pos).isEmpty() ? UNIT_CUBE : state.getShape(level, pos).bounds();
         Outliner.getInstance()
-                .showAABB(net.createmod.catnip.data.Pair.of("cableBlock", pos), box.move(pos))
+                .showAABB(net.createmod.catnip.data.Pair.of("cableBlock", pos), highlightBox(level, pos))
                 .colored(color)
                 .lineWidth(OUTLINE_LINE_WIDTH);
     }

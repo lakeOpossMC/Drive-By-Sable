@@ -49,6 +49,7 @@ public class CableConfig {
     //#region // --- RECIPES AND TEXTURES --- //
     public final ModConfigSpec.BooleanValue expensiveBackupDrive;
     public final ModConfigSpec.BooleanValue andesiteHub;
+    public final ModConfigSpec.BooleanValue fancyCables;
     //#endregion
 
     private CableConfig(ModConfigSpec.Builder builder) {
@@ -312,6 +313,16 @@ public class CableConfig {
                 )
                 .translation("drivebysable.config.andesiteHub")
                 .define("andesiteHub", false);
+
+        fancyCables = builder
+                .comment(
+                        "Whether the connections shown in Setup Mode are drawn as hanging cables",
+                        "instead of straight lines. Covers a selected Source's connections and the",
+                        "links of a selected Transceiver. Purely visual, and read on the client,",
+                        "so each player can choose for themselves."
+                )
+                .translation("drivebysable.config.fancyCables")
+                .define("fancyCables", false);
 
         builder.pop();
         //#endregion

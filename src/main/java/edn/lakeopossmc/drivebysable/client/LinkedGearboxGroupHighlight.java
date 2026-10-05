@@ -7,6 +7,7 @@ import dev.ryanhcode.sable.sublevel.SubLevel;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
 import edn.lakeopossmc.drivebysable.cable.BackupDriveCapture;
 import edn.lakeopossmc.drivebysable.cable.LinkedGearboxLinks;
+import edn.lakeopossmc.drivebysable.client.render.FancyCableRenderer;
 import net.createmod.catnip.animation.AnimationTickHolder;
 import net.createmod.catnip.outliner.Outliner;
 import net.minecraft.client.Minecraft;
@@ -36,6 +37,9 @@ public final class LinkedGearboxGroupHighlight {
 
     private static final int BLINK_A = 0x708DAD;
     private static final int BLINK_B = 0x90ADCD;
+
+    private static final int FANCY_BLINK_A = 0x395CA1;
+    private static final int FANCY_BLINK_B = 0x5371C6;
     private static final int BLINK_PERIOD = 16;
     private static final int BLINK_HALF = 8;
     private static final float LINE_WIDTH = 1 / 32.0F;
@@ -83,8 +87,23 @@ public final class LinkedGearboxGroupHighlight {
         final Vec3 camera = event.getCamera().getPosition();
         final PoseStack poseStack = event.getPoseStack();
         final MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
-        final VertexConsumer buffer = buffers.getBuffer(RenderType.debugQuads());
+
+        // * The fancyCables option hangs a cable along each link instead
+        if (FancyCableRenderer.enabled()) {
+            final int color = blink(FANCY_BLINK_A, FANCY_BLINK_B);
+            final VertexConsumer cables = FancyCableRenderer.buffer(buffers);
+            for (final BlockPos[] link : links) {
+                FancyCableRenderer.draw(poseStack, cables, camera,
+                        worldCentreOf(minecraft.level, link[0]),
+                        worldCentreOf(minecraft.level, link[1]),
+                        color);
+            }
+            FancyCableRenderer.finish(buffers);
+            return;
+        }
+
         final int color = blinkColor();
+        final VertexConsumer buffer = buffers.getBuffer(RenderType.debugQuads());
 
         for (final BlockPos[] link : links) {
             drawLink(poseStack, buffer, camera,
@@ -125,7 +144,11 @@ public final class LinkedGearboxGroupHighlight {
     //#endregion
 
     private static int blinkColor() {
-        return AnimationTickHolder.getTicks() % BLINK_PERIOD < BLINK_HALF ? BLINK_A : BLINK_B;
+        return blink(BLINK_A, BLINK_B);
+    }
+
+    private static int blink(final int first, final int second) {
+        return AnimationTickHolder.getTicks() % BLINK_PERIOD < BLINK_HALF ? first : second;
     }
 
     private static AABB blockBounds(final Level level, final BlockPos pos) {
