@@ -1,5 +1,6 @@
 package edn.lakeopossmc.drivebysable;
 
+import edn.lakeopossmc.drivebysable.advancement.CableAdvancements;
 import edn.lakeopossmc.drivebysable.blocks.LinkedGearboxBlock;
 import edn.lakeopossmc.drivebysable.cable.SubLevelPlotCleanup;
 import edn.lakeopossmc.drivebysable.command.CableCommandArguments;
@@ -49,6 +50,7 @@ public class DriveBySableMod {
         CableItems.register(modEventBus);
         CableMenus.register(modEventBus);
         CableConfigCondition.register(modEventBus);
+        CableAdvancements.register(modEventBus);
         if (!ModList.get().isLoaded("simulated")) {
             CableCreativeTabs.register(modEventBus);
         }

@@ -1,0 +1,18 @@
+{
+  "criteria": {
+    "joined": {
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "display": {
+    "icon": { "id": "drivebysable:cable", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.root" },
+    "description": { "translate": "advancement.drivebysable.root.desc" },
+    "background": "drivebysable:textures/gui/advancements.png",
+    "show_toast": false,
+    "announce_to_chat": false
+  },
+  "requirements": [
+    [ "joined" ]
+  ]
+}

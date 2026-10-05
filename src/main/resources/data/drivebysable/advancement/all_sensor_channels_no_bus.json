@@ -1,0 +1,24 @@
+{
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "simulated" },
+    { "type": "drivebysable:config", "option": "integrated_sensor_bus", "expected": true },
+    { "type": "drivebysable:config", "option": "multi_channel_cable_bus", "expected": false }
+  ],
+  "parent": "drivebysable:integrated_sensor_bus_no_bus",
+  "criteria": {
+    "all_sensor_channels": {
+      "trigger": "drivebysable:event",
+      "conditions": {
+        "event": "all_sensor_channels"
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "create:speedometer", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.all_sensor_channels" },
+    "description": { "translate": "advancement.drivebysable.all_sensor_channels.desc" }
+  },
+  "requirements": [
+    [ "all_sensor_channels" ]
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "get_creative" }
+  ],
+  "parent": "drivebysable:cable_hub",
+  "criteria": {
+    "intermediate_cable_hub": {
+      "trigger": "minecraft:placed_block",
+      "conditions": {
+        "location": [
+          { "condition": "minecraft:block_state_property", "block": "drivebysable:intermediate_cable_hub" }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "drivebysable:intermediate_cable_hub", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.intermediate_cable_hub" },
+    "description": { "translate": "advancement.drivebysable.intermediate_cable_hub.desc" }
+  },
+  "requirements": [
+    [ "intermediate_cable_hub" ]
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "simulated" }
+  ],
+  "parent": "drivebysable:cable_io_bus",
+  "criteria": {
+    "cable_typewriter_hub": {
+      "trigger": "minecraft:placed_block",
+      "conditions": {
+        "location": [
+          { "condition": "minecraft:block_state_property", "block": "drivebysable:cable_typewriter_hub" }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "drivebysable:cable_typewriter_hub", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.cable_typewriter_hub" },
+    "description": { "translate": "advancement.drivebysable.cable_typewriter_hub.desc" }
+  },
+  "requirements": [
+    [ "cable_typewriter_hub" ]
+  ]
+}

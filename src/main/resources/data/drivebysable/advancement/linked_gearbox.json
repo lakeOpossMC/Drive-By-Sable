@@ -1,0 +1,22 @@
+{
+  "neoforge:conditions": [
+    { "type": "drivebysable:config", "option": "linked_gearbox", "expected": true }
+  ],
+  "parent": "drivebysable:cable_io_bus",
+  "criteria": {
+    "linked_gearbox": {
+      "trigger": "drivebysable:event",
+      "conditions": {
+        "event": "transceiver_powered"
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "drivebysable:linked_gearbox", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.linked_gearbox" },
+    "description": { "translate": "advancement.drivebysable.linked_gearbox.desc" }
+  },
+  "requirements": [
+    [ "linked_gearbox" ]
+  ]
+}

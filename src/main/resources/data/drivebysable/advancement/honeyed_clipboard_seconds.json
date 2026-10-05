@@ -1,0 +1,21 @@
+{
+  "parent": "drivebysable:eat_honeyed_clipboard",
+  "criteria": {
+    "honeyed_clipboard_seconds": {
+      "trigger": "drivebysable:event",
+      "conditions": {
+        "event": "clipboard_seconds"
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "drivebysable:honeyed_clipboard", "count": 2 },
+    "title": { "translate": "advancement.drivebysable.honeyed_clipboard_seconds" },
+    "description": { "translate": "advancement.drivebysable.honeyed_clipboard_seconds.desc" },
+    "frame": "goal",
+    "hidden": true
+  },
+  "requirements": [
+    [ "honeyed_clipboard_seconds" ]
+  ]
+}

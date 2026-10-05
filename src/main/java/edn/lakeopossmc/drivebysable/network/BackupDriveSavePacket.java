@@ -1,6 +1,7 @@
 package edn.lakeopossmc.drivebysable.network;
 
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
+import edn.lakeopossmc.drivebysable.advancement.CableAdvancements;
 import edn.lakeopossmc.drivebysable.blocks.NetworkBackupDriveBlockEntity;
 import edn.lakeopossmc.drivebysable.cable.BackupDriveBounds;
 import edn.lakeopossmc.drivebysable.menu.BackupDriveMenu;
@@ -89,6 +90,7 @@ public record BackupDriveSavePacket(
         drive.storeBoundedSnapshot(snapshot.data());
 
         if (snapshot.internalConnections() > 0) {
+            CableAdvancements.award(player, CableAdvancements.NETWORK_SAVED);
             level.playSound(
                     null,
                     menu.getDrivePos(),

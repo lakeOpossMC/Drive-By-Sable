@@ -1,0 +1,22 @@
+{
+  "neoforge:conditions": [
+    { "type": "drivebysable:config", "option": "linked_gearbox", "expected": true }
+  ],
+  "parent": "drivebysable:linked_gearbox",
+  "criteria": {
+    "opposing_forces": {
+      "trigger": "drivebysable:event",
+      "conditions": {
+        "event": "transceiver_opposed"
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "create:gearshift", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.opposing_forces" },
+    "description": { "translate": "advancement.drivebysable.opposing_forces.desc" }
+  },
+  "requirements": [
+    [ "opposing_forces" ]
+  ]
+}

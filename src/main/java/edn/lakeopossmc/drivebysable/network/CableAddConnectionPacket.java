@@ -3,6 +3,7 @@ package edn.lakeopossmc.drivebysable.network;
 import edn.lakeopossmc.drivebysable.CableConfig;
 import edn.lakeopossmc.drivebysable.CableSounds;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
+import edn.lakeopossmc.drivebysable.advancement.CableAdvancements;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import edn.lakeopossmc.drivebysable.cable.CableServerFeedback;
 import io.netty.buffer.ByteBuf;
@@ -66,6 +67,7 @@ public record CableAddConnectionPacket(
             player.level().playSound(null, payload.sink(), CableSounds.PLUG_IN.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
             if (CableConfig.CONFIG.shouldConsumeCables.get()) player.getItemInHand(InteractionHand.MAIN_HAND).consume(1, player);
             CableNetworkFullSyncPacket.sendTo(player);
+            CableAdvancements.onConnectionMade(player, payload.source(), payload.sink());
             return;
         }
 

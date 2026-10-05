@@ -1,5 +1,7 @@
 package edn.lakeopossmc.drivebysable.items;
 
+import edn.lakeopossmc.drivebysable.advancement.CableAdvancements;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -31,6 +33,9 @@ public class HoneyedClipboardItem extends BlockItem {
     @Override
     public ItemStack finishUsingItem(final ItemStack stack, final Level level, final LivingEntity entity) {
         final ItemStack remaining = super.finishUsingItem(stack, level, entity);
+        if (entity instanceof final ServerPlayer player) {
+            CableAdvancements.onClipboardEaten(player);
+        }
         if (!level.isClientSide && entity.isAlive()) {
             entity.hurt(level.damageSources().generic(), Math.min(BITE_DAMAGE, entity.getHealth() * 0.5F));
         }

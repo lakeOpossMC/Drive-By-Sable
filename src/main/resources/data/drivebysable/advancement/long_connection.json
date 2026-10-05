@@ -1,0 +1,19 @@
+{
+  "parent": "drivebysable:cross_level_connection",
+  "criteria": {
+    "long_connection": {
+      "trigger": "drivebysable:event",
+      "conditions": {
+        "event": "long_connection"
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "minecraft:spyglass", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.long_connection" },
+    "description": { "translate": "advancement.drivebysable.long_connection.desc" }
+  },
+  "requirements": [
+    [ "long_connection" ]
+  ]
+}

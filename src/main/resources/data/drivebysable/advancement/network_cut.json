@@ -1,0 +1,21 @@
+{
+  "parent": "drivebysable:cable_cutter",
+  "criteria": {
+    "network_cut": {
+      "trigger": "drivebysable:event",
+      "conditions": {
+        "event": "network_cut"
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "minecraft:shears", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.network_cut" },
+    "description": { "translate": "advancement.drivebysable.network_cut.desc" },
+    "frame": "goal",
+    "hidden": true
+  },
+  "requirements": [
+    [ "network_cut" ]
+  ]
+}

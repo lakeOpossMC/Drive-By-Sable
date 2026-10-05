@@ -1,0 +1,22 @@
+{
+  "neoforge:conditions": [
+    { "type": "drivebysable:config", "option": "linked_gearbox", "expected": true }
+  ],
+  "parent": "drivebysable:opposing_forces",
+  "criteria": {
+    "double_speed": {
+      "trigger": "drivebysable:event",
+      "conditions": {
+        "event": "transceiver_double_speed"
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "create:rotation_speed_controller", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.double_speed" },
+    "description": { "translate": "advancement.drivebysable.double_speed.desc" }
+  },
+  "requirements": [
+    [ "double_speed" ]
+  ]
+}

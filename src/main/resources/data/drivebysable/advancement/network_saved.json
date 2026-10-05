@@ -1,0 +1,19 @@
+{
+  "parent": "drivebysable:backup_drive",
+  "criteria": {
+    "network_saved": {
+      "trigger": "drivebysable:event",
+      "conditions": {
+        "event": "network_saved"
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "minecraft:writable_book", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.network_saved" },
+    "description": { "translate": "advancement.drivebysable.network_saved.desc" }
+  },
+  "requirements": [
+    [ "network_saved" ]
+  ]
+}

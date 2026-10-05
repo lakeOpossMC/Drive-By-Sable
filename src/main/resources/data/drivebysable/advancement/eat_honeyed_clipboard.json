@@ -1,0 +1,19 @@
+{
+  "parent": "drivebysable:root",
+  "criteria": {
+    "eat_honeyed_clipboard": {
+      "trigger": "minecraft:consume_item",
+      "conditions": {
+        "item": { "items": "drivebysable:honeyed_clipboard" }
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "drivebysable:honeyed_clipboard", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.eat_honeyed_clipboard" },
+    "description": { "translate": "advancement.drivebysable.eat_honeyed_clipboard.desc" }
+  },
+  "requirements": [
+    [ "eat_honeyed_clipboard" ]
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "simulated" },
+    { "type": "drivebysable:config", "option": "handheld_typewriter_controller", "expected": true }
+  ],
+  "parent": "drivebysable:handheld_typewriter_controller",
+  "criteria": {
+    "handheld_signal": {
+      "trigger": "drivebysable:event",
+      "conditions": {
+        "event": "handheld_signal"
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "minecraft:feather", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.handheld_signal" },
+    "description": { "translate": "advancement.drivebysable.handheld_signal.desc" }
+  },
+  "requirements": [
+    [ "handheld_signal" ]
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "parent": "drivebysable:root",
+  "criteria": {
+    "cable_cutter": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          { "items": "drivebysable:cable_cutter" }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "drivebysable:cable_cutter", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.cable_cutter" },
+    "description": { "translate": "advancement.drivebysable.cable_cutter.desc" }
+  },
+  "requirements": [
+    [ "cable_cutter" ]
+  ]
+}

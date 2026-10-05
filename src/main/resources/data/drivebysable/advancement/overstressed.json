@@ -1,0 +1,24 @@
+{
+  "neoforge:conditions": [
+    { "type": "drivebysable:config", "option": "linked_gearbox", "expected": true }
+  ],
+  "parent": "drivebysable:double_speed",
+  "criteria": {
+    "overstressed": {
+      "trigger": "drivebysable:event",
+      "conditions": {
+        "event": "transceiver_overstressed"
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "create:stressometer", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.overstressed" },
+    "description": { "translate": "advancement.drivebysable.overstressed.desc" },
+    "frame": "goal",
+    "hidden": true
+  },
+  "requirements": [
+    [ "overstressed" ]
+  ]
+}

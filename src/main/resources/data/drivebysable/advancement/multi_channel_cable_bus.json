@@ -1,0 +1,24 @@
+{
+  "neoforge:conditions": [
+    { "type": "drivebysable:config", "option": "multi_channel_cable_bus", "expected": true }
+  ],
+  "parent": "drivebysable:cable_io_bus",
+  "criteria": {
+    "multi_channel_cable_bus": {
+      "trigger": "minecraft:placed_block",
+      "conditions": {
+        "location": [
+          { "condition": "minecraft:block_state_property", "block": "drivebysable:multi_channel_cable_bus" }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "drivebysable:multi_channel_cable_bus", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.multi_channel_cable_bus" },
+    "description": { "translate": "advancement.drivebysable.multi_channel_cable_bus.desc" }
+  },
+  "requirements": [
+    [ "multi_channel_cable_bus" ]
+  ]
+}

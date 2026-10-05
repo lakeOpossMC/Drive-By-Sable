@@ -1,0 +1,25 @@
+{
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "simulated" },
+    { "type": "drivebysable:config", "option": "handheld_typewriter_controller", "expected": true }
+  ],
+  "parent": "drivebysable:cable_typewriter_hub",
+  "criteria": {
+    "handheld_typewriter_controller": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          { "items": "drivebysable:handheld_typewriter_controller" }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "drivebysable:handheld_typewriter_controller", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.handheld_typewriter_controller" },
+    "description": { "translate": "advancement.drivebysable.handheld_typewriter_controller.desc" }
+  },
+  "requirements": [
+    [ "handheld_typewriter_controller" ]
+  ]
+}

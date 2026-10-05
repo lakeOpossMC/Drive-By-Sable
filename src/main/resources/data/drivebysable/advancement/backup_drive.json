@@ -1,0 +1,21 @@
+{
+  "parent": "drivebysable:cable_io_bus",
+  "criteria": {
+    "backup_drive": {
+      "trigger": "minecraft:placed_block",
+      "conditions": {
+        "location": [
+          { "condition": "minecraft:block_state_property", "block": "drivebysable:backup_drive" }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "drivebysable:backup_drive", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.backup_drive" },
+    "description": { "translate": "advancement.drivebysable.backup_drive.desc" }
+  },
+  "requirements": [
+    [ "backup_drive" ]
+  ]
+}

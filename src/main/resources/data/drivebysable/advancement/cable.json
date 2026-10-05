@@ -1,0 +1,21 @@
+{
+  "parent": "drivebysable:root",
+  "criteria": {
+    "cable": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          { "items": "drivebysable:cable" }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "drivebysable:cable", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.cable" },
+    "description": { "translate": "advancement.drivebysable.cable.desc" }
+  },
+  "requirements": [
+    [ "cable" ]
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "parent": "drivebysable:cable",
+  "criteria": {
+    "first_connection": {
+      "trigger": "drivebysable:event",
+      "conditions": {
+        "event": "first_connection"
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "create:electron_tube", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.first_connection" },
+    "description": { "translate": "advancement.drivebysable.first_connection.desc" }
+  },
+  "requirements": [
+    [ "first_connection" ]
+  ]
+}

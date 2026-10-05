@@ -1,0 +1,21 @@
+{
+  "parent": "drivebysable:cable",
+  "criteria": {
+    "cable_io_bus": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          { "items": "drivebysable:cable_io_bus" }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "drivebysable:cable_io_bus", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.cable_io_bus" },
+    "description": { "translate": "advancement.drivebysable.cable_io_bus.desc" }
+  },
+  "requirements": [
+    [ "cable_io_bus" ]
+  ]
+}

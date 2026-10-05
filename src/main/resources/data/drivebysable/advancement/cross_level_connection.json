@@ -1,0 +1,19 @@
+{
+  "parent": "drivebysable:first_connection",
+  "criteria": {
+    "cross_level_connection": {
+      "trigger": "drivebysable:event",
+      "conditions": {
+        "event": "cross_level_connection"
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "minecraft:ender_pearl", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.cross_level_connection" },
+    "description": { "translate": "advancement.drivebysable.cross_level_connection.desc" }
+  },
+  "requirements": [
+    [ "cross_level_connection" ]
+  ]
+}

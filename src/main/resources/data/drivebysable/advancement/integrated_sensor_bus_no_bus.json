@@ -1,0 +1,24 @@
+{
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "simulated" },
+    { "type": "drivebysable:config", "option": "integrated_sensor_bus", "expected": true },
+    { "type": "drivebysable:config", "option": "multi_channel_cable_bus", "expected": false }
+  ],
+  "parent": "drivebysable:cable_io_bus",
+  "criteria": {
+    "integrated_sensor_bus": {
+      "trigger": "drivebysable:event",
+      "conditions": {
+        "event": "sensor_bus_goggles"
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "drivebysable:integrated_sensor_bus", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.integrated_sensor_bus" },
+    "description": { "translate": "advancement.drivebysable.integrated_sensor_bus.desc" }
+  },
+  "requirements": [
+    [ "integrated_sensor_bus" ]
+  ]
+}

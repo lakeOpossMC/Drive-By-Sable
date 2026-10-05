@@ -11,6 +11,7 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 import edn.lakeopossmc.drivebysable.CableBlockEntities;
+import edn.lakeopossmc.drivebysable.advancement.CableAdvancements;
 import edn.lakeopossmc.drivebysable.CableConfig;
 import edn.lakeopossmc.drivebysable.cable.LinkedGearboxFrequencies;
 import edn.lakeopossmc.drivebysable.cable.LinkedGearboxLinks;
@@ -67,6 +68,10 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
 
     @Nullable
     private LinkedGearboxModeBehaviour modeBehaviour;
+
+    private boolean awardedReceiving;
+    private boolean awardedDoubled;
+    private boolean awardedOpposed;
     @Nullable
     private LinkBehaviour frequency;
     @Nullable
@@ -212,10 +217,33 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     }
 
     // * Told to attached computers
+    private void awardAdvancements() {
+        final boolean receiving = role == Role.RECEIVER;
+        final boolean doubled = receiving && Math.abs(getOutputMode().ratio()) == 2;
+        final boolean opposed = role == Role.OPPOSED;
+
+        if (receiving && !awardedReceiving) {
+            CableAdvancements.awardNearby(level, worldPosition, CableAdvancements.TRANSCEIVER_POWERED);
+        }
+        if (doubled && !awardedDoubled) {
+            CableAdvancements.awardNearby(level, worldPosition, CableAdvancements.TRANSCEIVER_DOUBLE_SPEED);
+        }
+        if (opposed && !awardedOpposed) {
+            CableAdvancements.awardNearby(level, worldPosition, CableAdvancements.TRANSCEIVER_OPPOSED);
+        }
+
+        awardedReceiving = receiving;
+        awardedDoubled = doubled;
+        awardedOpposed = opposed;
+    }
+
     private void reportOverstress() {
         final boolean overstressed = isOverStressed();
         if (overstressed != reportedOverstressed) {
             reportedOverstressed = overstressed;
+            if (overstressed) {
+                CableAdvancements.awardNearby(level, worldPosition, CableAdvancements.TRANSCEIVER_OVERSTRESSED);
+            }
             ComputerCraftCompat.queueTransceiverEvent(
                     this, ComputerCraftCompat.TRANSCEIVER_OVERSTRESSED_EVENT, overstressed);
         }
@@ -350,6 +378,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             updatePartners();
             updateRole();
             reportNetwork();
+            awardAdvancements();
         }
         reportOverstress();
 

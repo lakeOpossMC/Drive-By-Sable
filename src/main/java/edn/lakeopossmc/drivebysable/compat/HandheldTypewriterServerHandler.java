@@ -5,6 +5,7 @@ import com.simibubi.create.content.redstone.link.RedstoneLinkNetworkHandler.Freq
 import com.simibubi.create.content.redstone.link.controller.LinkedControllerServerHandler;
 import dev.simulated_team.simulated.content.blocks.redstone.linked_typewriter.LinkedTypewriterEntries;
 import dev.simulated_team.simulated.content.blocks.redstone.linked_typewriter.LinkedTypewriterEntries.KeyboardEntry;
+import edn.lakeopossmc.drivebysable.advancement.CableAdvancements;
 import edn.lakeopossmc.drivebysable.blocks.CableTypewriterHubBlockEntity;
 import edn.lakeopossmc.drivebysable.util.HubItem;
 import net.createmod.catnip.data.Couple;
@@ -64,6 +65,9 @@ public final class HandheldTypewriterServerHandler {
                 && level.getBlockEntity(hubPos.get()) instanceof final CableTypewriterHubBlockEntity hub) {
             setChannels(level, hubPos.get(), keys, pressed);
             hub.receiveHandheldInput(player.getUUID(), keys, pressed);
+            if (pressed && keys.stream().anyMatch(CableTypewriterHubServerHandler.KEY_TO_CHANNEL::containsKey)) {
+                CableAdvancements.award(player, CableAdvancements.HANDHELD_SIGNAL);
+            }
         }
         if (lecternPos != null) {
             setChannels(level, lecternPos, keys, pressed);

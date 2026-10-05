@@ -1,5 +1,6 @@
 package edn.lakeopossmc.drivebysable.items;
 
+import edn.lakeopossmc.drivebysable.advancement.CableAdvancements;
 import com.simibubi.create.foundation.item.TooltipHelper;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import edn.lakeopossmc.drivebysable.cable.CableSelectionTracker;
@@ -103,9 +104,13 @@ public class CableCutterItem extends Item {
             }
             removed = CableNetworkManager.removeAllFromSource((ServerPlayer) player, level, pos) || linked;
         } else {
+            final int connections = subTarget == null ? countConnections(level, pos) : 0;
             removed = subTarget != null
                     ? CableNetworkManager.removeAllForSubTarget((ServerPlayer) player, level, pos, subTarget)
                     : CableNetworkManager.removeAllFromSource((ServerPlayer) player, level, pos);
+            if (removed && connections >= CableAdvancements.NETWORK_CUT_SIZE) {
+                CableAdvancements.award(player, CableAdvancements.NETWORK_CUT);
+            }
         }
         if (removed) {
             // * Play shear use sound if success
@@ -126,6 +131,11 @@ public class CableCutterItem extends Item {
             return null;
         }
         return endpoint.cable$pickSubTarget(level, pos, player);
+    }
+
+    private static int countConnections(final Level level, final BlockPos pos) {
+        final Map<String, Set<CableNetworkSink>> perChannel = CableNetworkManager.get(level).getNetwork().get(pos.asLong());
+        return perChannel == null ? 0 : perChannel.values().stream().mapToInt(Set::size).sum();
     }
 
     private static boolean hasAnyConnection(final Level level, final BlockPos pos) {

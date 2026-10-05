@@ -1,0 +1,25 @@
+{
+  "neoforge:conditions": [
+    { "type": "neoforge:mod_loaded", "modid": "create_tweaked_controllers" },
+    { "type": "neoforge:mod_loaded", "modid": "get_creative" }
+  ],
+  "parent": "drivebysable:intermediate_cable_hub",
+  "criteria": {
+    "advanced_cable_hub": {
+      "trigger": "minecraft:placed_block",
+      "conditions": {
+        "location": [
+          { "condition": "minecraft:block_state_property", "block": "drivebysable:advanced_cable_hub" }
+        ]
+      }
+    }
+  },
+  "display": {
+    "icon": { "id": "drivebysable:advanced_cable_hub", "count": 1 },
+    "title": { "translate": "advancement.drivebysable.advanced_cable_hub" },
+    "description": { "translate": "advancement.drivebysable.advanced_cable_hub.desc" }
+  },
+  "requirements": [
+    [ "advanced_cable_hub" ]
+  ]
+}
