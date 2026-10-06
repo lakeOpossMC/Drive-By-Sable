@@ -18,6 +18,10 @@
     {
       "id": "drivebysable:integrated_sensor_bus",
       "required": false
+    },
+    {
+      "id": "drivebysable:network_anchor",
+      "required": false
     }
   ]
 }
