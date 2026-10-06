@@ -231,8 +231,7 @@ public class CableConfig {
                         "Stress capacity, in SU, a Radio-Kinetic Transceiver passes through its network for each RPM of",
                         "the Transceiver driving the network.",
                         "Every Transceiver turned by its own side adds its part to one pool, shared between the",
-                        "ones it drives.",
-                        "0 turns the limit off."
+                        "ones it drives. 0 turns the per RPM limit off."
                 )
                 .translation("drivebysable.config.linkedGearboxStressPerRpm")
                 .defineInRange("transferStressPerRpm", 16.0, 0.0, 1024.0);

@@ -51,11 +51,9 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
 
     // * How often (ticks) links and roles are re-checked on the server
     private static final int LINK_UPDATE_INTERVAL = 4;
+    private static final int OVERSTRESS_AWARD_TICKS = 20;
     private static final float EPSILON = 0.01F;
     private static final float SPEED_EPSILON = 1.0E-3F;
-    // * Capacity per RPM when the transfer limit is turned off
-    private static final float UNLIMITED_PER_RPM = 1.0E6F;
-
     private static final String LINKED_KEY = "Linked";
     private static final String PARTNERS_KEY = "Partners";
     private static final String ROLE_KEY = "LinkRole";
@@ -63,6 +61,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     private static final String SPEED_KEY = "LinkSpeed";
     private static final String CAPACITY_KEY = "LinkCapacity";
     private static final String LOAD_KEY = "LinkLoad";
+    private static final String TRANSFER_KEY = "LinkTransfer";
     private static final String FLOW_KEY = "LinkFlow";
     private static final String CAP_KEY = "LinkCap";
     private static final String AWARDED_KEY = "LinkAwarded";
@@ -74,6 +73,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     private boolean awardedDoubled;
     private boolean awardedOpposed;
     private boolean awardedOverstressed;
+    private int overstressedTicks;
     @Nullable
     private LinkBehaviour frequency;
     @Nullable
@@ -101,6 +101,8 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     private float linkSpeed;
     private float capacityPerRpm;
     private float drivenLoad;
+    private float transferLoad;
+    private float poolShare;
     private float linkFlow;
     private float linkCap;
 
@@ -241,10 +243,14 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
 
     private void reportOverstress() {
         final boolean overstressed = isOverStressed();
-        if (overstressed && !awardedOverstressed) {
+        // * A side can be overstressed for a tick or two while the pool is shared out again, which does not count
+        if (!overstressed) {
+            overstressedTicks = 0;
+            awardedOverstressed = false;
+        } else if (!awardedOverstressed && ++overstressedTicks >= OVERSTRESS_AWARD_TICKS) {
             CableAdvancements.awardNearby(level, worldPosition, CableAdvancements.TRANSCEIVER_OVERSTRESSED);
+            awardedOverstressed = true;
         }
-        awardedOverstressed = overstressed;
 
         if (overstressed != reportedOverstressed) {
             reportedOverstressed = overstressed;
@@ -620,6 +626,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         }
         if (oldRole == Role.DRIVER && newRole != Role.DRIVER) {
             setDrivenLoad(0);
+            setTransfer(0, 0);
         }
         if (newRole == Role.IDLE || newRole == Role.OPPOSED) {
             setLinkStats(0, 0);
@@ -672,29 +679,42 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             return;
         }
 
-        final boolean limited = CableConfig.CONFIG.linkedGearboxStressPerRpm.get() > 0;
         final float share = driver.allocationFor(worldPosition, receiverCount);
-        final float capacity = speed == 0 ? 0
-                : !limited ? UNLIMITED_PER_RPM
-                : share / Math.abs(speed);
+        final float capacity = speed == 0 ? 0 : divideUp(share, Math.abs(speed));
 
         setGeneration(speed, capacity);
 
         final float demand = hasNetwork() ? getOrCreateNetwork().calculateStress() : 0;
-        setLinkStats(demand, limited ? share : 0);
+        setLinkStats(demand, share);
     }
 
     private void setGeneration(final float speed, final float capacity) {
         final boolean speedChanged = Math.abs(speed - linkSpeed) > SPEED_EPSILON;
-        final boolean capacityChanged = Math.abs(capacity - capacityPerRpm) > 1.0E-4F;
+        final boolean capacityChanged = capacity != capacityPerRpm;
         linkSpeed = speed;
         capacityPerRpm = capacity;
 
         if (speedChanged) {
             updateGeneratedRotation();
-        } else if (capacityChanged && hasNetwork() && getSpeed() != 0) {
-            notifyStressCapacityChange(calculateAddedStressCapacity());
+            return;
+        }
+        if (capacityChanged) {
             sendData();
+        }
+        shareCapacity();
+    }
+
+    // * Checked against what the side holds every time
+    // * more capacity is the only thing that can get it moving again
+    private void shareCapacity() {
+        if (!hasNetwork() || getGeneratedSpeed() == 0) {
+            return;
+        }
+        final KineticNetwork kineticNetwork = getOrCreateNetwork();
+        final Float stored = kineticNetwork.sources.get(this);
+        final float wanted = calculateAddedStressCapacity();
+        if (stored != null && stored != wanted) {
+            kineticNetwork.updateCapacityFor(this, wanted);
         }
     }
 
@@ -722,11 +742,10 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
 
     // * What this driver adds to the pool
     private float contribution() {
-        return isOverStressed() ? 0
-                : (float) (CableConfig.CONFIG.linkedGearboxStressPerRpm.get() * Math.abs(getTheoreticalSpeed()));
+        return poolShare;
     }
 
-    // * Every driver runs this
+    // * Every driver runs this for its own part of the bill
     private void updateDriver() {
         final GroupState state = groupState();
         final LinkedGearboxBlockEntity lead = state.lead();
@@ -750,30 +769,50 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         }
 
         float speedSum = 0;
-        float pool = 0;
         for (final LinkedGearboxBlockEntity driver : state.drivers()) {
             final float speed = Math.abs(driver.getTheoreticalSpeed());
             speedSum += speed;
-            pool += driver.contribution();
             cost += (float) BlockStressValues.getImpact(driver.getBlockState().getBlock()) * speed;
         }
-        final float share = CableConfig.CONFIG.linkedGearboxCostBySpeed.get()
-                ? (speedSum > 0 ? cost * Math.abs(getTheoreticalSpeed()) / speedSum : 0)
-                : cost / state.drivers().size();
-        setDrivenLoad(share);
-
-        final boolean limited = CableConfig.CONFIG.linkedGearboxStressPerRpm.get() > 0;
-        setLinkStats(0, limited ? contribution() : 0);
+        setDrivenLoad(costShare(this, cost, speedSum, state.drivers().size()));
+        setLinkStats(0, poolShare);
         if (lead != this) {
             return;
         }
+
+        // * Each side driving the group offers what it has spare once the bill is paid, up to the limit
+        final double perRpm = CableConfig.CONFIG.linkedGearboxStressPerRpm.get();
+        final Map<Long, List<LinkedGearboxBlockEntity>> driversOn = new LinkedHashMap<>();
+        for (final LinkedGearboxBlockEntity driver : state.drivers()) {
+            if (driver.hasNetwork()) {
+                driversOn.computeIfAbsent(driver.network, ignored -> new ArrayList<>()).add(driver);
+            }
+        }
+
+        final Map<Long, Float> offered = new HashMap<>();
+        float pool = 0;
+        for (final Map.Entry<Long, List<LinkedGearboxBlockEntity>> entry : driversOn.entrySet()) {
+            final KineticNetwork side = entry.getValue().getFirst().getOrCreateNetwork();
+            float spare = side.calculateCapacity() - side.calculateStress();
+            float limit = 0;
+            for (final LinkedGearboxBlockEntity driver : entry.getValue()) {
+                final float speed = Math.abs(driver.getTheoreticalSpeed());
+                final Float billed = side.members.get(driver);
+                if (billed != null) {
+                    spare += billed * speed;
+                }
+                spare -= costShare(driver, cost, speedSum, state.drivers().size());
+                limit += perRpm > 0 ? (float) (perRpm * speed) : Float.POSITIVE_INFINITY;
+            }
+            final float offer = Math.max(0, Math.min(limit, spare));
+            offered.put(entry.getKey(), offer);
+            pool += offer;
+        }
+
         groupPool = pool;
         final Map<Long, Float> demand = new HashMap<>();
-        float totalDemand = 0;
         for (final Map.Entry<Long, KineticNetwork> entry : networks.entrySet()) {
-            final float stress = entry.getValue().calculateStress();
-            demand.put(entry.getKey(), stress);
-            totalDemand += stress;
+            demand.put(entry.getKey(), entry.getValue().calculateStress());
         }
 
         final List<Long> order = new ArrayList<>(networks.keySet());
@@ -786,32 +825,119 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             given.put(id, give);
             remaining -= give;
         }
+        // * What is left over is split evenly, so the far sides always add up to the pool
         final float spare = order.isEmpty() ? 0 : Math.max(0, remaining) / order.size();
 
         allocations.clear();
+        float drawn = 0;
         for (final long id : order) {
             final List<BlockPos> receivers = receiversOf.get(id);
-            final float perReceiver = (given.get(id) + spare) / receivers.size();
+            final float allocated = given.get(id) + spare;
+            final float perReceiver = divideUp(allocated, receivers.size());
             for (final BlockPos receiver : receivers) {
                 allocations.put(receiver, perReceiver);
             }
+            drawn += drawnBy(networks.get(id), receivers, demand.get(id), allocated);
         }
 
+        // * What the far sides draw is billed back to the sides that offered it
+        for (final Map.Entry<Long, List<LinkedGearboxBlockEntity>> entry : driversOn.entrySet()) {
+            final float offer = offered.get(entry.getKey());
+            final float bill = pool <= 0 ? 0
+                    : driversOn.size() == 1 ? Math.min(offer, drawn)
+                    : Math.min(offer, drawn * offer / pool);
+
+            final List<LinkedGearboxBlockEntity> drivers = entry.getValue();
+            float speedOn = 0;
+            for (final LinkedGearboxBlockEntity driver : drivers) {
+                speedOn += Math.abs(driver.getTheoreticalSpeed());
+            }
+            for (final LinkedGearboxBlockEntity driver : drivers) {
+                final float part = drivers.size() == 1 || speedOn <= 0 ? 1.0F / drivers.size()
+                        : Math.abs(driver.getTheoreticalSpeed()) / speedOn;
+                driver.setTransfer(bill * part, offer * part);
+            }
+            settle(drivers.getFirst().getOrCreateNetwork(), drivers);
+        }
+    }
+
+    private static float costShare(final LinkedGearboxBlockEntity driver, final float cost,
+                                   final float speedSum, final int drivers) {
+        return CableConfig.CONFIG.linkedGearboxCostBySpeed.get()
+                ? (speedSum > 0 ? cost * Math.abs(driver.getTheoreticalSpeed()) / speedSum : 0)
+                : cost / drivers;
+    }
+
+    // * What one receiving side takes of its allocation, stalled or not
+    // * Where another group feeds the same side, only this group's part of it
+    private float drawnBy(final KineticNetwork side, final List<BlockPos> receivers,
+                          final float demand, final float allocated) {
+        float ours = 0;
+        for (final BlockPos pos : receivers) {
+            if (level.getBlockEntity(pos) instanceof final LinkedGearboxBlockEntity receiver
+                    && side.sources.containsKey(receiver)) {
+                ours += side.getActualCapacityOf(receiver);
+            }
+        }
+        final float others = side.calculateCapacity() - ours;
+        if (others < EPSILON) {
+            return Math.min(demand, allocated);
+        }
+        final float total = others + allocated;
+        return total > 0 ? allocated * Math.min(1, demand / total) : 0;
+    }
+
+    // * A side used right up to its capacity must not tip into overstress
+    private static void settle(final KineticNetwork side, final List<LinkedGearboxBlockEntity> drivers) {
+        for (int pass = 0; pass < 3; pass++) {
+            float excess = side.calculateStress() - side.calculateCapacity();
+            if (excess <= 0) {
+                return;
+            }
+            excess *= 2;
+            for (final LinkedGearboxBlockEntity driver : drivers) {
+                final float cut = Math.min(driver.transferLoad, excess);
+                if (cut > 0) {
+                    driver.setTransfer(driver.transferLoad - cut, driver.poolShare);
+                    excess -= cut;
+                }
+            }
+        }
     }
 
     private void setDrivenLoad(final float load) {
-        if (Math.abs(load - drivenLoad) > EPSILON) {
+        if (load != drivenLoad) {
+            final boolean notable = Math.abs(load - drivenLoad) > EPSILON;
             drivenLoad = load;
             setChanged();
-            sendData();
+            if (notable) {
+                sendData();
+            }
         }
+        billSide();
+    }
+
+    private void setTransfer(final float load, final float share) {
+        poolShare = share;
+        if (load != transferLoad) {
+            final boolean notable = Math.abs(load - transferLoad) > EPSILON;
+            transferLoad = load;
+            setChanged();
+            if (notable) {
+                sendData();
+            }
+        }
+        billSide();
+    }
+
+    private void billSide() {
         if (!hasNetwork()) {
             return;
         }
         final KineticNetwork kineticNetwork = getOrCreateNetwork();
         final Float stored = kineticNetwork.members.get(this);
         final float wanted = calculateStressApplied();
-        if (stored != null && Math.abs(stored - wanted) > 1.0E-4F) {
+        if (stored != null && stored != wanted) {
             kineticNetwork.updateStressFor(this, wanted);
         }
     }
@@ -827,8 +953,20 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         if (role != Role.DRIVER || speed == 0) {
             return base;
         }
-        this.lastStressApplied = drivenLoad / speed;
-        return drivenLoad / speed;
+        final float applied = divideDown(drivenLoad + transferLoad, speed);
+        this.lastStressApplied = applied;
+        return applied;
+    }
+
+    // * SU spread over a speed or a count
+    private static float divideUp(final float amount, final float by) {
+        final float result = amount / by;
+        return result * by < amount ? Math.nextUp(result) : result;
+    }
+
+    private static float divideDown(final float amount, final float by) {
+        final float result = amount / by;
+        return result * by > amount ? Math.nextDown(result) : result;
     }
     //#endregion
 
@@ -853,6 +991,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         tag.putFloat(SPEED_KEY, linkSpeed);
         tag.putFloat(CAPACITY_KEY, capacityPerRpm);
         tag.putFloat(LOAD_KEY, drivenLoad);
+        tag.putFloat(TRANSFER_KEY, transferLoad);
         if (clientPacket) {
             tag.putLongArray(PARTNERS_KEY, partners.stream().mapToLong(BlockPos::asLong).toArray());
             tag.putFloat(FLOW_KEY, linkFlow);
@@ -876,6 +1015,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         linkSpeed = tag.getFloat(SPEED_KEY);
         capacityPerRpm = tag.getFloat(CAPACITY_KEY);
         drivenLoad = tag.getFloat(LOAD_KEY);
+        transferLoad = tag.getFloat(TRANSFER_KEY);
         if (clientPacket) {
             final Set<BlockPos> synced = new LinkedHashSet<>();
             for (final long key : tag.getLongArray(PARTNERS_KEY)) {

@@ -1,0 +1,4 @@
+{
+  "parent": "drivebysable:block/linked_gearbox/block",
+  "transform": {"rotation": {"y": 270}, "origin": "center"}
+}

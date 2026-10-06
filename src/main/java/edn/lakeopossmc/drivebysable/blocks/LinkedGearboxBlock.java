@@ -120,26 +120,51 @@ public class LinkedGearboxBlock extends DirectionalKineticBlock
     //#endregion
 
     //#region // --- ROTATION --- //
+    // * A wrench on either end rolls the block around its own axis
     @Override
     public BlockState getRotatedBlockState(final BlockState originalState, final Direction targetedFace) {
-        if (originalState.getValue(FACING).getAxis() == Direction.Axis.Y
-                && targetedFace.getAxis() == Direction.Axis.Y) {
+        final Direction facing = originalState.getValue(FACING);
+        final Direction.Axis around = targetedFace.getAxis();
+        if (facing.getAxis() == around) {
             return originalState.setValue(ROTATION, originalState.getValue(ROTATION).getClockWise());
         }
-        return super.getRotatedBlockState(originalState, targetedFace);
+
+        final Direction turnedFacing = super.getRotatedBlockState(originalState, targetedFace).getValue(FACING);
+        Direction reference = reference(originalState);
+        Direction step = facing;
+        for (int turns = 0; turns < 4 && step != turnedFacing; turns++) {
+            step = step.getClockWise(around);
+            reference = reference.getAxis() == around ? reference : reference.getClockWise(around);
+        }
+        return oriented(originalState, turnedFacing, reference);
     }
 
-    // * Keep ROTATION in step with structure / schematic rotation
+    // * Structure and schematic rotation turn the whole block the same way
     @Override
     public BlockState rotate(final BlockState state, final Rotation rotation) {
-        return super.rotate(state, rotation)
-                .setValue(ROTATION, rotation.rotate(state.getValue(ROTATION)));
+        return oriented(state, rotation.rotate(state.getValue(FACING)), rotation.rotate(reference(state)));
     }
 
     @Override
     public BlockState mirror(final BlockState state, final Mirror mirror) {
-        return super.mirror(state, mirror)
-                .setValue(ROTATION, mirror.mirror(state.getValue(ROTATION)));
+        return oriented(state, mirror.mirror(state.getValue(FACING)), mirror.mirror(reference(state)));
+    }
+
+    // * Which way the model's north side ends up pointing
+    private static Direction reference(final BlockState state) {
+        final Vec3 north = rotateModelVector(state, new Vec3(0, 0, -1));
+        return Direction.getNearest(north.x, north.y, north.z);
+    }
+
+    private static BlockState oriented(final BlockState state, final Direction facing, final Direction reference) {
+        final BlockState turned = state.setValue(FACING, facing);
+        for (final Direction rotation : ROTATION.getPossibleValues()) {
+            final BlockState candidate = turned.setValue(ROTATION, rotation);
+            if (reference(candidate) == reference) {
+                return candidate;
+            }
+        }
+        return turned;
     }
     //#endregion
 
@@ -192,28 +217,34 @@ public class LinkedGearboxBlock extends DirectionalKineticBlock
     }
 
     //#region // --- MODEL SPACE --- //
+    // * Roll around the model's own axis, then the blockstate's x and y
+    // * Upright, ROTATION is the blockstate's y. On its side, it is the roll
     private static int[] modelRotation(final BlockState state) {
         final int spin = (int) (state.getValue(ROTATION).toYRot() + 180) % 360;
         return switch (state.getValue(FACING)) {
-            case UP -> new int[]{0, spin};
-            case DOWN -> new int[]{180, (spin + 180) % 360};
-            case NORTH -> new int[]{90, 0};
-            case SOUTH -> new int[]{90, 180};
-            case WEST -> new int[]{90, 270};
-            case EAST -> new int[]{90, 90};
+            case UP -> new int[]{0, 0, spin};
+            case DOWN -> new int[]{0, 180, (spin + 180) % 360};
+            case NORTH -> new int[]{spin, 90, 0};
+            case SOUTH -> new int[]{spin, 90, 180};
+            case WEST -> new int[]{spin, 90, 270};
+            case EAST -> new int[]{spin, 90, 90};
         };
     }
 
     public static Vec3 rotateModelVector(final BlockState state, final Vec3 vector) {
         final int[] rotation = modelRotation(state);
-        final double xRad = Math.toRadians(rotation[0]);
-        final double yRad = Math.toRadians(rotation[1]);
+        final double rollRad = Math.toRadians(rotation[0]);
+        final double xRad = Math.toRadians(rotation[1]);
+        final double yRad = Math.toRadians(rotation[2]);
 
-        final double y1 = vector.y * Math.cos(xRad) + vector.z * Math.sin(xRad);
-        final double z1 = -vector.y * Math.sin(xRad) + vector.z * Math.cos(xRad);
+        final double x0 = vector.x * Math.cos(rollRad) - vector.z * Math.sin(rollRad);
+        final double z0 = vector.x * Math.sin(rollRad) + vector.z * Math.cos(rollRad);
 
-        final double x2 = vector.x * Math.cos(yRad) - z1 * Math.sin(yRad);
-        final double z2 = vector.x * Math.sin(yRad) + z1 * Math.cos(yRad);
+        final double y1 = vector.y * Math.cos(xRad) + z0 * Math.sin(xRad);
+        final double z1 = -vector.y * Math.sin(xRad) + z0 * Math.cos(xRad);
+
+        final double x2 = x0 * Math.cos(yRad) - z1 * Math.sin(yRad);
+        final double z2 = x0 * Math.sin(yRad) + z1 * Math.cos(yRad);
         return new Vec3(x2, y1, z2);
     }
 
