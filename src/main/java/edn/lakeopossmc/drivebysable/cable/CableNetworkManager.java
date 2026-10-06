@@ -3729,7 +3729,8 @@ public final class CableNetworkManager {
         FAIL_CROSS_LEVEL("Cross-level connections are disabled!", "drivebysable.invalid_op.cross_level"),
         FAIL_GEARBOX_TARGET_REQUIRED("Linked Gearboxes can only link to other Linked Gearboxes!", "drivebysable.invalid_op.gearbox_target_required"),
         FAIL_GEARBOX_SUBLEVEL_ONLY("Linked Gearboxes must be on a sublevel!", "drivebysable.invalid_op.gearbox_sublevel_only"),
-        FAIL_GEARBOX_OUT_OF_RANGE("That Linked Gearbox is out of range!", "drivebysable.invalid_op.gearbox_out_of_range");
+        FAIL_GEARBOX_OUT_OF_RANGE("That Linked Gearbox is out of range!", "drivebysable.invalid_op.gearbox_out_of_range"),
+        FAIL_GEARBOX_FREQUENCY_LINKED("That Linked Gearbox is already linked by frequency!", "drivebysable.invalid_op.gearbox_frequency_linked");
 
         private final String description;
         private final String langKey;

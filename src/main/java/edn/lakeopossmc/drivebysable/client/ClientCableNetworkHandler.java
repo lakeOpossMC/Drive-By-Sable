@@ -502,7 +502,7 @@ public final class ClientCableNetworkHandler {
         drawOutlines(level, selectedSource, currentNetwork, currentChannel);
 
         if (isGearboxSource(level)) {
-            LinkedGearboxGroupHighlight.show(level, LinkedGearboxLinks.linkGroup(level, selectedSource));
+            LinkedGearboxGroupHighlight.show(level, LinkedGearboxLinks.cableGroup(level, selectedSource));
         } else {
             LinkedGearboxGroupHighlight.hide();
         }
@@ -1206,8 +1206,15 @@ public final class ClientCableNetworkHandler {
     }
 
     // * The network being edited
+    // * Only the cabled part: a shared frequency is set on the blocks themselves
     private static Set<BlockPos> openGearboxNetwork(final Level level) {
-        return LinkedGearboxLinks.linkGroup(level, selectedSource).members();
+        return LinkedGearboxLinks.cableNetwork(level, selectedSource);
+    }
+
+    // * Already turning with the open network through a shared frequency
+    private static boolean frequencyLinked(final Level level, final Set<BlockPos> network, final BlockPos pos) {
+        return !network.contains(pos)
+                && LinkedGearboxLinks.linkGroup(level, selectedSource).members().contains(pos);
     }
 
     @Nullable
@@ -1229,7 +1236,7 @@ public final class ClientCableNetworkHandler {
 
     // * Linked to anything at all
     private static boolean gearboxHasLinks(final Level level, final BlockPos pos) {
-        return LinkedGearboxLinks.isGearbox(level, pos) && !LinkedGearboxLinks.linkNeighbours(level, pos).isEmpty();
+        return LinkedGearboxLinks.isGearbox(level, pos) && !LinkedGearboxLinks.cableNeighbours(level, pos).isEmpty();
     }
 
     // * OK when the hovered gearbox can join or leave
@@ -1241,6 +1248,9 @@ public final class ClientCableNetworkHandler {
         // * Members can always be clicked to take them out
         if (network.contains(pos) && gearboxHasLinks(level, pos)) {
             return CableNetworkManager.ConnectionResult.OK;
+        }
+        if (frequencyLinked(level, network, pos)) {
+            return CableNetworkManager.ConnectionResult.FAIL_GEARBOX_FREQUENCY_LINKED;
         }
         // * A newcomer joins through whichever member is in reach
         return LinkedGearboxLinks.joinPoint(level, network, pos) != null
@@ -1414,6 +1424,7 @@ public final class ClientCableNetworkHandler {
                     case FAIL_GEARBOX_TARGET_REQUIRED -> "drivebysable.cable_actions.gearbox_target_required";
                     case FAIL_GEARBOX_SUBLEVEL_ONLY -> "drivebysable.cable_actions.gearbox_sublevel_only";
                     case FAIL_GEARBOX_OUT_OF_RANGE -> "drivebysable.cable_actions.gearbox_out_of_range";
+                    case FAIL_GEARBOX_FREQUENCY_LINKED -> "drivebysable.cable_actions.gearbox_frequency_linked";
                     default -> null;
                 };
                 if (refusal != null) {

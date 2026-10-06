@@ -4,7 +4,6 @@ import edn.lakeopossmc.drivebysable.CableConfig;
 import edn.lakeopossmc.drivebysable.CableItems;
 import edn.lakeopossmc.drivebysable.CableSounds;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
-import edn.lakeopossmc.drivebysable.blocks.LinkedGearboxBlockEntity;
 import edn.lakeopossmc.drivebysable.cable.LinkedGearboxLinks;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.BlockPos;
@@ -47,9 +46,6 @@ public record LinkedGearboxLeavePacket(BlockPos gearbox) implements CustomPacket
         }
 
         final int refund = LinkedGearboxLinks.leaveNetwork(player.level(), payload.gearbox());
-        if (player.level().getBlockEntity(payload.gearbox()) instanceof final LinkedGearboxBlockEntity gearbox) {
-            gearbox.clearLinkingFrequency();
-        }
         if (refund > 0 && CableConfig.CONFIG.shouldConsumeCables.get() && !player.hasInfiniteMaterials()) {
             final ItemStack cables = new ItemStack(CableItems.CABLE.get(), refund);
             if (!player.addItem(cables)) {

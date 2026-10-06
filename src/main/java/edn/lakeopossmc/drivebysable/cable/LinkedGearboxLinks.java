@@ -108,9 +108,14 @@ public final class LinkedGearboxLinks {
         return members;
     }
 
+    // * Only what is cabled together
+    public static LinkGroup cableGroup(final Level level, final BlockPos start) {
+        return looped(level, cableNetwork(level, start));
+    }
+
+    // * Cabled or sharing a frequency
     public static LinkGroup linkGroup(final Level level, final BlockPos start) {
         final Set<BlockPos> members = new LinkedHashSet<>();
-        final List<BlockPos[]> links = new ArrayList<>();
         final Deque<BlockPos> queue = new ArrayDeque<>();
         members.add(start);
         queue.add(start);
@@ -123,7 +128,11 @@ public final class LinkedGearboxLinks {
                 }
             }
         }
+        return looped(level, members);
+    }
 
+    private static LinkGroup looped(final Level level, final Set<BlockPos> members) {
+        final List<BlockPos[]> links = new ArrayList<>();
         final List<BlockPos> remaining = new ArrayList<>(members);
         remaining.sort(java.util.Comparator.comparingLong(BlockPos::asLong));
         final List<BlockPos> loop = new ArrayList<>();
