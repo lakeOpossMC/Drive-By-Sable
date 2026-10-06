@@ -8,7 +8,9 @@ import edn.lakeopossmc.drivebysable.cable.MultiChannelCableSource;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -151,6 +153,45 @@ public abstract class AbstractDirectionalHubBlock<T extends CableHubBlockEntity>
     public BlockState rotate(final BlockState state, final Rotation rotation) {
         // * Find correct rotation based on FACING
         return state.setValue(FACING, rotation.rotate(state.getValue(FACING)));
+    }
+    //#endregion
+    //#region // --- WRENCH --- //
+    @Override
+    public BlockState getRotatedBlockState(final BlockState state, final Direction targetedFace) {
+        final Direction.Axis around = targetedFace.getAxis();
+        final AttachFace face = state.getValue(FACE);
+        final Direction front = state.getValue(FACING);
+        final Direction sitsOn = switch (face) {
+            case FLOOR -> Direction.DOWN;
+            case CEILING -> Direction.UP;
+            case WALL -> front.getOpposite();
+        };
+
+        if (sitsOn.getAxis() == around) {
+            return face == AttachFace.WALL ? state : state.setValue(FACING, front.getClockWise());
+        }
+
+        final Direction tippedOnto = sitsOn.getClockWise(around);
+        if (tippedOnto.getAxis().isHorizontal()) {
+            return state.setValue(FACE, AttachFace.WALL).setValue(FACING, tippedOnto.getOpposite());
+        }
+        return tippedOnto == Direction.DOWN
+                ? state.setValue(FACE, AttachFace.FLOOR).setValue(FACING, front.getOpposite())
+                : state.setValue(FACE, AttachFace.CEILING).setValue(FACING, front);
+    }
+
+    @Override
+    public InteractionResult onWrenched(final BlockState state, final UseOnContext context) {
+        final BlockState rotated = getRotatedBlockState(state, context.getClickedFace());
+        if (rotated == state) {
+            return InteractionResult.PASS;
+        }
+        final Level level = context.getLevel();
+        if (!level.isClientSide) {
+            level.setBlock(context.getClickedPos(), rotated, Block.UPDATE_ALL);
+            IWrenchable.playRotateSound(level, context.getClickedPos());
+        }
+        return InteractionResult.SUCCESS;
     }
     //#endregion
 
