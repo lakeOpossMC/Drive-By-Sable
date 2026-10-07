@@ -5,6 +5,7 @@ import edn.lakeopossmc.drivebysable.CableSounds;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
 import edn.lakeopossmc.drivebysable.advancement.CableAdvancements;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
+import edn.lakeopossmc.drivebysable.cable.LinkedGearboxLinks;
 import edn.lakeopossmc.drivebysable.cable.CableServerFeedback;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.ChatFormatting;
@@ -55,7 +56,12 @@ public record CableAddConnectionPacket(
             return;
         }
 
-        final CableNetworkManager.ConnectionResult result = CableNetworkManager.createConnection(
+        final CableNetworkManager.ConnectionResult refusal =
+                LinkedGearboxLinks.isStressLink(payload.channel(), payload.sinkChannel())
+                        ? LinkedGearboxLinks.playerLinkRefusal(player.level(), payload.source(), payload.sink())
+                        : CableNetworkManager.ConnectionResult.OK;
+        final CableNetworkManager.ConnectionResult result = !refusal.isSuccess() ? refusal
+                : CableNetworkManager.createConnection(
                 player.level(),
                 payload.source(),
                 payload.sink(),

@@ -282,8 +282,6 @@ public class LinkedGearboxScenes {
         final var select = util.select();
         final var vector = util.vector();
 
-        final BlockPos stressometer = new BlockPos(5, 1, 1);
-
         scene.title("linked_gearbox_speed", "Output Speed, Stress and Power");
         showSource(scene, util);
         world.setKineticSpeed(gearbox2Line(util), LINK_SPEED);
@@ -340,20 +338,14 @@ public class LinkedGearboxScenes {
         scene.idle(pace(80));
         overlay.showText(pace(80))
                 .text(String.valueOf(Component.translatable("drivebysable.ponder.linked_gearbox_speed.text_5")))
-                .colored(PonderPalette.RED)
-                .placeNearTarget()
-                .pointAt(vector.centerOf(stressometer));
-        scene.idle(pace(90));
-        overlay.showText(pace(70))
-                .text(String.valueOf(Component.translatable("drivebysable.ponder.linked_gearbox_speed.text_6")))
                 .placeNearTarget()
                 .pointAt(vector.centerOf(GEARBOX_1));
-        scene.idle(pace(80));
+        scene.idle(pace(90));
 
         world.showSection(select.fromTo(3, 1, 5, 3, 2, 5).add(select.position(LEVER)), Direction.DOWN);
         scene.idle(pace(20));
         overlay.showText(pace(70))
-                .text(String.valueOf(Component.translatable("drivebysable.ponder.linked_gearbox_speed.text_7")))
+                .text(String.valueOf(Component.translatable("drivebysable.ponder.linked_gearbox_speed.text_6")))
                 .attachKeyFrame()
                 .placeNearTarget()
                 .pointAt(vector.centerOf(GEARBOX_2));

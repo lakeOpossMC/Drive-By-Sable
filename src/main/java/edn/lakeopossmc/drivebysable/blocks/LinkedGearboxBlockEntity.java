@@ -13,6 +13,7 @@ import com.simibubi.create.infrastructure.config.AllConfigs;
 import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.advancement.CableAdvancements;
 import edn.lakeopossmc.drivebysable.CableConfig;
+import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
 import edn.lakeopossmc.drivebysable.cable.LinkedGearboxFrequencies;
 import edn.lakeopossmc.drivebysable.cable.LinkedGearboxLinks;
 import edn.lakeopossmc.drivebysable.compat.computercraft.ComputerCraftCompat;
@@ -64,6 +65,12 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     private static final String TRANSFER_KEY = "LinkTransfer";
     private static final String FLOW_KEY = "LinkFlow";
     private static final String CAP_KEY = "LinkCap";
+    private static final String OUT_OF_REACH_KEY = "LinkOutOfReach";
+    private static final String OUT_OF_RANGE_KEY = "LinkOutOfRange";
+    private static final String NOT_LOADED_KEY = "LinkNotLoaded";
+    private static final String RANGE_KEY = "LinkRange";
+    private static final String DRIVING_REACH_KEY = "LinkDrivingReach";
+    private static final double REACH_MARGIN = 0.5;
     private static final String AWARDED_KEY = "LinkAwarded";
 
     @Nullable
@@ -105,6 +112,15 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     private float poolShare;
     private float linkFlow;
     private float linkCap;
+    private boolean outOfReach;
+    private boolean reachDropped;
+    private boolean outOfRange;
+    private boolean partnerPastMaxRange;
+    private boolean notLoaded;
+    private float linkRange;
+    private float drivingReach;
+    private double decidedRange;
+    private boolean partnerNotLoaded;
 
     private int linkUpdateCooldown;
 
@@ -177,6 +193,15 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
 
     public Role getRole() {
         return role;
+    }
+
+    // * 0 unless its own side is turning it
+    public float getDrivingReach() {
+        return role == Role.DRIVER ? drivingReach : 0;
+    }
+
+    public boolean isOutOfReach() {
+        return outOfReach;
     }
 
     public boolean isLeadDriver() {
@@ -349,21 +374,30 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             tooltip.add(Component.empty());
         }
         CreateLang.builder()
-                .add(Component.translatable(role == Role.RECEIVER
+                .add(Component.translatable(role == Role.RECEIVER || outOfReach
+                        || (outOfRange || notLoaded) && getTheoreticalSpeed() == 0
                         ? "drivebysable.linked_gearbox.goggles.receiver"
                         : "drivebysable.linked_gearbox.goggles.transmitter"))
                 .forGoggles(tooltip);
+        CreateLang.builder()
+                .add(Component.translatable("drivebysable.linked_gearbox.goggles.range")
+                        .withStyle(ChatFormatting.GRAY))
+                .space()
+                .add(Component.translatable("drivebysable.linked_gearbox.goggles.range_blocks",
+                        CreateLang.number(linkRange).component()).withStyle(ChatFormatting.AQUA))
+                .forGoggles(tooltip, 1);
         final String state = switch (role) {
             case DRIVER -> "adding";
             case RECEIVER -> "receiving";
             case OPPOSED -> "opposed";
-            case IDLE -> "idle";
+            case IDLE -> outOfReach ? "out_of_reach" : outOfRange ? "out_of_range"
+                    : notLoaded ? "not_loaded" : "idle";
         };
         final ChatFormatting colour = switch (role) {
             case DRIVER -> ChatFormatting.GREEN;
             case RECEIVER -> ChatFormatting.GREEN;
             case OPPOSED -> ChatFormatting.RED;
-            case IDLE -> ChatFormatting.GRAY;
+            case IDLE -> outOfReach || outOfRange ? ChatFormatting.RED : ChatFormatting.GRAY;
         };
         CreateLang.builder()
                 .add(Component.translatable("drivebysable.linked_gearbox.goggles." + state).withStyle(colour))
@@ -391,6 +425,10 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             awardAdvancements();
         }
         reportOverstress();
+
+        if (outOfReach || role == Role.RECEIVER && pastLeadReach()) {
+            updateRole();
+        }
 
         if (role == Role.RECEIVER) {
             followDriver();
@@ -421,13 +459,28 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         }
 
         final Set<BlockPos> active = new LinkedHashSet<>();
+        partnerPastMaxRange = false;
+        partnerNotLoaded = false;
         for (final BlockPos partner : configured) {
-            if (!level.isLoaded(partner)
-                    || !(level.getBlockEntity(partner) instanceof LinkedGearboxBlockEntity)
-                    || !LinkedGearboxLinks.checkPlacement(level, worldPosition, partner).isSuccess()) {
+            if (!level.isLoaded(partner)) {
+                partnerNotLoaded = true;
+                continue;
+            }
+            if (!(level.getBlockEntity(partner) instanceof LinkedGearboxBlockEntity)) {
+                continue;
+            }
+            final CableNetworkManager.ConnectionResult placement =
+                    LinkedGearboxLinks.checkPlacement(level, worldPosition, partner);
+            if (placement == CableNetworkManager.ConnectionResult.FAIL_GEARBOX_OUT_OF_RANGE) {
+                partnerPastMaxRange = true;
+            }
+            if (!placement.isSuccess()) {
                 continue;
             }
             active.add(partner.immutable());
+        }
+        if (!active.equals(activePartners)) {
+            forgetGroupState();
         }
         activePartners = Set.copyOf(active);
     }
@@ -460,6 +513,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     @Override
     public void invalidate() {
         super.invalidate();
+        forgetGroupState();
         if (level != null && !level.isClientSide && registeredKey != null) {
             LinkedGearboxFrequencies.move(level, worldPosition, registeredKey, null);
             registeredKey = null;
@@ -494,10 +548,44 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     private record GroupState(@Nullable LinkedGearboxBlockEntity lead,
                               List<LinkedGearboxBlockEntity> drivers,
                               List<LinkedGearboxBlockEntity> opposed,
-                              List<LinkedGearboxBlockEntity> receivers) {
+                              List<LinkedGearboxBlockEntity> receivers,
+                              List<LinkedGearboxBlockEntity> unreached,
+                              List<LinkedGearboxBlockEntity> members) {
     }
 
+    // * Worked out once a tick for the whole network and handed to every member, instead of once per member asking
+    @Nullable
+    private GroupState sharedState;
+    private long sharedStateTick = Long.MIN_VALUE;
+
     private GroupState groupState() {
+        final long now = level.getGameTime();
+        if (sharedState != null && sharedStateTick == now) {
+            return sharedState;
+        }
+        final GroupState state = buildGroupState();
+        for (final LinkedGearboxBlockEntity member : state.members()) {
+            member.sharedState = state;
+            member.sharedStateTick = now;
+        }
+        return state;
+    }
+
+    // * Something the shared answer was built from has changed, so nobody may keep using it
+    private void forgetGroupState() {
+        final GroupState state = sharedState;
+        if (state == null) {
+            return;
+        }
+        for (final LinkedGearboxBlockEntity member : state.members()) {
+            if (member.sharedState == state) {
+                member.sharedState = null;
+            }
+        }
+        sharedState = null;
+    }
+
+    private GroupState buildGroupState() {
         final List<LinkedGearboxBlockEntity> members = group();
         final Set<Long> receiverNetworks = new HashSet<>();
         for (final LinkedGearboxBlockEntity member : members) {
@@ -525,7 +613,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
                                 member -> member.getBlockPos().asLong()).reversed()))
                 .orElse(null);
         if (lead == null) {
-            return new GroupState(null, List.of(), List.of(), List.of());
+            return new GroupState(null, List.of(), List.of(), List.of(), List.of(), members);
         }
 
         final List<LinkedGearboxBlockEntity> drivers = new ArrayList<>();
@@ -534,10 +622,69 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         for (final LinkedGearboxBlockEntity member : selfTurned) {
             (Math.signum(member.getTheoreticalSpeed()) == leadSign ? drivers : opposed).add(member);
         }
-        return new GroupState(lead, drivers, opposed, receivers);
+
+        // * Only the ones a driver reaches at its speed are driven
+        final List<LinkedGearboxBlockEntity> reached = new ArrayList<>();
+        final List<LinkedGearboxBlockEntity> unreached = new ArrayList<>();
+        for (final LinkedGearboxBlockEntity member : receivers) {
+            (member.reachedBy(drivers) ? reached : unreached).add(member);
+        }
+        return new GroupState(lead, drivers, opposed, reached, unreached, members);
+    }
+
+    // * How far this Transceiver reaches while its own side turns it
+    private double reach() {
+        return Math.min(CableConfig.CONFIG.linkedGearboxRange.get(),
+                CableConfig.CONFIG.linkedGearboxRangePerRpm.get() * Math.abs(getTheoreticalSpeed()));
+    }
+
+    private boolean reachedBy(final List<LinkedGearboxBlockEntity> drivers) {
+        final double margin = reachDropped ? REACH_MARGIN : 0;
+        for (final LinkedGearboxBlockEntity driver : drivers) {
+            final double furthest = driver.reach() - margin;
+            if (furthest <= 0) {
+                continue;
+            }
+            if (CableNetworkManager.worldSpaceDistanceSqr(level, driver.getBlockPos(), worldPosition)
+                    <= furthest * furthest) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // * Cheap check against the one driver being followed. The full one, with every driver, only runs if this fails
+    private boolean pastLeadReach() {
+        final LinkedGearboxBlockEntity driver = driver();
+        return driver != null && !reachedBy(List.of(driver));
     }
 
     private void updateRole() {
+        final boolean wasOutOfReach = outOfReach;
+        final boolean wasOutOfRange = outOfRange;
+        final boolean wasNotLoaded = notLoaded;
+        outOfReach = false;
+        decideRole();
+        reachDropped = outOfReach;
+        final boolean stranded = role == Role.IDLE && !outOfReach
+                && !LinkedGearboxBlock.isDisconnected(getBlockState());
+        outOfRange = stranded && partnerPastMaxRange;
+        notLoaded = stranded && !outOfRange && partnerNotLoaded;
+        final float range = (float) decidedRange;
+        final float driving = role == Role.DRIVER ? (float) reach() : 0;
+        final boolean rangeChanged = Math.abs(range - linkRange) > 0.05F
+                || Math.abs(driving - drivingReach) > 0.05F;
+        linkRange = range;
+        drivingReach = driving;
+        if (rangeChanged || outOfReach != wasOutOfReach || outOfRange != wasOutOfRange || notLoaded != wasNotLoaded) {
+            setChanged();
+            sendData();
+        }
+    }
+
+    private void decideRole() {
+        // * Its own reach until a network with something driving it is found
+        decidedRange = reach();
         if (activePartners.isEmpty() || LinkedGearboxBlock.isDisconnected(getBlockState())) {
             becomeIdle();
             return;
@@ -554,6 +701,8 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             return;
         }
 
+        // * The lead is the fastest driver, so the one that reaches furthest
+        decidedRange = state.lead().reach();
         final BlockPos lead = state.lead().getBlockPos();
         if (state.drivers().contains(this)) {
             setRole(Role.DRIVER, state.lead() == this ? null : lead, 1);
@@ -562,6 +711,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         } else if (state.receivers().contains(this)) {
             setRole(Role.RECEIVER, lead, Math.max(1, state.receivers().size()));
         } else {
+            outOfReach = state.unreached().contains(this);
             becomeIdle();
         }
     }
@@ -619,6 +769,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         if (!changed) {
             return;
         }
+        forgetGroupState();
 
         // * Leaving a role clears what it added to the networks
         if (oldRole == Role.RECEIVER && newRole != Role.RECEIVER) {
@@ -641,8 +792,15 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
 
     public void stopLinkRole() {
         if (level != null && !level.isClientSide) {
+            forgetGroupState();
             becomeIdle();
         }
+    }
+
+    @Override
+    public void onSpeedChanged(final float previousSpeed) {
+        super.onSpeedChanged(previousSpeed);
+        forgetGroupState();
     }
     //#endregion
 
@@ -684,7 +842,9 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
 
         setGeneration(speed, capacity);
 
-        final float demand = hasNetwork() ? getOrCreateNetwork().calculateStress() : 0;
+        // * The lead has already added this side up
+        final Float known = driver.demands.get(worldPosition);
+        final float demand = known != null ? known : hasNetwork() ? getOrCreateNetwork().calculateStress() : 0;
         setLinkStats(demand, share);
     }
 
@@ -733,6 +893,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
 
     //#region // --- DRIVER --- //
     private final Map<BlockPos, Float> allocations = new HashMap<>();
+    private final Map<BlockPos, Float> demands = new HashMap<>();
     private float groupPool;
 
     private float allocationFor(final BlockPos receiver, final int receivers) {
@@ -760,7 +921,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             if (member.role != Role.RECEIVER || !lead.getBlockPos().equals(member.driverPos)) {
                 continue;
             }
-            cost += (float) BlockStressValues.getImpact(member.getBlockState().getBlock()) * Math.abs(member.linkSpeed);
+            cost += receiverCost(member.linkSpeed);
             if (!member.hasNetwork() || member.network.equals(lead.network)) {
                 continue;
             }
@@ -781,7 +942,8 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         }
 
         // * Each side driving the group offers what it has spare once the bill is paid, up to the limit
-        final double perRpm = CableConfig.CONFIG.linkedGearboxStressPerRpm.get();
+        final double perRpm = CableConfig.CONFIG.linkedGearboxLimitTransfer.get()
+                ? CableConfig.CONFIG.linkedGearboxStressPerRpm.get() : -1;
         final Map<Long, List<LinkedGearboxBlockEntity>> driversOn = new LinkedHashMap<>();
         for (final LinkedGearboxBlockEntity driver : state.drivers()) {
             if (driver.hasNetwork()) {
@@ -802,7 +964,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
                     spare += billed * speed;
                 }
                 spare -= costShare(driver, cost, speedSum, state.drivers().size());
-                limit += perRpm > 0 ? (float) (perRpm * speed) : Float.POSITIVE_INFINITY;
+                limit += perRpm >= 0 ? (float) (perRpm * speed) : Float.POSITIVE_INFINITY;
             }
             final float offer = Math.max(0, Math.min(limit, spare));
             offered.put(entry.getKey(), offer);
@@ -829,6 +991,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         final float spare = order.isEmpty() ? 0 : Math.max(0, remaining) / order.size();
 
         allocations.clear();
+        demands.clear();
         float drawn = 0;
         for (final long id : order) {
             final List<BlockPos> receivers = receiversOf.get(id);
@@ -836,6 +999,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             final float perReceiver = divideUp(allocated, receivers.size());
             for (final BlockPos receiver : receivers) {
                 allocations.put(receiver, perReceiver);
+                demands.put(receiver, demand.get(id));
             }
             drawn += drawnBy(networks.get(id), receivers, demand.get(id), allocated);
         }
@@ -859,6 +1023,15 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             }
             settle(drivers.getFirst().getOrCreateNetwork(), drivers);
         }
+    }
+
+    // * What one driven Transceiver adds to the bill
+    private static float receiverCost(final float outputSpeed) {
+        return switch (CableConfig.CONFIG.linkedGearboxReceiverCost.get()) {
+            case NONE -> 0;
+            case FLAT -> outputSpeed == 0 ? 0 : (float) (double) CableConfig.CONFIG.linkedGearboxReceiverFlatCost.get();
+            case PER_RPM -> (float) (CableConfig.CONFIG.linkedGearboxReceiverStress.get() * Math.abs(outputSpeed));
+        };
     }
 
     private static float costShare(final LinkedGearboxBlockEntity driver, final float cost,
@@ -996,6 +1169,11 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             tag.putLongArray(PARTNERS_KEY, partners.stream().mapToLong(BlockPos::asLong).toArray());
             tag.putFloat(FLOW_KEY, linkFlow);
             tag.putFloat(CAP_KEY, linkCap);
+            tag.putBoolean(OUT_OF_REACH_KEY, outOfReach);
+            tag.putBoolean(OUT_OF_RANGE_KEY, outOfRange);
+            tag.putBoolean(NOT_LOADED_KEY, notLoaded);
+            tag.putFloat(RANGE_KEY, linkRange);
+            tag.putFloat(DRIVING_REACH_KEY, drivingReach);
         } else {
             tag.putByte(AWARDED_KEY, (byte) ((awardedReceiving ? 1 : 0) | (awardedDoubled ? 2 : 0)
                     | (awardedOpposed ? 4 : 0) | (awardedOverstressed ? 8 : 0)));
@@ -1024,6 +1202,11 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             partners = Set.copyOf(synced);
             linkFlow = tag.getFloat(FLOW_KEY);
             linkCap = tag.getFloat(CAP_KEY);
+            outOfReach = tag.getBoolean(OUT_OF_REACH_KEY);
+            outOfRange = tag.getBoolean(OUT_OF_RANGE_KEY);
+            notLoaded = tag.getBoolean(NOT_LOADED_KEY);
+            linkRange = tag.getFloat(RANGE_KEY);
+            drivingReach = tag.getFloat(DRIVING_REACH_KEY);
         } else {
             final byte awarded = tag.getByte(AWARDED_KEY);
             awardedReceiving = (awarded & 1) != 0;

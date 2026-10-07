@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
+import edn.lakeopossmc.drivebysable.blocks.LinkedGearboxBlockEntity;
 import edn.lakeopossmc.drivebysable.cable.BackupDriveCapture;
 import edn.lakeopossmc.drivebysable.cable.LinkedGearboxLinks;
 import edn.lakeopossmc.drivebysable.client.render.FancyCableRenderer;
@@ -14,7 +15,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -23,6 +26,8 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+
+import org.joml.Vector3f;
 
 import java.util.List;
 import java.util.Set;
@@ -43,6 +48,14 @@ public final class LinkedGearboxGroupHighlight {
     private static final int BLINK_PERIOD = 16;
     private static final int BLINK_HALF = 8;
     private static final float LINE_WIDTH = 1 / 32.0F;
+
+    private static final int OUT_OF_REACH_COLOR = 0xD0453C;
+
+    private static final DustParticleOptions RING_PARTICLE =
+            new DustParticleOptions(new Vector3f(0x53 / 255.0F, 0x71 / 255.0F, 0xC6 / 255.0F), 1.0F);
+    private static final double RING_SIGHT = 32.0D;
+    private static final double RING_PER_BLOCK = 0.12D;
+    private static final double RING_MOST_PER_TICK = 40.0D;
     private static final double LINK_THICKNESS = LINE_WIDTH;
 
     private static final AABB UNIT_CUBE = new AABB(0.0D, 0.0D, 0.0D, 1.0D, 1.0D, 1.0D);
@@ -59,9 +72,11 @@ public final class LinkedGearboxGroupHighlight {
 
         final int color = blinkColor();
         for (final BlockPos pos : members) {
+            final boolean unreached = level.getBlockEntity(pos) instanceof final LinkedGearboxBlockEntity gearbox
+                    && gearbox.isOutOfReach();
             Outliner.getInstance()
                     .showAABB(SLOT + pos.asLong(), blockBounds(level, pos))
-                    .colored(color)
+                    .colored(unreached ? OUT_OF_REACH_COLOR : color)
                     .lineWidth(LINE_WIDTH)
                     .disableLineNormals();
         }
@@ -71,6 +86,56 @@ public final class LinkedGearboxGroupHighlight {
         members = Set.of();
         links = List.of();
     }
+
+    //#region // --- REACH OF EACH DRIVING GEARBOX --- //
+    public static void showReach(final Level level, final Set<BlockPos> group) {
+        final Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.isPaused()) {
+            return;
+        }
+        final Vec3 camera = minecraft.gameRenderer.getMainCamera().getPosition();
+        for (final BlockPos pos : group) {
+            if (level.getBlockEntity(pos) instanceof final LinkedGearboxBlockEntity gearbox
+                    && gearbox.getDrivingReach() > 0) {
+                ring(level, worldCentreOf(level, pos), gearbox.getDrivingReach(), camera);
+            }
+        }
+    }
+
+    private static void ring(final Level level, final Vec3 centre, final double radius, final Vec3 camera) {
+        final double dx = camera.x - centre.x;
+        final double dy = camera.y - centre.y;
+        final double dz = camera.z - centre.z;
+        final double flat = Math.sqrt(dx * dx + dz * dz);
+
+        final double halfArc;
+        if (flat < 1.0E-3D) {
+            halfArc = radius * radius + dy * dy <= RING_SIGHT * RING_SIGHT ? Math.PI : 0;
+        } else {
+            final double cosine = (flat * flat + radius * radius + dy * dy - RING_SIGHT * RING_SIGHT)
+                    / (2 * flat * radius);
+            halfArc = cosine >= 1 ? 0 : cosine <= -1 ? Math.PI : Math.acos(cosine);
+        }
+        if (halfArc <= 0) {
+            return;
+        }
+
+        final RandomSource random = level.getRandom();
+        final double wanted = Math.min(RING_MOST_PER_TICK, 2 * halfArc * radius * RING_PER_BLOCK);
+        int count = (int) wanted;
+        if (random.nextDouble() < wanted - count) {
+            count++;
+        }
+
+        final double towards = Math.atan2(dz, dx);
+        for (int i = 0; i < count; i++) {
+            final double angle = towards + (random.nextDouble() * 2 - 1) * halfArc;
+            level.addAlwaysVisibleParticle(RING_PARTICLE, true,
+                    centre.x + Math.cos(angle) * radius, centre.y, centre.z + Math.sin(angle) * radius,
+                    0, 0, 0);
+        }
+    }
+    //#endregion
 
     //#region // --- LINES BETWEEN LINKED GEARBOXES --- //
     @SubscribeEvent

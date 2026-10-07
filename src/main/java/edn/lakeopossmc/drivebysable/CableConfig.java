@@ -35,8 +35,13 @@ public class CableConfig {
 
     // * Linked Gearbox subgroup
     public final ModConfigSpec.BooleanValue linkedGearbox;
-    public final ModConfigSpec.DoubleValue linkedGearboxStressImpact;
+    public final ModConfigSpec.DoubleValue linkedGearboxTransmitterStress;
+    public final ModConfigSpec.EnumValue<ReceiverCost> linkedGearboxReceiverCost;
+    public final ModConfigSpec.DoubleValue linkedGearboxReceiverFlatCost;
+    public final ModConfigSpec.DoubleValue linkedGearboxReceiverStress;
+    public final ModConfigSpec.BooleanValue linkedGearboxLimitTransfer;
     public final ModConfigSpec.DoubleValue linkedGearboxStressPerRpm;
+    public final ModConfigSpec.DoubleValue linkedGearboxRangePerRpm;
     public final ModConfigSpec.BooleanValue linkedGearboxCostBySpeed;
     public final ModConfigSpec.IntValue linkedGearboxRange;
     public final ModConfigSpec.BooleanValue linkedGearboxSubLevelOnly;
@@ -101,7 +106,7 @@ public class CableConfig {
                         "reported to the player."
                 )
                 .translation("drivebysable.config.allowCrossLevelConnectionSaving")
-                .define("allowCrossLevelConnectionSaving", false);
+                .define("allowCrossLevelConnectionSaving", true);
 
         rangeLimit = builder
                 .comment(
@@ -218,42 +223,75 @@ public class CableConfig {
                 .translation("drivebysable.config.linkedGearboxEnabled")
                 .define("enabled", true);
 
-        linkedGearboxStressImpact = builder
+        linkedGearboxTransmitterStress = builder
                 .comment(
-                        "Stress, in SU, a Radio-Kinetic Transceiver consumes itself at Create's maximum rotation speed.",
-                        "Scales linearly with speed."
+                        "Stress, in SU per RPM, a Radio-Kinetic Transceiver costs it's power source.",
+                        "Calculated as transmitterStressPerRpm * Input RPM."
                 )
-                .translation("drivebysable.config.linkedGearboxStressImpact")
-                .defineInRange("stressImpactAtMaxSpeed", 512.0, 0.0, 16384.0);
+                .translation("drivebysable.config.linkedGearboxTransmitterStress")
+                .defineInRange("transmitterStressPerRpm", 2.0, 0.0, 64.0);
 
-        linkedGearboxStressPerRpm = builder
+        linkedGearboxReceiverCost = builder
                 .comment(
-                        "Stress capacity, in SU, a Radio-Kinetic Transceiver passes through its network for each RPM of",
-                        "the Transceiver driving the network.",
-                        "Every Transceiver turned by its own side adds its part to one pool, shared between the",
-                        "ones it drives. 0 turns the per RPM limit off."
+                        "What each Receiver unit adds to the network cost.",
+                        "NONE: nothing. FLAT: receiverFlatCost, static cost regardless of RPM.",
+                        "PER_RPM: receiverStressPerRpm, cost directly scales with RPM."
                 )
-                .translation("drivebysable.config.linkedGearboxStressPerRpm")
-                .defineInRange("transferStressPerRpm", 16.0, 0.0, 1024.0);
+                .translation("drivebysable.config.linkedGearboxReceiverCost")
+                .defineEnum("receiverCost", ReceiverCost.NONE);
+
+        linkedGearboxReceiverFlatCost = builder
+                .comment("Stress, in SU, each driven Receiver unit adds while receiverCost is FLAT.")
+                .translation("drivebysable.config.linkedGearboxReceiverFlatCost")
+                .defineInRange("receiverFlatCost", 64.0, 0.0, 16384.0);
+
+        linkedGearboxReceiverStress = builder
+                .comment("Stress, in SU per RPM, each Receiver unit adds while receiverCost is PER_RPM.")
+                .translation("drivebysable.config.linkedGearboxReceiverStress")
+                .defineInRange("receiverStressPerRpm", 1.5, 0.0, 64.0);
 
         linkedGearboxCostBySpeed = builder
                 .comment(
-                        "The stress impact of every Transceiver in a linked network is added up and paid by the",
-                        "Transceivers turned by their own side. True: each pays in proportion to its speed, the",
-                        "same way it adds capacity, so a faster driver pays more. False: split evenly."
+                        "The cost of a linked network is added up and paid by Transmitter units in the network.",
+                        "True: each pays in proportion to its speed, so a faster one pays more. False: split evenly."
                 )
                 .translation("drivebysable.config.linkedGearboxCostBySpeed")
                 .define("splitCostBySpeed", true);
 
+        linkedGearboxLimitTransfer = builder
+                .comment(
+                        "Whether there is a limit on the stress a network passes on.",
+                        "Calculated as transferStressPerRpm * Input RPM. More RPM = more output stress."
+                )
+                .translation("drivebysable.config.linkedGearboxLimitTransfer")
+                .define("limitTransfer", false);
+
+        linkedGearboxStressPerRpm = builder
+                .comment(
+                        "With limitTransfer on: stress, in SU, a network passes on for each RPM of the Transmitter",
+                        "units in network. Every Transmitter adds its limited output stress to the shared capacity."
+                )
+                .translation("drivebysable.config.linkedGearboxStressPerRpm")
+                .defineInRange("transferStressPerRpm", 16.0, 0.0, 1024.0);
+
+        linkedGearboxRangePerRpm = builder
+                .comment(
+                        "How far, in blocks, a Transmitter unit can reach Receivers for each RPM it turns at.",
+                        "Number directly translates to blocks per Input RPM. 0RPM = 0 blocks of connection range.",
+                        "A linked Transceiver outside that reach stays linked, but is not driven until it is back in",
+                        "reach or the driving side speeds up. Measured where each Transceiver appears in the world."
+                )
+                .translation("drivebysable.config.linkedGearboxRangePerRpm")
+                .defineInRange("rangePerRpm", 1.5, 0.0, 64.0);
+
         linkedGearboxRange = builder
                 .comment(
-                        "Furthest, in blocks, two Transceivers may be from each other.",
-                        "Measured where each Transceiver appears in the world, so a sublevel that moves",
-                        "out of range drops that unit until it comes back.",
+                        "The most reach a Transmitter unit can ever have, in blocks.",
+                        "Also the furthest apart two Transceivers may be to stay linked at all.",
                         "Applies on top of the general networkConstraints range limit."
                 )
                 .translation("drivebysable.config.linkedGearboxRange")
-                .defineInRange("rangeLimit", 64, 0, 512);
+                .defineInRange("maxRange", 256, 0, 2048);
 
         linkedGearboxSubLevelOnly = builder
                 .comment(
@@ -321,10 +359,15 @@ public class CableConfig {
                         "so each player can choose for themselves."
                 )
                 .translation("drivebysable.config.fancyCables")
-                .define("fancyCables", false);
+                .define("fancyCables", true);
 
         builder.pop();
         //#endregion
+    }
+
+    // * What a driven Transceiver adds to its network's cost
+    public enum ReceiverCost {
+        NONE, FLAT, PER_RPM
     }
 
     // * Build config and spec together

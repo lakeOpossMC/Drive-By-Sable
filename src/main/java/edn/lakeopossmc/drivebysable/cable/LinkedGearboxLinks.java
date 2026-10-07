@@ -423,6 +423,20 @@ public final class LinkedGearboxLinks {
         return CableNetworkManager.ConnectionResult.OK;
     }
 
+    // * Rules for a link a player asks for, on top of validateLink
+    public static CableNetworkManager.ConnectionResult playerLinkRefusal(final Level level, final BlockPos source, final BlockPos sinkPos) {
+        if (!isGearbox(level, source) || !isGearbox(level, sinkPos)) {
+            return CableNetworkManager.ConnectionResult.OK;
+        }
+        if (sameCableNetwork(level, source, sinkPos)) {
+            return CableNetworkManager.ConnectionResult.FAIL_EXISTS;
+        }
+        if (linkGroup(level, source).members().contains(sinkPos)) {
+            return CableNetworkManager.ConnectionResult.FAIL_GEARBOX_FREQUENCY_LINKED;
+        }
+        return CableNetworkManager.ConnectionResult.OK;
+    }
+
     public static CableNetworkManager.ConnectionResult validateLink(
             final Level level,
             final BlockPos source,

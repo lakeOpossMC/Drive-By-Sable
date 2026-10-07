@@ -129,7 +129,7 @@ public final class CableAdvancements {
         final int general = CableConfig.CONFIG.rangeLimit.get();
         if (LinkedGearboxLinks.isGearbox(level, source) && LinkedGearboxLinks.isGearbox(level, sink)) {
             final int own = CableConfig.CONFIG.linkedGearboxRange.get();
-            return (enforced ? Math.min(general, own) : own) * LONG_CONNECTION_SHARE;
+            return Math.min(LONG_CONNECTION_UNLIMITED, (enforced ? Math.min(general, own) : own) * LONG_CONNECTION_SHARE);
         }
         return enforced ? general * LONG_CONNECTION_SHARE : LONG_CONNECTION_UNLIMITED;
     }

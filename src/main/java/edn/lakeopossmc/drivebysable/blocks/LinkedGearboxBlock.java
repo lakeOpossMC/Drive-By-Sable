@@ -6,7 +6,6 @@ import com.simibubi.create.content.kinetics.base.DirectionalKineticBlock;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.kinetics.simpleRelays.ICogWheel;
 import com.simibubi.create.foundation.block.IBE;
-import com.simibubi.create.infrastructure.config.AllConfigs;
 import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.CableConfig;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
@@ -273,10 +272,10 @@ public class LinkedGearboxBlock extends DirectionalKineticBlock
 
     public static void registerStress(final Block block) {
         BlockStressValues.IMPACTS.register(block,
-                () -> CableConfig.CONFIG.linkedGearboxStressImpact.get()
-                        / AllConfigs.server().kinetics.maxRotationSpeed.get());
+                () -> CableConfig.CONFIG.linkedGearboxTransmitterStress.get());
         BlockStressValues.CAPACITIES.register(block,
-                () -> CableConfig.CONFIG.linkedGearboxStressPerRpm.get());
+                () -> CableConfig.CONFIG.linkedGearboxLimitTransfer.get()
+                        ? CableConfig.CONFIG.linkedGearboxStressPerRpm.get() : 0.0);
     }
 
     public static void registerTooltip(final Item item, final Block block) {

@@ -503,6 +503,8 @@ public final class ClientCableNetworkHandler {
 
         if (isGearboxSource(level)) {
             LinkedGearboxGroupHighlight.show(level, LinkedGearboxLinks.cableGroup(level, selectedSource));
+            LinkedGearboxGroupHighlight.showReach(level,
+                    LinkedGearboxLinks.linkGroup(level, selectedSource).members());
         } else {
             LinkedGearboxGroupHighlight.hide();
         }
