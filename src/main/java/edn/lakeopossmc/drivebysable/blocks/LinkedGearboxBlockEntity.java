@@ -5,7 +5,9 @@ import com.simibubi.create.content.kinetics.KineticNetwork;
 import com.simibubi.create.content.kinetics.base.GeneratingKineticBlockEntity;
 import com.simibubi.create.content.kinetics.base.IRotate.StressImpact;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
+import com.simibubi.create.foundation.item.TooltipHelper;
 import com.simibubi.create.foundation.utility.CreateLang;
+import net.createmod.catnip.lang.FontHelper;
 import com.simibubi.create.content.redstone.link.LinkBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform;
@@ -70,6 +72,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     private static final String NOT_LOADED_KEY = "LinkNotLoaded";
     private static final String RANGE_KEY = "LinkRange";
     private static final String DRIVING_REACH_KEY = "LinkDrivingReach";
+    private static final String TOO_FAST_KEY = "LinkTooFast";
     private static final double REACH_MARGIN = 0.5;
     private static final String AWARDED_KEY = "LinkAwarded";
 
@@ -119,6 +122,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     private boolean notLoaded;
     private float linkRange;
     private float drivingReach;
+    private boolean tooFast;
     private double decidedRange;
     private boolean partnerNotLoaded;
 
@@ -197,7 +201,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
 
     // * 0 unless its own side is turning it
     public float getDrivingReach() {
-        return role == Role.DRIVER ? drivingReach : 0;
+        return drivingReach;
     }
 
     public boolean isOutOfReach() {
@@ -247,7 +251,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
 
     // * Only a change counts, and what was already awarded is saved
     private void awardAdvancements() {
-        final boolean receiving = role == Role.RECEIVER;
+        final boolean receiving = role == Role.RECEIVER && !tooFast;
         final boolean doubled = receiving && Math.abs(getOutputMode().ratio()) == 2;
         final boolean opposed = role == Role.OPPOSED;
 
@@ -322,6 +326,24 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
     }
 
     @Override
+    public boolean addToTooltip(final List<Component> tooltip, final boolean isPlayerSneaking) {
+        if (!tooFast) {
+            return super.addToTooltip(tooltip, isPlayerSneaking);
+        }
+        CreateLang.builder()
+                .add(Component.translatable("drivebysable.linked_gearbox.too_fast"))
+                .style(ChatFormatting.GOLD)
+                .forGoggles(tooltip);
+        final Component hint = Component.translatable("drivebysable.linked_gearbox.too_fast_error");
+        for (final Component line : TooltipHelper.cutTextComponent(hint, FontHelper.Palette.GRAY_AND_WHITE)) {
+            CreateLang.builder()
+                    .add(line.copy())
+                    .forGoggles(tooltip);
+        }
+        return true;
+    }
+
+    @Override
     public boolean addToGoggleTooltip(final List<Component> tooltip, final boolean isPlayerSneaking) {
         boolean added = false;
 
@@ -388,14 +410,14 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
                 .forGoggles(tooltip, 1);
         final String state = switch (role) {
             case DRIVER -> "adding";
-            case RECEIVER -> "receiving";
+            case RECEIVER -> tooFast ? "too_fast" : "receiving";
             case OPPOSED -> "opposed";
             case IDLE -> outOfReach ? "out_of_reach" : outOfRange ? "out_of_range"
                     : notLoaded ? "not_loaded" : "idle";
         };
         final ChatFormatting colour = switch (role) {
             case DRIVER -> ChatFormatting.GREEN;
-            case RECEIVER -> ChatFormatting.GREEN;
+            case RECEIVER -> tooFast ? ChatFormatting.RED : ChatFormatting.GREEN;
             case OPPOSED -> ChatFormatting.RED;
             case IDLE -> outOfReach || outOfRange ? ChatFormatting.RED : ChatFormatting.GRAY;
         };
@@ -671,7 +693,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         outOfRange = stranded && partnerPastMaxRange;
         notLoaded = stranded && !outOfRange && partnerNotLoaded;
         final float range = (float) decidedRange;
-        final float driving = role == Role.DRIVER ? (float) reach() : 0;
+        final float driving = role == Role.DRIVER || role == Role.IDLE && turnedExternally() ? (float) reach() : 0;
         final boolean rangeChanged = Math.abs(range - linkRange) > 0.05F
                 || Math.abs(driving - drivingReach) > 0.05F;
         linkRange = range;
@@ -774,6 +796,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         // * Leaving a role clears what it added to the networks
         if (oldRole == Role.RECEIVER && newRole != Role.RECEIVER) {
             setGeneration(0, 0);
+            tooFast = false;
         }
         if (oldRole == Role.DRIVER && newRole != Role.DRIVER) {
             setDrivenLoad(0);
@@ -832,8 +855,12 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         final float ratio = getOutputMode().ratio();
         final float speed = input * ratio;
 
-        if (Math.abs(speed) > AllConfigs.server().kinetics.maxRotationSpeed.get()) {
-            level.destroyBlock(worldPosition, true);
+        // * Double speed can ask for more than Create allows. The block stops instead of breaking
+        final boolean over = Math.abs(speed) > AllConfigs.server().kinetics.maxRotationSpeed.get();
+        setTooFast(over);
+        if (over) {
+            setGeneration(0, 0);
+            setLinkStats(0, 0);
             return;
         }
 
@@ -846,6 +873,14 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
         final Float known = driver.demands.get(worldPosition);
         final float demand = known != null ? known : hasNetwork() ? getOrCreateNetwork().calculateStress() : 0;
         setLinkStats(demand, share);
+    }
+
+    private void setTooFast(final boolean now) {
+        if (tooFast != now) {
+            tooFast = now;
+            setChanged();
+            sendData();
+        }
     }
 
     private void setGeneration(final float speed, final float capacity) {
@@ -1174,6 +1209,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             tag.putBoolean(NOT_LOADED_KEY, notLoaded);
             tag.putFloat(RANGE_KEY, linkRange);
             tag.putFloat(DRIVING_REACH_KEY, drivingReach);
+            tag.putBoolean(TOO_FAST_KEY, tooFast);
         } else {
             tag.putByte(AWARDED_KEY, (byte) ((awardedReceiving ? 1 : 0) | (awardedDoubled ? 2 : 0)
                     | (awardedOpposed ? 4 : 0) | (awardedOverstressed ? 8 : 0)));
@@ -1207,6 +1243,7 @@ public class LinkedGearboxBlockEntity extends GeneratingKineticBlockEntity {
             notLoaded = tag.getBoolean(NOT_LOADED_KEY);
             linkRange = tag.getFloat(RANGE_KEY);
             drivingReach = tag.getFloat(DRIVING_REACH_KEY);
+            tooFast = tag.getBoolean(TOO_FAST_KEY);
         } else {
             final byte awarded = tag.getByte(AWARDED_KEY);
             awardedReceiving = (awarded & 1) != 0;

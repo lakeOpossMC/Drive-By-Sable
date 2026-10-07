@@ -151,6 +151,8 @@ public final class ClientCableNetworkHandler {
 
     // * Toggled by an optional keybind
     private static boolean hideInactiveChannels;
+    // * A Transceiver network has no channels, so the same key hides its range rings instead
+    private static boolean hideRangeRings;
 
     private static int syncCooldown;
     private static String pendingSchematicSyncReason;
@@ -388,15 +390,25 @@ public final class ClientCableNetworkHandler {
                 continue;
             }
 
-            hideInactiveChannels = !hideInactiveChannels;
+            final boolean rings = LinkedGearboxLinks.isGearbox(player.level(), selectedSource);
+            final boolean hidden;
+            if (rings) {
+                hideRangeRings = !hideRangeRings;
+                hidden = hideRangeRings;
+            } else {
+                hideInactiveChannels = !hideInactiveChannels;
+                hidden = hideInactiveChannels;
+            }
             messageHoldTicks = MESSAGE_HOLD_TICKS;
             player.displayClientMessage(
                     Component.translatable(
-                            "drivebysable.cable_actions.inactive_channels",
-                            Component.translatable(hideInactiveChannels
+                            rings
+                                    ? "drivebysable.cable_actions.range_rings"
+                                    : "drivebysable.cable_actions.inactive_channels",
+                            Component.translatable(hidden
                                             ? "drivebysable.cable_actions.hidden"
                                             : "drivebysable.cable_actions.shown")
-                                    .withStyle(hideInactiveChannels ? ChatFormatting.RED : ChatFormatting.GREEN)
+                                    .withStyle(hidden ? ChatFormatting.RED : ChatFormatting.GREEN)
                     ).withStyle(ChatFormatting.GRAY),
                     true
             );
@@ -407,7 +419,7 @@ public final class ClientCableNetworkHandler {
                     soundPos.getX() + 0.5,
                     soundPos.getY() + 0.5,
                     soundPos.getZ() + 0.5,
-                    hideInactiveChannels
+                    hidden
                             ? SoundEvents.COPPER_BULB_TURN_OFF
                             : SoundEvents.COPPER_BULB_TURN_ON,
                     SoundSource.PLAYERS,
@@ -503,8 +515,10 @@ public final class ClientCableNetworkHandler {
 
         if (isGearboxSource(level)) {
             LinkedGearboxGroupHighlight.show(level, LinkedGearboxLinks.cableGroup(level, selectedSource));
-            LinkedGearboxGroupHighlight.showReach(level,
-                    LinkedGearboxLinks.linkGroup(level, selectedSource).members());
+            if (!hideRangeRings) {
+                LinkedGearboxGroupHighlight.showReach(level,
+                        LinkedGearboxLinks.linkGroup(level, selectedSource).members());
+            }
         } else {
             LinkedGearboxGroupHighlight.hide();
         }
