@@ -46,6 +46,8 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
     private static final String SINK_KEY = "Sink";
     private static final String DIRECTION_KEY = "Direction";
     private static final String CHANNEL_KEY = "Channel";
+    // * Module or bus input channel the cable lands on, absent for a plain block face
+    private static final String SINK_CHANNEL_KEY = "SinkChannel";
 
     // * What the Linked Typewriter files its bindings under
     private static final String KEYS_KEY = "Keys";
@@ -370,6 +372,9 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
                 connection.putLong(SINK_KEY, sink.position());
                 connection.putByte(DIRECTION_KEY, (byte) sink.direction());
                 connection.putString(CHANNEL_KEY, channelEntry.getKey());
+                if (!sink.sinkChannel().isEmpty()) {
+                    connection.putString(SINK_CHANNEL_KEY, sink.sinkChannel());
+                }
                 connections.add(connection);
             }
         }
@@ -435,7 +440,8 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
                     this.getBlockPos(),
                     BlockPos.of(sinkPos),
                     Direction.from3DDataValue(direction),
-                    channel
+                    channel,
+                    connection.getString(SINK_CHANNEL_KEY)
             );
         }
 

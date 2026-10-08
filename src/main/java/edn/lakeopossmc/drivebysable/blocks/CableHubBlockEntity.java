@@ -41,6 +41,8 @@ public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCl
     private static final String SINK_KEY = "Sink";
     private static final String DIRECTION_KEY = "Direction";
     private static final String CHANNEL_KEY = "Channel";
+    // * Module or bus input channel the cable lands on, absent for a plain block face
+    private static final String SINK_CHANNEL_KEY = "SinkChannel";
 
     // * Typed as Object on purpose, the real type drags in Computer Craft
     private final Object computerHandler;
@@ -183,6 +185,9 @@ public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCl
                 connection.putLong(SINK_KEY, sink.position());
                 connection.putByte(DIRECTION_KEY, (byte) sink.direction());
                 connection.putString(CHANNEL_KEY, channelEntry.getKey());
+                if (!sink.sinkChannel().isEmpty()) {
+                    connection.putString(SINK_CHANNEL_KEY, sink.sinkChannel());
+                }
                 connections.add(connection);
             }
         }
@@ -260,7 +265,8 @@ public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCl
                     this.worldPosition,
                     BlockPos.of(sinkPos),
                     Direction.from3DDataValue(direction),
-                    channel
+                    channel,
+                    connection.getString(SINK_CHANNEL_KEY)
             );
         }
 
