@@ -1,6 +1,6 @@
 package edn.lakeopossmc.drivebysable.advancement;
 
-import com.simibubi.create.content.equipment.goggles.GogglesItem;
+import com.simibubi.create.AllItems;
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.sublevel.SubLevel;
 import edn.lakeopossmc.drivebysable.CableConfig;
@@ -15,6 +15,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
@@ -163,7 +164,7 @@ public final class CableAdvancements {
     private static void onPlayerTick(final PlayerTickEvent.Post event) {
         if (!(event.getEntity() instanceof final ServerPlayer player)
                 || player.tickCount % GOGGLE_CHECK_INTERVAL != 0
-                || !GogglesItem.isWearingGoggles(player)) {
+                || !AllItems.GOGGLES.isIn(player.getItemBySlot(EquipmentSlot.HEAD))) {
             return;
         }
 
