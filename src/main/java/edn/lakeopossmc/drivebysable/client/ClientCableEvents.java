@@ -111,7 +111,7 @@ public final class ClientCableEvents {
         final String channel = CableTypewriterHubServerHandler.KEY_TO_CHANNEL.get(channelKey);
         if (channel == null) return;
 
-        if (!be.hasConnectionForChannel(channel) && !be.isInPromiscuousMode()) return;
+        if (!be.hasConnectionForChannel(channel) && !be.shouldPromiscuousKeyBeRelayed(key)) return;
 
         suppressMatchingKeyMappings(Minecraft.getInstance(), key, event.getScanCode());
 

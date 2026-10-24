@@ -11,7 +11,6 @@ import edn.lakeopossmc.drivebysable.compat.CableTypewriterHubServerHandler;
 import edn.lakeopossmc.drivebysable.compat.keytranslator.ControllerChannelTranslator;
 import edn.lakeopossmc.drivebysable.compat.keytranslator.ControllerChannelTranslator.Vocabulary;
 import edn.lakeopossmc.drivebysable.compat.computercraft.ComputerCraftCompat;
-import edn.lakeopossmc.drivebysable.mixinducks.LinkedTypewriterBlockEntityDuck;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import net.createmod.catnip.animation.LerpedFloat;
 import net.createmod.catnip.animation.LerpedFloat.Chaser;
@@ -22,6 +21,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.ByteTag;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
@@ -63,7 +63,9 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
     private static CableTypewriterHubBlockEntity clientInstance;
 
     private final Set<String> connectedChannels = new HashSet<>();
+    private final Set<Integer> promiscuousFilterKeys = new HashSet<>();
     private boolean promiscuousMode = false;
+    private CableTypewriterPromiscuousFilterMode promiscuousFilterMode = CableTypewriterPromiscuousFilterMode.BLACKLIST;
 
     private final LerpedFloat glow = LerpedFloat.linear().startWithValue(0);
     private boolean sendPulse;
@@ -284,7 +286,11 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
             tag.put("ConnectedChannels", list);
 
             tag.put("PromiscuousMode", this.isInPromiscuousMode() ? ByteTag.ONE : ByteTag.ZERO);
-
+            tag.put("PromiscuousFilterMode", IntTag.valueOf(this.promiscuousFilterMode.getId()));
+            final ListTag promiscuousFilterKeys = new ListTag();
+            this.promiscuousFilterKeys.forEach(key -> promiscuousFilterKeys.add(IntTag.valueOf(key)));
+            tag.put("PromiscuousFilterKeys", promiscuousFilterKeys);
+            
             if (this.sendPulse) {
                 this.sendPulse = false;
                 NBTHelper.putMarker(tag, PULSE_KEY);
@@ -319,7 +325,17 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
         if (tag.contains("PromiscuousMode")) {
             this.setPromiscuousMode(tag.getByte("PromiscuousMode") != 0);
         }
-
+        if (tag.contains("PromiscuousFilterMode")) {
+            this.promiscuousFilterMode = CableTypewriterPromiscuousFilterMode.fromId(tag.getInt("PromiscuousFilterMode"));
+        }
+        if (tag.contains("PromiscuousFilterKeys")) {
+            this.promiscuousFilterKeys.clear();
+            final ListTag promiscuousFilterKeys = tag.getList("PromiscuousFilterKeys", 3);
+            for (int i = 0; i < promiscuousFilterKeys.size(); i++) {
+                this.promiscuousFilterKeys.add(promiscuousFilterKeys.getInt(i));
+            }
+        }
+        
         if (tag.contains(PULSE_KEY)) {
             this.glow.setValue(2);
         }
@@ -477,6 +493,32 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
     public void setPromiscuousMode(final boolean promiscuousMode) {
         this.promiscuousMode = promiscuousMode;
         this.sendData();
+    }
+
+    public CableTypewriterPromiscuousFilterMode getPromiscuousFilterMode() {
+        return promiscuousFilterMode;
+    }
+
+    public void setPromiscuousFilterMode(final CableTypewriterPromiscuousFilterMode promiscuousFilterMode) {
+        this.promiscuousFilterMode = promiscuousFilterMode;
+        this.sendData();
+    }
+
+    public Set<Integer> getPromiscuousFilterKeys() {
+        return promiscuousFilterKeys;
+    }
+
+    public void setPromiscuousFilterKeys(final Collection<Integer> promiscuousFilterKeys) {
+        this.promiscuousFilterKeys.clear();
+        this.promiscuousFilterKeys.addAll(promiscuousFilterKeys);
+        this.sendData();
+    }
+
+    public boolean shouldPromiscuousKeyBeRelayed(final int key) {
+        return this.isInPromiscuousMode()
+                && (this.promiscuousFilterMode == CableTypewriterPromiscuousFilterMode.BLACKLIST
+                        ? !this.promiscuousFilterKeys.contains(key)
+                        : this.promiscuousFilterKeys.contains(key));
     }
     //#endregion
 
