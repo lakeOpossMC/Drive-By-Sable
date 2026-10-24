@@ -9,6 +9,9 @@ public final class KeyboardLayout {
 
     // * The key code whose channel this key should fire
     public static int channelKey(final int key, final int scanCode) {
+        if (key >= GLFW.GLFW_KEY_ESCAPE) {
+            return key;
+        }
         final String name = GLFW.glfwGetKeyName(key, scanCode);
         if (name == null || name.length() != 1) {
             return key;
