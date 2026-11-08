@@ -55,6 +55,7 @@ public class DriveBySableMod {
             CableCreativeTabs.register(modEventBus);
         }
         CableSounds.register(modEventBus);
+        CableDisplaySources.register(modEventBus);
         CableCommandArguments.register(modEventBus);
         ComputerCraftCompat.register(modEventBus);
         modEventBus.addListener(CablePackets::register);
@@ -81,6 +82,7 @@ public class DriveBySableMod {
         event.enqueueWork(() -> {
             LinkedGearboxBlock.registerStress(CableBlocks.LINKED_GEARBOX.get());
             LinkedGearboxBlock.registerTooltip(CableItems.LINKED_GEARBOX.get(), CableBlocks.LINKED_GEARBOX.get());
+            CableDisplaySources.bind();
         });
 
         if (ModList.get().isLoaded("simulated")) {

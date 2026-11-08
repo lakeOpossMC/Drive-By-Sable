@@ -24,8 +24,6 @@ import java.util.List;
 import com.simibubi.create.api.schematic.requirement.SpecialBlockItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement;
 import com.simibubi.create.content.schematics.requirement.ItemRequirement.ItemUseType;
-import edn.lakeopossmc.drivebysable.CableItems;
-import java.util.ArrayList;
 
 // --- BLOCK FOR PRESERVING NETWORKS --- //
 // * This class is setup for the physical block
@@ -86,24 +84,11 @@ public class NetworkBackupDriveBlock extends Block implements EntityBlock, Speci
         return new NetworkBackupDriveBlockEntity(pos, state);
     }
 
-    // --- MAP BLOCK ENTITY TO CORRECT POS AND LEVEL --- //
+    // --- SCHEMATICANNON ASKS FOR THE DRIVE ONLY --- //
+    // * Cables are paid for when the drive is loaded
     @Override
     public ItemRequirement getRequiredItems(final BlockState state, final BlockEntity blockEntity) {
-        final ItemRequirement drive = new ItemRequirement(ItemUseType.CONSUME, asItem());
-        if (!(blockEntity instanceof final NetworkBackupDriveBlockEntity backupDrive)) {
-            return drive;
-        }
-
-        final int cables = backupDrive.getStoredConnectionCount();
-        if (cables <= 0) {
-            return drive;
-        }
-
-        // * One per stored connection
-        final List<ItemStack> required = new ArrayList<>();
-        required.add(new ItemStack(asItem()));
-        required.add(new ItemStack(CableItems.CABLE.get(), cables));
-        return new ItemRequirement(ItemUseType.CONSUME, required);
+        return new ItemRequirement(ItemUseType.CONSUME, asItem());
     }
     //#endregion
 

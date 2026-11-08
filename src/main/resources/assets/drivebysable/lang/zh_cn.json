@@ -829,5 +829,26 @@
   "advancement.drivebysable.network_cut": "咔嚓咔嚓",
   "advancement.drivebysable.network_cut.desc": "希望你是故意这么做的！\n§7（隐藏进度）",
   "advancement.drivebysable.overstressed": "斯科蒂，我需要更多动力！",
-  "advancement.drivebysable.overstressed.desc": "她已经使出全力了，舰长！再这样下去她就撑不住了！\n§7（隐藏进度）"
+  "advancement.drivebysable.overstressed.desc": "她已经使出全力了，舰长！再这样下去她就撑不住了！\n§7（隐藏进度）",
+
+  "drivebysable.display_source.integrated_sensor_bus.data": "集成传感器总线数据",
+  "drivebysable.display_source.integrated_sensor_bus.relative_speed_x": "相对速度 X",
+  "drivebysable.display_source.integrated_sensor_bus.relative_speed_y": "相对速度 Y",
+  "drivebysable.display_source.integrated_sensor_bus.relative_speed_z": "相对速度 Z",
+  "drivebysable.display_source.integrated_sensor_bus.air_pressure": "气压",
+  "drivebysable.display_source.integrated_sensor_bus.height": "高度",
+  "drivebysable.display_source.integrated_sensor_bus.x_angle": "X 角度",
+  "drivebysable.display_source.integrated_sensor_bus.z_angle": "Z 角度",
+  "drivebysable.display_source.integrated_sensor_bus.target_distance": "目标距离",
+  "drivebysable.display_source.integrated_sensor_bus.target_eta": "预计到达时间",
+  "drivebysable.display_source.integrated_sensor_bus.global_speed_x": "全局速度 X",
+  "drivebysable.display_source.integrated_sensor_bus.global_speed_y": "全局速度 Y",
+  "drivebysable.display_source.integrated_sensor_bus.global_speed_z": "全局速度 Z",
+  "drivebysable.display_source.integrated_sensor_bus.y_angle": "Y 角度",
+  "drivebysable.display_source.integrated_sensor_bus.coordinates": "坐标",
+  "drivebysable.display_source.integrated_sensor_bus.target_coordinates": "目标坐标",
+  "drivebysable.display_source.integrated_sensor_bus.heading": "航向",
+  "drivebysable.display_source.integrated_sensor_bus.angle_delta": "角度差",
+  "drivebysable.display_source.integrated_sensor_bus.average_speed": "平均速度",
+  "drivebysable.display_source.integrated_sensor_bus.disabled": "关闭"
 }

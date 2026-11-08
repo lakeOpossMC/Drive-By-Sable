@@ -829,5 +829,26 @@
   "advancement.drivebysable.network_cut": "Snip Snip",
   "advancement.drivebysable.network_cut.desc": "I hope you meant to do that!\n§7(Hidden Advancement)",
   "advancement.drivebysable.overstressed": "Scotty, I Need More Power!",
-  "advancement.drivebysable.overstressed.desc": "I've given 'er all she's got, Cap'n! She can't take much more!\n§7(Hidden Advancement)"
+  "advancement.drivebysable.overstressed.desc": "I've given 'er all she's got, Cap'n! She can't take much more!\n§7(Hidden Advancement)",
+
+  "drivebysable.display_source.integrated_sensor_bus.data": "Integrated Sensor Bus Data",
+  "drivebysable.display_source.integrated_sensor_bus.relative_speed_x": "Relative Speed X",
+  "drivebysable.display_source.integrated_sensor_bus.relative_speed_y": "Relative Speed Y",
+  "drivebysable.display_source.integrated_sensor_bus.relative_speed_z": "Relative Speed Z",
+  "drivebysable.display_source.integrated_sensor_bus.air_pressure": "Air Pressure",
+  "drivebysable.display_source.integrated_sensor_bus.height": "Height",
+  "drivebysable.display_source.integrated_sensor_bus.x_angle": "X Angle",
+  "drivebysable.display_source.integrated_sensor_bus.z_angle": "Z Angle",
+  "drivebysable.display_source.integrated_sensor_bus.target_distance": "Target Distance",
+  "drivebysable.display_source.integrated_sensor_bus.target_eta": "Target ETA",
+  "drivebysable.display_source.integrated_sensor_bus.global_speed_x": "Global Speed X",
+  "drivebysable.display_source.integrated_sensor_bus.global_speed_y": "Global Speed Y",
+  "drivebysable.display_source.integrated_sensor_bus.global_speed_z": "Global Speed Z",
+  "drivebysable.display_source.integrated_sensor_bus.y_angle": "Y Angle",
+  "drivebysable.display_source.integrated_sensor_bus.coordinates": "Coordinates",
+  "drivebysable.display_source.integrated_sensor_bus.target_coordinates": "Target Coordinates",
+  "drivebysable.display_source.integrated_sensor_bus.heading": "Heading",
+  "drivebysable.display_source.integrated_sensor_bus.angle_delta": "Angle Delta",
+  "drivebysable.display_source.integrated_sensor_bus.average_speed": "Avg Speed",
+  "drivebysable.display_source.integrated_sensor_bus.disabled": "Off"
 }

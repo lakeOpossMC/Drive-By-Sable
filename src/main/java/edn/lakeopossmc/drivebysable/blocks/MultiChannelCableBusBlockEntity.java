@@ -8,6 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -34,6 +35,9 @@ public final class MultiChannelCableBusBlockEntity extends BlockEntity {
     private final boolean[] intercepted = new boolean[MultiChannelCableBusBlock.CHANNEL_COUNT];
 
     private boolean publishing;
+
+    // * Set when the chunk goes away rather than the block
+    private boolean unloading;
 
     // * Typed as Object so this block entity never names a Computer Craft type
     // * Null when Computer Craft is absent, which is a supported setup
@@ -238,6 +242,7 @@ public final class MultiChannelCableBusBlockEntity extends BlockEntity {
     @Override
     public void clearRemoved() {
         super.clearRemoved();
+        this.unloading = false;
 
         if (this.level != null && !this.level.isClientSide()) {
             CableNetworkManager.get(this.level).queueForPublish(this.worldPosition);
@@ -250,17 +255,31 @@ public final class MultiChannelCableBusBlockEntity extends BlockEntity {
     }
 
     @Override
+    public void onChunkUnloaded() {
+        this.unloading = true;
+        super.onChunkUnloaded();
+    }
+
+    // * Writing during unload or shutdown reaches into chunks that are going away,
+    // * which hangs the save under threaded chunk mods like C2ME
+    @Override
     public void setRemoved() {
-        if (this.level != null && !this.level.isClientSide()) {
-            synchronized (this) {
-                for (int channel = 1; channel <= this.outputs.length; channel++) {
-                    CableNetworkManager.trySetSignalAt(
-                            this.level, this.worldPosition, Integer.toString(channel), 0);
-                }
+        if (this.level != null && !this.level.isClientSide() && !this.unloading && canWriteNow()) {
+            for (int channel = 1; channel <= this.outputs.length; channel++) {
+                CableNetworkManager.trySetSignalAt(
+                        this.level, this.worldPosition, Integer.toString(channel), 0);
             }
         }
 
         super.setRemoved();
+    }
+
+    private boolean canWriteNow() {
+        final MinecraftServer server = this.level.getServer();
+        return server != null
+                && server.isRunning()
+                && server.isSameThread()
+                && this.level.isLoaded(this.worldPosition);
     }
 
     @Override
@@ -318,15 +337,20 @@ public final class MultiChannelCableBusBlockEntity extends BlockEntity {
     }
 
     private void publishAllChannels() {
+        final int[] values = new int[this.outputs.length];
         synchronized (this) {
-            for (int channel = 1; channel <= this.outputs.length; channel++) {
-                CableNetworkManager.trySetSignalAt(
-                        this.level,
-                        this.worldPosition,
-                        Integer.toString(channel),
-                        getEffectiveChannel(channel)
-                );
+            for (int channel = 1; channel <= values.length; channel++) {
+                values[channel - 1] = getEffectiveChannel(channel);
             }
+        }
+
+        for (int channel = 1; channel <= values.length; channel++) {
+            CableNetworkManager.trySetSignalAt(
+                    this.level,
+                    this.worldPosition,
+                    Integer.toString(channel),
+                    values[channel - 1]
+            );
         }
     }
 

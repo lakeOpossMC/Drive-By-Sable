@@ -1,6 +1,12 @@
 package edn.lakeopossmc.drivebysable.blocks;
 
+import com.simibubi.create.api.contraption.transformable.TransformableBlockEntity;
 import com.simibubi.create.api.schematic.nbt.PartialSafeNBT;
+import com.simibubi.create.content.contraptions.StructureTransform;
+import edn.lakeopossmc.drivebysable.cable.BackupDriveBounds;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.phys.AABB;
 import dev.ryanhcode.sable.api.schematic.SubLevelSchematicSerializationContext;
 import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
@@ -35,7 +41,7 @@ import net.createmod.catnip.lang.LangBuilder;
 // --- BLOCK ENTITY FOR PRESERVER --- //
 // * This block entity stores information for schematics
 public class NetworkBackupDriveBlockEntity extends BlockEntity
-        implements PartialSafeNBT, IHaveGoggleInformation, WorldSpaceSnapshotHolder {
+        implements PartialSafeNBT, IHaveGoggleInformation, WorldSpaceSnapshotHolder, TransformableBlockEntity {
 
     // * The region capture the player confirmed in the screen
     @Nullable
@@ -486,6 +492,49 @@ public class NetworkBackupDriveBlockEntity extends BlockEntity
     public int getRegionRotation() {
         return this.regionRotation;
     }
+
+    //#region // --- TURNED BY A SCHEMATIC OR CONTRAPTION --- //
+    @Override
+    public void transform(final BlockEntity blockEntity, final StructureTransform transform) {
+        if (transform.rotationAxis != null && transform.rotationAxis != Direction.Axis.Y) {
+            return;
+        }
+
+        final Rotation rotation = transform.rotation == null ? Rotation.NONE : transform.rotation;
+        final Mirror mirror = transform.mirror == null ? Mirror.NONE : transform.mirror;
+        if (rotation == Rotation.NONE && mirror == Mirror.NONE) {
+            return;
+        }
+
+        this.boundedSnapshot = CableNetworkManager.transformRelativeSnapshot(this.boundedSnapshot, rotation, mirror);
+        transformRegion(rotation, mirror);
+        setChanged();
+    }
+
+    private void transformRegion(final Rotation rotation, final Mirror mirror) {
+        final int[] offset = {this.regionOffset.getX(), this.regionOffset.getY(), this.regionOffset.getZ()};
+        final int[] size = {this.regionSize.getX(), this.regionSize.getY(), this.regionSize.getZ()};
+        final AABB target = BackupDriveBounds.transformBox(
+                BackupDriveBounds.of(BlockPos.ZERO, offset, size, this.regionRotation), rotation, mirror);
+
+        // * A mirrored box has no rotation that matches it
+        if (mirror != Mirror.NONE) {
+            this.regionOffset = BlockPos.containing(target.minX, target.minY, target.minZ);
+            this.regionSize = BlockPos.containing(target.getXsize(), target.getYsize(), target.getZsize());
+            this.regionRotation = 0;
+            return;
+        }
+
+        // * Keep the box's own rotation and shift the offset
+        final int turned = Math.floorMod(this.regionRotation + rotation.ordinal(), 4);
+        final AABB unshifted = BackupDriveBounds.of(BlockPos.ZERO, offset, size, turned);
+        final BlockPos shift = BlockPos.containing(
+                target.minX - unshifted.minX, target.minY - unshifted.minY, target.minZ - unshifted.minZ);
+
+        this.regionOffset = this.regionOffset.offset(shift.rotate(Rotation.values()[Math.floorMod(-turned, 4)]));
+        this.regionRotation = turned;
+    }
+    //#endregion
 
     public void setRegion(final BlockPos offset, final BlockPos size, final int rotation) {
         this.regionOffset = offset.immutable();

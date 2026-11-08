@@ -33,6 +33,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -3188,6 +3189,45 @@ public final class CableNetworkManager {
         get(level).purgeEndpointsWhere(level, key -> isInPlot(plot, key), reason);
     }
 
+    // * Only connections with both ends inside the plot can travel with it
+    List<SubLevelDimensionTransfer.Carried> internalConnectionsIn(final LevelPlot plot) {
+        final List<SubLevelDimensionTransfer.Carried> carried = new ArrayList<>();
+        for (final Map.Entry<Long, Map<String, Set<CableNetworkSink>>> sourceEntry : sinks.entrySet()) {
+            if (!isInPlot(plot, sourceEntry.getKey())) {
+                continue;
+            }
+            for (final Map.Entry<String, Set<CableNetworkSink>> channelEntry : sourceEntry.getValue().entrySet()) {
+                for (final CableNetworkSink sink : channelEntry.getValue()) {
+                    if (isInPlot(plot, sink.position())) {
+                        carried.add(new SubLevelDimensionTransfer.Carried(sourceEntry.getKey(),
+                                channelEntry.getKey(), sink.position(), sink.direction(), sink.sinkChannel()));
+                    }
+                }
+            }
+        }
+        return carried;
+    }
+
+    int adoptCarried(final List<SubLevelDimensionTransfer.Carried> carried, final int dx, final int dz) {
+        int adopted = 0;
+        for (final SubLevelDimensionTransfer.Carried connection : carried) {
+            final BlockPos source = BlockPos.of(connection.source()).offset(dx, 0, dz);
+            final long sinkKey = BlockPos.of(connection.sink()).offset(dx, 0, dz).asLong();
+            final CableNetworkSink sink = new CableNetworkSink(sinkKey, connection.direction(), connection.sinkChannel());
+
+            if (getOrCreateSinksOnChannel(source, connection.channel()).add(sink)) {
+                addSinkReference(source.asLong(), connection.channel(), sink);
+                adopted++;
+            }
+        }
+
+        if (adopted > 0) {
+            markPlotDirty();
+            dirtyMarker.run();
+        }
+        return adopted;
+    }
+
     private static boolean isInPlot(final LevelPlot plot, final long key) {
         return plot.contains(new ChunkPos(
                 SectionPos.blockToSectionCoord(BlockPos.getX(key)),
@@ -3867,6 +3907,41 @@ public final class CableNetworkManager {
 
         return transformRelativeSnapshotForPlacement(snapshot, schematicBackupPos, context.getSetupTransform());
     }
+
+    // * Only drive relative saves, the rest are pinned to sublevels
+    public static CompoundTag transformRelativeSnapshot(
+            final CompoundTag snapshot,
+            final Rotation rotation,
+            final Mirror mirror
+    ) {
+        if (snapshot == null
+                || (rotation == Rotation.NONE && mirror == Mirror.NONE)
+                || snapshot.getInt(SNAPSHOT_VERSION_KEY) != RELATIVE_SNAPSHOT_VERSION
+                || isSubLevelOwnedBackupSnapshot(snapshot)
+                || !snapshot.contains(CONNECTIONS_KEY, Tag.TAG_LIST)) {
+            return snapshot;
+        }
+
+        final CompoundTag transformed = snapshot.copy();
+        for (final Tag entry : transformed.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)) {
+            if (!(entry instanceof final CompoundTag connection) || !isReadable(connection)) {
+                continue;
+            }
+
+            connection.putLong(SOURCE_KEY, BackupDriveBounds.transformDelta(
+                    BlockPos.of(connection.getLong(SOURCE_KEY)), rotation, mirror).asLong());
+            connection.putLong(SINK_KEY, BackupDriveBounds.transformDelta(
+                    BlockPos.of(connection.getLong(SINK_KEY)), rotation, mirror).asLong());
+
+            if (!isModuleSinkTag(connection)) {
+                final Direction direction = Direction.from3DDataValue(connection.getByte(DIRECTION_KEY));
+                connection.putByte(DIRECTION_KEY,
+                        (byte) BackupDriveBounds.transformDirection(direction, rotation, mirror).get3DDataValue());
+            }
+        }
+
+        return transformed;
+    }
     //#endregion
 
     public boolean hasSinks(final BlockPos pos, final String channel) {
@@ -3986,11 +4061,6 @@ public final class CableNetworkManager {
                 final Direction transformedDirection = transformDirection(direction, schematicBackupPos, setupTransform);
                 connection.putByte(DIRECTION_KEY, (byte) transformedDirection.get3DDataValue());
             }
-        }
-
-        final Direction savedFacing = Direction.byName(transformed.getString(FACING_KEY));
-        if (savedFacing != null) {
-            transformed.putString(FACING_KEY, transformDirection(savedFacing, schematicBackupPos, setupTransform).getName());
         }
 
         return transformed;

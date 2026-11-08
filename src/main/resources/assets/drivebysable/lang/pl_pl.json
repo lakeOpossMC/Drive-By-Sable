@@ -829,5 +829,26 @@
   "advancement.drivebysable.network_cut": "Ciach, ciach",
   "advancement.drivebysable.network_cut.desc": "Mam nadzieję, że to było celowe!\n§7(Ukryte osiągnięcie)",
   "advancement.drivebysable.overstressed": "Scotty, potrzebuję więcej mocy!",
-  "advancement.drivebysable.overstressed.desc": "Wycisnąłem z niej wszystko, kapitanie! Więcej już nie wytrzyma!\n§7(Ukryte osiągnięcie)"
+  "advancement.drivebysable.overstressed.desc": "Wycisnąłem z niej wszystko, kapitanie! Więcej już nie wytrzyma!\n§7(Ukryte osiągnięcie)",
+
+  "drivebysable.display_source.integrated_sensor_bus.data": "Dane zintegrowanej magistrali czujników",
+  "drivebysable.display_source.integrated_sensor_bus.relative_speed_x": "Prędkość względna X",
+  "drivebysable.display_source.integrated_sensor_bus.relative_speed_y": "Prędkość względna Y",
+  "drivebysable.display_source.integrated_sensor_bus.relative_speed_z": "Prędkość względna Z",
+  "drivebysable.display_source.integrated_sensor_bus.air_pressure": "Ciśnienie powietrza",
+  "drivebysable.display_source.integrated_sensor_bus.height": "Wysokość",
+  "drivebysable.display_source.integrated_sensor_bus.x_angle": "Kąt X",
+  "drivebysable.display_source.integrated_sensor_bus.z_angle": "Kąt Z",
+  "drivebysable.display_source.integrated_sensor_bus.target_distance": "Odległość do celu",
+  "drivebysable.display_source.integrated_sensor_bus.target_eta": "Czas do celu",
+  "drivebysable.display_source.integrated_sensor_bus.global_speed_x": "Prędkość globalna X",
+  "drivebysable.display_source.integrated_sensor_bus.global_speed_y": "Prędkość globalna Y",
+  "drivebysable.display_source.integrated_sensor_bus.global_speed_z": "Prędkość globalna Z",
+  "drivebysable.display_source.integrated_sensor_bus.y_angle": "Kąt Y",
+  "drivebysable.display_source.integrated_sensor_bus.coordinates": "Współrzędne",
+  "drivebysable.display_source.integrated_sensor_bus.target_coordinates": "Współrzędne celu",
+  "drivebysable.display_source.integrated_sensor_bus.heading": "Kurs",
+  "drivebysable.display_source.integrated_sensor_bus.angle_delta": "Różnica kąta",
+  "drivebysable.display_source.integrated_sensor_bus.average_speed": "Średnia prędkość",
+  "drivebysable.display_source.integrated_sensor_bus.disabled": "Wył."
 }

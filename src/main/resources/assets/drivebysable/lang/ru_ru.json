@@ -829,5 +829,26 @@
   "advancement.drivebysable.network_cut": "Чик-чик",
   "advancement.drivebysable.network_cut.desc": "Надеюсь, так и было задумано!\n§7(Секретное достижение)",
   "advancement.drivebysable.overstressed": "Скотти, больше мощности!",
-  "advancement.drivebysable.overstressed.desc": "Я выжал из неё всё, что мог, капитан! Она больше не выдержит!\n§7(Секретное достижение)"
+  "advancement.drivebysable.overstressed.desc": "Я выжал из неё всё, что мог, капитан! Она больше не выдержит!\n§7(Секретное достижение)",
+
+  "drivebysable.display_source.integrated_sensor_bus.data": "Данные интегрированной шины датчиков",
+  "drivebysable.display_source.integrated_sensor_bus.relative_speed_x": "Относительная скорость X",
+  "drivebysable.display_source.integrated_sensor_bus.relative_speed_y": "Относительная скорость Y",
+  "drivebysable.display_source.integrated_sensor_bus.relative_speed_z": "Относительная скорость Z",
+  "drivebysable.display_source.integrated_sensor_bus.air_pressure": "Давление воздуха",
+  "drivebysable.display_source.integrated_sensor_bus.height": "Высота",
+  "drivebysable.display_source.integrated_sensor_bus.x_angle": "Угол X",
+  "drivebysable.display_source.integrated_sensor_bus.z_angle": "Угол Z",
+  "drivebysable.display_source.integrated_sensor_bus.target_distance": "Расстояние до цели",
+  "drivebysable.display_source.integrated_sensor_bus.target_eta": "Время до цели",
+  "drivebysable.display_source.integrated_sensor_bus.global_speed_x": "Глобальная скорость X",
+  "drivebysable.display_source.integrated_sensor_bus.global_speed_y": "Глобальная скорость Y",
+  "drivebysable.display_source.integrated_sensor_bus.global_speed_z": "Глобальная скорость Z",
+  "drivebysable.display_source.integrated_sensor_bus.y_angle": "Угол Y",
+  "drivebysable.display_source.integrated_sensor_bus.coordinates": "Координаты",
+  "drivebysable.display_source.integrated_sensor_bus.target_coordinates": "Координаты цели",
+  "drivebysable.display_source.integrated_sensor_bus.heading": "Курс",
+  "drivebysable.display_source.integrated_sensor_bus.angle_delta": "Разница углов",
+  "drivebysable.display_source.integrated_sensor_bus.average_speed": "Средняя скорость",
+  "drivebysable.display_source.integrated_sensor_bus.disabled": "Выкл."
 }

@@ -15,6 +15,7 @@ public final class SubLevelPlotCleanup {
 
     // * Must run before any level is constructed
     public static void register() {
+        SubLevelDimensionTransfer.register();
         SableEventPlatform.INSTANCE.onSubLevelContainerReady((level, container) -> {
             if (level instanceof final ServerLevel serverLevel) {
                 container.addObserver(new Observer(serverLevel));
@@ -27,6 +28,7 @@ public final class SubLevelPlotCleanup {
         @Override
         public void onSubLevelAdded(final SubLevel subLevel) {
             CableNetworkManager.onSubLevelLoaded(this.level, subLevel.getPlot());
+            SubLevelDimensionTransfer.arrived(this.level, subLevel);
         }
 
         @Override
@@ -35,6 +37,9 @@ public final class SubLevelPlotCleanup {
             if (reason != SubLevelRemovalReason.REMOVED) {
                 return;
             }
+
+            // * Kept for a moment in case it reappears in another dimension
+            SubLevelDimensionTransfer.departing(this.level, subLevel);
 
             // * Called before Sable forgets the plot
             CableNetworkManager.purgeRemovedPlot(
