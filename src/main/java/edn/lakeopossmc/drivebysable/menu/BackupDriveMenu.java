@@ -10,6 +10,7 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.DataSlot;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -17,11 +18,17 @@ import net.minecraft.world.level.Level;
 
 import javax.annotation.Nullable;
 import edn.lakeopossmc.drivebysable.CableConfig;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 // --- BACKUP DRIVE MENU --- //
 public class BackupDriveMenu extends AbstractContainerMenu {
 
     public static final int CABLE_SLOT = 0;
+
+    // * A save can need more than one stack of Cables, so the slot is not held to the stack size
+    public static final int MAX_CABLES = 1024;
 
     private static final int PLAYER_INVENTORY_START = 1;
     private static final int PLAYER_INVENTORY_END = PLAYER_INVENTORY_START + 36;
@@ -74,7 +81,17 @@ public class BackupDriveMenu extends AbstractContainerMenu {
                 ? backupDrive
                 : null;
 
-        this.cableContainer = new SimpleContainer(1);
+        this.cableContainer = new SimpleContainer(1) {
+            @Override
+            public int getMaxStackSize() {
+                return MAX_CABLES;
+            }
+
+            @Override
+            public int getMaxStackSize(final ItemStack stack) {
+                return MAX_CABLES;
+            }
+        };
 
         final Player owner = playerInventory.player;
 
@@ -88,6 +105,22 @@ public class BackupDriveMenu extends AbstractContainerMenu {
             @Override
             public boolean isActive() {
                 return cablesRequired(owner);
+            }
+
+            @Override
+            public int getMaxStackSize() {
+                return MAX_CABLES;
+            }
+
+            @Override
+            public int getMaxStackSize(final ItemStack stack) {
+                return MAX_CABLES;
+            }
+
+            // * Taken out one normal stack at a time, so an oversized stack never leaves the slot
+            @Override
+            public Optional<ItemStack> tryRemove(final int count, final int decrement, final Player player) {
+                return super.tryRemove(Math.min(count, getItem().getMaxStackSize()), decrement, player);
             }
         });
 
@@ -211,12 +244,29 @@ public class BackupDriveMenu extends AbstractContainerMenu {
         return original;
     }
 
-    // * Give the cables back
+    // * A hotbar swap would move the whole oversized stack into the player's inventory
+    @Override
+    public void clicked(final int slotId, final int button, final ClickType clickType, final Player player) {
+        if (clickType == ClickType.SWAP && slotId == CABLE_SLOT) {
+            final ItemStack cables = getCableStack();
+            if (cables.getCount() > cables.getMaxStackSize()) {
+                return;
+            }
+        }
+        super.clicked(slotId, button, clickType, player);
+    }
+
+    // * Give the cables back, split into normal stacks
     @Override
     public void removed(final Player player) {
         super.removed(player);
         if (!player.level().isClientSide()) {
-            clearContainer(player, cableContainer);
+            final ItemStack cables = cableContainer.removeItemNoUpdate(0);
+            final List<ItemStack> stacks = new ArrayList<>();
+            while (!cables.isEmpty()) {
+                stacks.add(cables.split(cables.getMaxStackSize()));
+            }
+            clearContainer(player, new SimpleContainer(stacks.toArray(new ItemStack[0])));
         }
     }
 
